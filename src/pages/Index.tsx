@@ -243,17 +243,25 @@ const Index = () => {
                     </div>
                   </div>
                 </div>
-                {/* Temperatura estimada em tempo real */}
+                {/* DNF 20°C results */}
                 <Separator className="my-4" />
-                <div className="flex items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ResultField label="DNF 20°C (NF)" value={`${fmt(inputs.massaEspecifica20NF > 0 ? inputs.massaEspecifica20NF : undefined, 1)} kg/m³`} />
+                  <ResultField label="DNF 20°C (NF)" value={`${fmt(results?.dnf20, 4)} kg/l`} />
+                </div>
+
+                {/* Temperatura estimada + Temperatura CT lado a lado */}
+                <Separator className="my-4" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                   <ResultField
                     label="Temp. Estimada de Carregamento"
                     value={`${temperaturaEstimada?.toFixed(1) ?? "—"} °C`}
                     highlight
                   />
-                  {temperaturaEstimada !== null && (
-                    <p className="text-xs text-muted-foreground">Calculada em tempo real a partir dos dados da NF</p>
-                  )}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Temperatura do CT - TCT (°C)</Label>
+                    <Input type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e) => updateField("temperaturaCT", e.target.value)} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -300,14 +308,12 @@ const Index = () => {
                   {/* Coluna kg/m³ */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">em kg/m³</p>
-                    <ResultField label="DNF 20°C (NF)" value={`${fmt(inputs.massaEspecifica20NF > 0 ? inputs.massaEspecifica20NF : undefined, 1)} kg/m³`} />
                     <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20 ? results.dac20 * 1000 : undefined, 1)} kg/m³`} highlight />
                     <ResultField label="Diferença (DAC - DNF)" value={`${fmt(results?.qualidadeDiff ? results.qualidadeDiff * 1000 : undefined, 1)} kg/m³`} highlight />
                   </div>
                   {/* Coluna kg/l */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">em kg/l</p>
-                    <ResultField label="DNF 20°C (NF)" value={`${fmt(results?.dnf20, 4)} kg/l`} />
                     <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20, 4)} kg/l`} highlight />
                     <ResultField label="Diferença (DAC - DNF)" value={fmt(results?.qualidadeDiff, 4)} highlight />
                   </div>
@@ -324,10 +330,6 @@ const Index = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-1.5 mb-4 max-w-xs">
-                  <Label className="text-xs">Temperatura do CT - TCT (°C)</Label>
-                  <Input type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e) => updateField("temperaturaCT", e.target.value)} />
-                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <ResultField label="DAC 20°C" value={`${fmt(results?.dac20CT)} kg/l`} />
                   <ResultField label="FCCT (Fator Correção)" value={fmt(results?.fcct, 6)} highlight />
