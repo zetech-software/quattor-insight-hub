@@ -1,0 +1,1 @@
+ALTER TABLE public.calculations ADD COLUMN municipio_base text;
