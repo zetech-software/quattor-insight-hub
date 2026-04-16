@@ -6,11 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
+import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { calculateDiesel, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { session } = useAuth();
+  const [saving, setSaving] = useState(false);
   const [inputs, setInputs] = useState<DieselInputs>({
     data: new Date().toISOString().split("T")[0],
     numeroNF: "",
@@ -57,12 +61,47 @@ const Index = () => {
     });
   };
 
-  const handleSave = () => {
-    if (!results) {
+  const handleSave = async () => {
+    if (!results || !session?.user?.id) {
       toast({ title: "Erro", description: "Preencha todos os campos para salvar.", variant: "destructive" });
       return;
     }
-    toast({ title: "Cálculo salvo!", description: "O cálculo foi adicionado ao histórico." });
+
+    setSaving(true);
+    const { error } = await supabase.from("calculations").insert({
+      user_id: session.user.id,
+      data: inputs.data,
+      numero_nf: inputs.numeroNF || null,
+      placa_ct: inputs.placaCT || null,
+      volume_nf: inputs.volumeNF,
+      peso_liquido: inputs.pesoLiquido,
+      massa_especifica_20_nf: inputs.massaEspecifica20NF,
+      temperatura_amostra: inputs.temperaturaAmostra,
+      densidade_amostra: inputs.densidadeAmostra,
+      temperatura_ct: inputs.temperaturaCT,
+      dnf20: results.dnf20,
+      fcnf: results.fcnf,
+      temperatura_estimada: results.temperaturaEstimada,
+      dac20: results.dac20,
+      qualidade_diff: results.qualidadeDiff,
+      vct_min: results.vctMin,
+      vct: results.vct,
+      vct_max: results.vctMax,
+      fcct: results.fcct,
+      v20: results.v20,
+      volume_recebido: results.volumeRecebido,
+      volume_atestado: results.volumeAtestado,
+      diferenca_volume: results.diferencaVolume,
+      situacao: results.situacao,
+    });
+    setSaving(false);
+
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Cálculo salvo!", description: "O cálculo foi adicionado ao histórico." });
+      handleReset();
+    }
   };
 
   const fmt = (n: number | undefined, decimals = 4) =>
@@ -89,8 +128,8 @@ const Index = () => {
               <RotateCcw className="h-4 w-4 mr-1" />
               Limpar
             </Button>
-            <Button size="sm" onClick={handleSave}>
-              <Save className="h-4 w-4 mr-1" />
+            <Button size="sm" onClick={handleSave} disabled={saving || !results}>
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar
             </Button>
           </div>
