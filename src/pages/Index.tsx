@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info } from "lucide-react";
 import { calculateDiesel, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
