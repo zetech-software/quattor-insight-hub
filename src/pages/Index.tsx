@@ -308,28 +308,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 3 - VCT */}
+            {/* Seção 3 - Fator de Correção do CT */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
-                  Cálculo VCT — Volume na Temperatura de Recebimento
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <ResultField label="VCT Mínimo (-0,06%)" value={`${fmt(results?.vctMin, 2)} L`} />
-                  <ResultField label="VCT" value={`${fmt(results?.vct, 2)} L`} highlight />
-                  <ResultField label="VCT Máximo (+0,05%)" value={`${fmt(results?.vctMax, 2)} L`} />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Seção 4 - Fator de Correção do CT */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
                   Fator de Correção do CT
                 </CardTitle>
               </CardHeader>
@@ -342,6 +325,23 @@ const Index = () => {
                   <ResultField label="DAC 20°C" value={`${fmt(results?.dac20CT)} kg/l`} />
                   <ResultField label="FCCT (Fator Correção)" value={fmt(results?.fcct, 6)} highlight />
                   <ResultField label="Volume 20°C (V20)" value={`${fmt(results?.v20, 2)} L`} highlight />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Seção 4 - VCT */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-heading flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
+                  Cálculo VCT — Volume na Temperatura de Recebimento
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <ResultField label="VCT Mínimo (-0,06%)" value={`${fmt(results?.vctMin, 2)} L`} />
+                  <ResultField label="VCT" value={`${fmt(results?.vct, 2)} L`} highlight />
+                  <ResultField label="VCT Máximo (+0,05%)" value={`${fmt(results?.vctMax, 2)} L`} />
                 </div>
               </CardContent>
             </Card>
