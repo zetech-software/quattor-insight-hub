@@ -15,6 +15,20 @@ import { useAuth } from "@/hooks/useAuth";
 
 const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT"] as const;
 
+function validateDensity(value: string, unit: "kg/m³" | "kg/l"): string | null {
+  if (!value || value.trim() === "") return null;
+  const num = parseFloat(value);
+  if (isNaN(num)) return "Valor inválido";
+  if (unit === "kg/m³") {
+    if (Math.floor(Math.abs(num)) > 999) return "Máximo 3 dígitos inteiros para kg/m³ (ex: 834.5)";
+  } else {
+    if (num >= 1) return "Em kg/l o valor deve ser menor que 1 (ex: 0.8345)";
+    const parts = value.split(".");
+    if (parts[1] && parts[1].length > 4) return "Máximo 4 casas decimais para kg/l (ex: 0.8345)";
+  }
+  return null;
+}
+
 const Index = () => {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -54,6 +68,11 @@ const Index = () => {
     })(),
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
   }), [rawInputs, massaUnit, daUnit]);
+
+  // Validation errors for density fields
+  const massaError = useMemo(() => validateDensity(rawInputs.massaEspecifica20NF, massaUnit), [rawInputs.massaEspecifica20NF, massaUnit]);
+  const daError = useMemo(() => validateDensity(rawInputs.densidadeAmostra, daUnit), [rawInputs.densidadeAmostra, daUnit]);
+  const hasValidationErrors = !!massaError || !!daError;
 
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
@@ -172,7 +191,7 @@ const Index = () => {
               <RotateCcw className="h-4 w-4 mr-1" />
               Limpar
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving || !results}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !results || hasValidationErrors}>
               {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar
             </Button>
@@ -223,7 +242,7 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Massa Específica a 20°C</Label>
                     <div className="flex gap-1">
-                      <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className="flex-1" />
+                      <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className={`flex-1 ${massaError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
                       <div className="flex rounded-md border border-input overflow-hidden shrink-0">
                         <button
                           type="button"
@@ -241,6 +260,7 @@ const Index = () => {
                         </button>
                       </div>
                     </div>
+                    {massaError && <p className="text-[11px] text-destructive">{massaError}</p>}
                   </div>
                 </div>
                 {/* DNF 20°C results */}
@@ -283,7 +303,7 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Massa Específica Amostra - DA</Label>
                     <div className="flex gap-1">
-                      <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} className="flex-1" />
+                      <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} className={`flex-1 ${daError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
                       <div className="flex rounded-md border border-input overflow-hidden shrink-0">
                         <button
                           type="button"
@@ -301,6 +321,7 @@ const Index = () => {
                         </button>
                       </div>
                     </div>
+                    {daError && <p className="text-[11px] text-destructive">{daError}</p>}
                   </div>
                 </div>
                 <Separator className="my-3" />
