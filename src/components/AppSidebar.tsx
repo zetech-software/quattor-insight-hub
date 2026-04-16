@@ -2,7 +2,7 @@ import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut } fro
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import logo from "@/assets/qu4ttuor-logo.png";
+import logo from "@/assets/qu4ttuor-logo.svg";
 import {
   Sidebar,
   SidebarContent,

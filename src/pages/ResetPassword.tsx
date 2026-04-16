@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/qu4ttuor-logo.png";
+import logo from "@/assets/qu4ttuor-logo.svg";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
