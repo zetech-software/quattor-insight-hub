@@ -191,7 +191,7 @@ const Index = () => {
               <RotateCcw className="h-4 w-4 mr-1" />
               Limpar
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving || !results}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !results || hasValidationErrors}>
               {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar
             </Button>
