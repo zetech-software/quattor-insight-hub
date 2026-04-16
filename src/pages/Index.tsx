@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
 import { calculateDiesel, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,6 +171,7 @@ const Index = () => {
     n !== undefined ? n.toFixed(decimals) : "—";
 
   const isNegative = results && results.diferencaVolume < 0;
+  const isZero = results && results.diferencaVolume === 0;
 
   return (
     <AppLayout>
@@ -395,19 +396,21 @@ const Index = () => {
                 <SummaryRow label="Volume 20°C (V20)" value={`${fmt(results?.v20, 0)} L`} />
 
                 {results && (
-                  <div className={`mt-4 p-4 rounded-xl text-center ${isNegative ? "bg-destructive/10" : "bg-green-50 dark:bg-green-950/30"}`}>
+                  <div className={`mt-4 p-4 rounded-xl text-center ${isZero ? "bg-muted" : isNegative ? "bg-destructive/10" : "bg-green-50 dark:bg-green-950/30"}`}>
                     <div className="flex items-center justify-center gap-2 mb-1">
-                      {isNegative ? (
+                      {isZero ? (
+                        <Minus className="h-5 w-5 text-muted-foreground" />
+                      ) : isNegative ? (
                         <ArrowDown className="h-5 w-5 text-destructive" />
                       ) : (
                         <ArrowUp className="h-5 w-5 text-green-600" />
                       )}
-                      <Badge variant={isNegative ? "destructive" : "default"} className={!isNegative ? "bg-green-600" : ""}>
-                        {isNegative ? "Abaixo" : "Acima"}
+                      <Badge variant={isZero ? "secondary" : isNegative ? "destructive" : "default"} className={isZero ? "" : !isNegative ? "bg-green-600" : ""}>
+                        {isZero ? "Igual" : isNegative ? "Abaixo" : "Acima"}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{results.situacao}</p>
-                    <p className={`text-lg font-bold font-heading ${isNegative ? "text-destructive" : "text-green-600"}`}>
+                    <p className={`text-lg font-bold font-heading ${isZero ? "text-muted-foreground" : isNegative ? "text-destructive" : "text-green-600"}`}>
                       {fmt(Math.abs(results.diferencaVolume), 0)} L
                     </p>
                   </div>
