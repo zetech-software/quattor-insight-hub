@@ -133,22 +133,15 @@ export function estimateLoadingTemperature(
   pesoLiquido: number, // kg
   massaEspecifica20: number // kg/m³
 ): number | null {
-  // Densidade da carga = peso / volume (em g/cm³)
-  const densidadeCarga = pesoLiquido / volumeNF; // g/cm³ equivalent (kg/L)
+  // Densidade da carga = peso / volume (em kg/L = g/cm³)
+  const densidadeCarga = pesoLiquido / volumeNF;
 
-  // Get coefficients for the density range
-  const range = TEMP_DENSITY_RANGES.find(r => {
-    const densKgM3 = massaEspecifica20;
-    const densGCm3 = densKgM3 / 1000;
-    return densGCm3 >= r.min && densGCm3 <= r.max;
-  });
+  // Use CNP table coefficients for the NF density
+  const densGCm3 = massaEspecifica20 / 1000;
+  const coeffs = findCNPCoefficients(densGCm3);
+  if (!coeffs) return null;
 
-  if (!range) return null;
-
-  const A1 = range.A1;
-  const A2 = range.A2;
-  const B1 = -0.00000049;
-  const B2 = 0.0000006;
+  const { a1: A1, a2: A2, b1: B1, b2: B2 } = coeffs;
 
   // Calculate P values for temperature table (same as NAO EDITAR formulas)
   const A1_1 = (8 * A1 + 64 * B1) * (A2 + 16 * B2);
