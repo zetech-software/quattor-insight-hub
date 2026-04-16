@@ -47,9 +47,12 @@ const Index = () => {
       return massaUnit === "kg/l" ? v * 1000 : v;
     })(),
     temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
-    densidadeAmostra: parseFloat(rawInputs.densidadeAmostra) || 0,
+    densidadeAmostra: (() => {
+      const v = parseFloat(rawInputs.densidadeAmostra) || 0;
+      return daUnit === "kg/m³" ? v / 1000 : v;
+    })(),
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
-  }), [rawInputs, massaUnit]);
+  }), [rawInputs, massaUnit, daUnit]);
 
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
