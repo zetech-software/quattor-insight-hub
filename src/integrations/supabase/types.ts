@@ -36,6 +36,7 @@ export type Database = {
           temperatura_estimada: number | null
           user_id: string
           v20: number | null
+          valor_nf: number | null
           vct: number | null
           vct_max: number | null
           vct_min: number | null
@@ -64,6 +65,7 @@ export type Database = {
           temperatura_estimada?: number | null
           user_id: string
           v20?: number | null
+          valor_nf?: number | null
           vct?: number | null
           vct_max?: number | null
           vct_min?: number | null
@@ -92,6 +94,7 @@ export type Database = {
           temperatura_estimada?: number | null
           user_id?: string
           v20?: number | null
+          valor_nf?: number | null
           vct?: number | null
           vct_max?: number | null
           vct_min?: number | null

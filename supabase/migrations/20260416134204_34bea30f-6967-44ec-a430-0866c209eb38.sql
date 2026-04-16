@@ -1,0 +1,1 @@
+ALTER TABLE public.calculations ADD COLUMN valor_nf numeric DEFAULT NULL;
