@@ -69,6 +69,11 @@ const Index = () => {
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
   }), [rawInputs, massaUnit, daUnit]);
 
+  // Validation errors for density fields
+  const massaError = useMemo(() => validateDensity(rawInputs.massaEspecifica20NF, massaUnit), [rawInputs.massaEspecifica20NF, massaUnit]);
+  const daError = useMemo(() => validateDensity(rawInputs.densidadeAmostra, daUnit), [rawInputs.densidadeAmostra, daUnit]);
+  const hasValidationErrors = !!massaError || !!daError;
+
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
   };
