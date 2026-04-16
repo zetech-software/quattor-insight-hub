@@ -210,8 +210,26 @@ const Index = () => {
                     <Input type="number" step="any" value={rawInputs.pesoLiquido} onChange={(e) => updateField("pesoLiquido", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Massa Específica a 20°C (kg/m³)</Label>
-                    <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} />
+                    <Label className="text-xs">Massa Específica a 20°C</Label>
+                    <div className="flex gap-1">
+                      <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className="flex-1" />
+                      <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                        <button
+                          type="button"
+                          className={`px-2 py-1 text-[10px] font-medium transition-colors ${massaUnit === "kg/m³" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                          onClick={() => setMassaUnit("kg/m³")}
+                        >
+                          kg/m³
+                        </button>
+                        <button
+                          type="button"
+                          className={`px-2 py-1 text-[10px] font-medium transition-colors ${massaUnit === "kg/l" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                          onClick={() => setMassaUnit("kg/l")}
+                        >
+                          kg/l
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Temperatura estimada em tempo real */}
