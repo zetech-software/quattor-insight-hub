@@ -1,20 +1,33 @@
 
 
-## Plano: Reorganizar campos da Seção 1 e Seção 2
+## Plano: Validação de digitação nos campos de Massa Específica
 
-### O que muda
+### Problema
+O usuário pode digitar valores fora da faixa esperada nos campos de Massa Específica a 20°C (NF) e Massa Específica da Amostra (DA). Exemplo: digitar `8345` em kg/m³ (deveria ter no máximo 3 dígitos inteiros, ex: `834.5`) ou `8.345` em kg/l (deveria ser `0.xxxx`).
 
-1. **Seção 1 — Informações da Nota Fiscal**: Após os campos de input atuais, adicionar:
-   - Os dois campos "cinza" de **DNF 20°C (NF)** — um em kg/m³ e outro em kg/l — que hoje ficam na Seção 2. Eles aparecem assim que o usuário preenche a Massa Específica a 20°C.
-   - Na parte inferior da Seção 1, colocar lado a lado: **Temperatura Estimada de Carregamento** (resultado calculado) e o campo de input **Temperatura do CT - TCT (°C)** (que hoje fica na Seção 3).
+### Regras de validação
 
-2. **Seção 2 — Análise de Qualidade**: Remover as linhas de DNF 20°C (NF) que foram movidas para a Seção 1. Manter apenas os inputs (TA e DA) e os resultados de DAC 20°C e Diferença.
+| Unidade | Formato válido | Exemplo | Regra |
+|---------|---------------|---------|-------|
+| kg/m³ | até 3 dígitos inteiros + decimais | `834.5`, `820.0` | parte inteira ≤ 999 |
+| kg/l | `0,xxxx` (até 4 casas decimais) | `0.8345` | valor < 1 e até 4 casas decimais |
 
-3. **Seção 3 — Fator de Correção do CT**: Remover o input de Temperatura do CT (movido para Seção 1). Manter apenas os resultados calculados (DAC 20°C, FCCT, V20).
+### O que será feito
 
-### Detalhes técnicos
+1. **Criar função de validação** que recebe o valor string e a unidade selecionada, retornando uma mensagem de erro ou `null`.
+   - Para **kg/m³**: erro se a parte inteira tiver mais de 3 dígitos (ex: `8345` → erro)
+   - Para **kg/l**: erro se o valor ≥ 1 ou tiver mais de 4 casas decimais (ex: `1.234` ou `0.83456` → erro)
 
-- Arquivo alterado: `src/pages/Index.tsx`
-- Nenhuma alteração em lógica de cálculo ou banco de dados
-- Layout da parte inferior da Seção 1: grid de 2 colunas com os ResultFields de DNF em kg/m³ e kg/l, seguido de outra linha com Temp. Estimada (ResultField) e input de Temperatura CT lado a lado
+2. **Exibir alerta visual** abaixo de cada campo quando o valor for inválido:
+   - Borda vermelha no input (`border-destructive`)
+   - Mensagem de erro em texto pequeno vermelho abaixo do campo
+
+3. **Aplicar nos dois campos**:
+   - Massa Específica a 20°C (NF) — usa `massaUnit` (`kg/m³` ou `kg/l`)
+   - Massa Específica Amostra - DA — usa `daUnit` (`kg/l` ou `kg/m³`)
+
+4. **Bloquear salvamento** se houver erro de validação (botão Salvar desabilitado + toast de aviso).
+
+### Arquivo alterado
+- `src/pages/Index.tsx` — adicionar função de validação, estados de erro com `useMemo`, estilização condicional nos inputs e mensagens de erro.
 
