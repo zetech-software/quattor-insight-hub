@@ -180,30 +180,30 @@ const Index = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Data</Label>
-                    <Input type="date" value={inputs.data} onChange={(e) => updateField("data", e.target.value)} />
+                    <Input type="date" value={rawInputs.data} onChange={(e) => updateField("data", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Nº Nota Fiscal</Label>
-                    <Input placeholder="000000" value={inputs.numeroNF} onChange={(e) => updateField("numeroNF", e.target.value)} />
+                    <Input placeholder="000000" value={rawInputs.numeroNF} onChange={(e) => updateField("numeroNF", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Placa do CT</Label>
-                    <Input placeholder="ABC-1234" value={inputs.placaCT} onChange={(e) => updateField("placaCT", e.target.value)} />
+                    <Input placeholder="ABC-1234" value={rawInputs.placaCT} onChange={(e) => updateField("placaCT", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Volume NF (Litros)</Label>
-                    <Input type="number" step="0.01" value={inputs.volumeNF || ""} onChange={(e) => updateField("volumeNF", parseFloat(e.target.value) || 0)} />
+                    <Input type="number" step="any" value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Peso Líquido (kg)</Label>
-                    <Input type="number" step="0.01" value={inputs.pesoLiquido || ""} onChange={(e) => updateField("pesoLiquido", parseFloat(e.target.value) || 0)} />
+                    <Input type="number" step="any" value={rawInputs.pesoLiquido} onChange={(e) => updateField("pesoLiquido", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Massa Específica a 20°C (kg/m³)</Label>
-                    <Input type="number" step="0.1" value={inputs.massaEspecifica20NF || ""} onChange={(e) => updateField("massaEspecifica20NF", parseFloat(e.target.value) || 0)} />
+                    <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} />
                   </div>
                 </div>
-                {/* Temperatura estimada em tempo real — aparece assim que os 3 campos acima são preenchidos */}
+                {/* Temperatura estimada em tempo real */}
                 <Separator className="my-4" />
                 <div className="flex items-center gap-4">
                   <ResultField
@@ -230,16 +230,29 @@ const Index = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Temperatura da Amostra - TA (°C)</Label>
-                    <Input type="number" step="0.1" value={inputs.temperaturaAmostra || ""} onChange={(e) => updateField("temperaturaAmostra", parseFloat(e.target.value) || 0)} />
+                    <Input type="number" step="any" value={rawInputs.temperaturaAmostra} onChange={(e) => updateField("temperaturaAmostra", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Massa Específica Amostra - DA (kg/l)</Label>
-                    <Input type="number" step="0.0001" value={inputs.densidadeAmostra || ""} onChange={(e) => updateField("densidadeAmostra", parseFloat(e.target.value) || 0)} />
+                    <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} />
                   </div>
                 </div>
+                <Separator className="my-3" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20)} kg/l`} highlight />
-                  <ResultField label="Qualidade (DAC - DNF)" value={fmt(results?.qualidadeDiff)} highlight />
+                  {/* Coluna kg/m³ */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">em kg/m³</p>
+                    <ResultField label="DNF 20°C (NF)" value={`${fmt(inputs.massaEspecifica20NF > 0 ? inputs.massaEspecifica20NF : undefined, 1)} kg/m³`} />
+                    <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20 ? results.dac20 * 1000 : undefined, 1)} kg/m³`} highlight />
+                    <ResultField label="Diferença (DAC - DNF)" value={`${fmt(results?.qualidadeDiff ? results.qualidadeDiff * 1000 : undefined, 1)} kg/m³`} highlight />
+                  </div>
+                  {/* Coluna kg/l */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">em kg/l</p>
+                    <ResultField label="DNF 20°C (NF)" value={`${fmt(results?.dnf20, 4)} kg/l`} />
+                    <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20, 4)} kg/l`} highlight />
+                    <ResultField label="Diferença (DAC - DNF)" value={fmt(results?.qualidadeDiff, 4)} highlight />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -272,7 +285,7 @@ const Index = () => {
               <CardContent>
                 <div className="space-y-1.5 mb-4 max-w-xs">
                   <Label className="text-xs">Temperatura do CT - TCT (°C)</Label>
-                  <Input type="number" step="0.1" value={inputs.temperaturaCT || ""} onChange={(e) => updateField("temperaturaCT", parseFloat(e.target.value) || 0)} />
+                  <Input type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e) => updateField("temperaturaCT", e.target.value)} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <ResultField label="DAC 20°C" value={`${fmt(results?.dac20CT)} kg/l`} />
