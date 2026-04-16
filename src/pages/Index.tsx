@@ -303,7 +303,7 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Massa Específica Amostra - DA</Label>
                     <div className="flex gap-1">
-                      <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} className="flex-1" />
+                      <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} className={`flex-1 ${daError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
                       <div className="flex rounded-md border border-input overflow-hidden shrink-0">
                         <button
                           type="button"
@@ -321,6 +321,7 @@ const Index = () => {
                         </button>
                       </div>
                     </div>
+                    {daError && <p className="text-[11px] text-destructive">{daError}</p>}
                   </div>
                 </div>
                 <Separator className="my-3" />
