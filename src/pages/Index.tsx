@@ -41,7 +41,10 @@ const Index = () => {
     placaCT: rawInputs.placaCT,
     volumeNF: parseFloat(rawInputs.volumeNF) || 0,
     pesoLiquido: parseFloat(rawInputs.pesoLiquido) || 0,
-    massaEspecifica20NF: parseFloat(rawInputs.massaEspecifica20NF) || 0,
+    massaEspecifica20NF: (() => {
+      const v = parseFloat(rawInputs.massaEspecifica20NF) || 0;
+      return massaUnit === "kg/l" ? v * 1000 : v;
+    })(),
     temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
     densidadeAmostra: parseFloat(rawInputs.densidadeAmostra) || 0,
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
