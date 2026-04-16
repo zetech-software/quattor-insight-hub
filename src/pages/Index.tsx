@@ -71,7 +71,7 @@ const Index = () => {
   const isNegative = results && results.diferencaVolume < 0;
 
   return (
-    <AppLayout isAdmin={true}>
+    <AppLayout>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
