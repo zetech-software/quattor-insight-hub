@@ -15,6 +15,20 @@ import { useAuth } from "@/hooks/useAuth";
 
 const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT"] as const;
 
+function validateDensity(value: string, unit: "kg/m³" | "kg/l"): string | null {
+  if (!value || value.trim() === "") return null;
+  const num = parseFloat(value);
+  if (isNaN(num)) return "Valor inválido";
+  if (unit === "kg/m³") {
+    if (Math.floor(Math.abs(num)) > 999) return "Máximo 3 dígitos inteiros para kg/m³ (ex: 834.5)";
+  } else {
+    if (num >= 1) return "Em kg/l o valor deve ser menor que 1 (ex: 0.8345)";
+    const parts = value.split(".");
+    if (parts[1] && parts[1].length > 4) return "Máximo 4 casas decimais para kg/l (ex: 0.8345)";
+  }
+  return null;
+}
+
 const Index = () => {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
