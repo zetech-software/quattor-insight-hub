@@ -339,9 +339,9 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <ResultField label="VCT Mínimo (-0,06%)" value={`${fmt(results?.vctMin, 2)} L`} />
-                  <ResultField label="VCT" value={`${fmt(results?.vct, 2)} L`} highlight />
-                  <ResultField label="VCT Máximo (+0,05%)" value={`${fmt(results?.vctMax, 2)} L`} />
+                  <ResultField label="VCT Mínimo (-0,06%)" value={`${fmt(results?.vctMin, 0)} L`} />
+                  <ResultField label="VCT" value={`${fmt(results?.vct, 0)} L`} highlight />
+                  <ResultField label="VCT Máximo (+0,05%)" value={`${fmt(results?.vctMax, 0)} L`} />
                 </div>
               </CardContent>
             </Card>
