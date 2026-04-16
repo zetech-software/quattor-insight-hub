@@ -32,6 +32,18 @@ const Index = () => {
     setInputs((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Real-time temperature estimation (only needs 3 inputs)
+  const temperaturaEstimada = useMemo(() => {
+    if (inputs.volumeNF > 0 && inputs.pesoLiquido > 0 && inputs.massaEspecifica20NF > 0) {
+      try {
+        return estimateLoadingTemperature(inputs.volumeNF, inputs.pesoLiquido, inputs.massaEspecifica20NF);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [inputs.volumeNF, inputs.pesoLiquido, inputs.massaEspecifica20NF]);
+
   const results: DieselResults | null = useMemo(() => {
     if (
       inputs.volumeNF > 0 &&
