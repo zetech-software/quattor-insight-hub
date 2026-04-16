@@ -24,6 +24,7 @@ const Index = () => {
     data: new Date().toISOString().split("T")[0],
     numeroNF: "",
     placaCT: "",
+    valorNF: "",
     volumeNF: "",
     pesoLiquido: "",
     massaEspecifica20NF: "",
