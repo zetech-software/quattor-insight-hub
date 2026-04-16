@@ -18,6 +18,7 @@ const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "tempe
 const Index = () => {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [massaUnit, setMassaUnit] = useState<"kg/m³" | "kg/l">("kg/m³");
 
   // String state for raw input values (preserves decimals while typing)
   const [rawInputs, setRawInputs] = useState<Record<string, string>>({
