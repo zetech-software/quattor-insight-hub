@@ -18,6 +18,7 @@ const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "tempe
 const Index = () => {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [massaUnit, setMassaUnit] = useState<"kg/m³" | "kg/l">("kg/m³");
 
   // String state for raw input values (preserves decimals while typing)
   const [rawInputs, setRawInputs] = useState<Record<string, string>>({
@@ -40,11 +41,14 @@ const Index = () => {
     placaCT: rawInputs.placaCT,
     volumeNF: parseFloat(rawInputs.volumeNF) || 0,
     pesoLiquido: parseFloat(rawInputs.pesoLiquido) || 0,
-    massaEspecifica20NF: parseFloat(rawInputs.massaEspecifica20NF) || 0,
+    massaEspecifica20NF: (() => {
+      const v = parseFloat(rawInputs.massaEspecifica20NF) || 0;
+      return massaUnit === "kg/l" ? v * 1000 : v;
+    })(),
     temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
     densidadeAmostra: parseFloat(rawInputs.densidadeAmostra) || 0,
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
-  }), [rawInputs]);
+  }), [rawInputs, massaUnit]);
 
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
@@ -206,8 +210,26 @@ const Index = () => {
                     <Input type="number" step="any" value={rawInputs.pesoLiquido} onChange={(e) => updateField("pesoLiquido", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Massa Específica a 20°C (kg/m³)</Label>
-                    <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} />
+                    <Label className="text-xs">Massa Específica a 20°C</Label>
+                    <div className="flex gap-1">
+                      <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className="flex-1" />
+                      <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                        <button
+                          type="button"
+                          className={`px-2 py-1 text-[10px] font-medium transition-colors ${massaUnit === "kg/m³" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                          onClick={() => setMassaUnit("kg/m³")}
+                        >
+                          kg/m³
+                        </button>
+                        <button
+                          type="button"
+                          className={`px-2 py-1 text-[10px] font-medium transition-colors ${massaUnit === "kg/l" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                          onClick={() => setMassaUnit("kg/l")}
+                        >
+                          kg/l
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Temperatura estimada em tempo real */}
