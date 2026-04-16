@@ -1,13 +1,19 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { useAuth } from "@/hooks/useAuth";
 import { ReactNode } from "react";
 
 interface AppLayoutProps {
   children: ReactNode;
-  isAdmin?: boolean;
 }
 
-export function AppLayout({ children, isAdmin = false }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
+  const { role, profile } = useAuth();
+  const isAdmin = role === "admin";
+  const initials = profile?.full_name
+    ? profile.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+    : "U";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -17,8 +23,11 @@ export function AppLayout({ children, isAdmin = false }: AppLayoutProps) {
             <SidebarTrigger />
             <div className="flex-1" />
             <div className="flex items-center gap-2">
+              {profile?.full_name && (
+                <span className="text-sm text-muted-foreground hidden md:block">{profile.full_name}</span>
+              )}
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-primary text-xs font-semibold">U</span>
+                <span className="text-primary text-xs font-semibold">{initials}</span>
               </div>
             </div>
           </header>

@@ -19,7 +19,7 @@ const recentActivity = [
 
 const AdminDashboard = () => {
   return (
-    <AppLayout isAdmin={true}>
+    <AppLayout>
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold font-heading">Dashboard Administrativo</h1>

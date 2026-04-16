@@ -32,7 +32,7 @@ const reports = [
 
 const AdminRelatorios = () => {
   return (
-    <AppLayout isAdmin={true}>
+    <AppLayout>
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold font-heading flex items-center gap-2">
