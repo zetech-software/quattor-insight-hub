@@ -7,10 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { History, Search, Download, Eye, Loader2, Trash2 } from "lucide-react";
+import { History, Search, Download, Eye, Loader2, Trash2, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { generateSingleCalculationPDF } from "@/lib/pdfReports";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Calculation = Tables<"calculations">;
@@ -174,7 +175,15 @@ const Historico = () => {
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-heading">Detalhes do Cálculo</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="font-heading">Detalhes do Cálculo</DialogTitle>
+              {selected && (
+                <Button size="sm" variant="outline" onClick={() => generateSingleCalculationPDF(selected)}>
+                  <FileText className="h-4 w-4 mr-1" />
+                  Exportar PDF
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {selected && (
             <div className="space-y-3 text-sm">
