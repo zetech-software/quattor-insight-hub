@@ -48,7 +48,7 @@ const Index = () => {
     temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
     densidadeAmostra: parseFloat(rawInputs.densidadeAmostra) || 0,
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
-  }), [rawInputs]);
+  }), [rawInputs, massaUnit]);
 
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
