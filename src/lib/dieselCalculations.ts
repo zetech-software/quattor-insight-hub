@@ -28,12 +28,8 @@ export const CNP_TABLE = [
   { min: 0.996, max: 999, a1: -542.6, a2: 177.8, b1: 2.31, b2: -2.2 },
 ];
 
-// NAO EDITAR faixas for temperature estimation
-const TEMP_DENSITY_RANGES = [
-  { min: 0.806, max: 0.8259, A1: -0.0008435, A2: 0.00055 },
-  { min: 0.826, max: 0.8459, A1: -0.000719, A2: 0.0004 },
-  { min: 0.846, max: 0.8709, A1: -0.000617, A2: 0.00028 },
-];
+// Temperature estimation now uses the full CNP_TABLE via findCNPCoefficients,
+// so it works for ALL diesel density ranges, not just a narrow subset.
 
 function findCNPCoefficients(density: number) {
   const a1_raw = CNP_TABLE.find(r => {
