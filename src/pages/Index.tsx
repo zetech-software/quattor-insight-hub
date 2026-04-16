@@ -378,7 +378,7 @@ const Index = () => {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{results.situacao}</p>
                     <p className={`text-lg font-bold font-heading ${isNegative ? "text-destructive" : "text-green-600"}`}>
-                      {fmt(Math.abs(results.diferencaVolume), 2)} L
+                      {fmt(Math.abs(results.diferencaVolume), 0)} L
                     </p>
                   </div>
                 )}
