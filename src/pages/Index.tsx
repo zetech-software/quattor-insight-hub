@@ -324,7 +324,7 @@ const Index = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <ResultField label="DAC 20°C" value={`${fmt(results?.dac20CT)} kg/l`} />
                   <ResultField label="FCCT (Fator Correção)" value={fmt(results?.fcct, 6)} highlight />
-                  <ResultField label="Volume 20°C (V20)" value={`${fmt(results?.v20, 2)} L`} highlight />
+                  <ResultField label="Volume 20°C (V20)" value={`${fmt(results?.v20, 0)} L`} highlight />
                 </div>
               </CardContent>
             </Card>
