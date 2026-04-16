@@ -13,7 +13,14 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Space Grotesk', 'sans-serif'],
+      },
       colors: {
+        "chart-positive": "hsl(var(--chart-positive))",
+        "chart-negative": "hsl(var(--chart-negative))",
+        "chart-warning": "hsl(var(--chart-warning))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
