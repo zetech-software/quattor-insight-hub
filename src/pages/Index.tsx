@@ -186,35 +186,26 @@ const Index = () => {
                     <Input type="number" step="0.1" value={inputs.massaEspecifica20NF || ""} onChange={(e) => updateField("massaEspecifica20NF", parseFloat(e.target.value) || 0)} />
                   </div>
                 </div>
+                {/* Temperatura estimada em tempo real — aparece assim que os 3 campos acima são preenchidos */}
+                <Separator className="my-4" />
+                <div className="flex items-center gap-4">
+                  <ResultField
+                    label="Temp. Estimada de Carregamento"
+                    value={`${temperaturaEstimada?.toFixed(1) ?? "—"} °C`}
+                    highlight
+                  />
+                  {temperaturaEstimada !== null && (
+                    <p className="text-xs text-muted-foreground">Calculada em tempo real a partir dos dados da NF</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
-            {/* Seção 2 - Estimativa de Temperatura */}
+            {/* Seção 2 - Análise de Qualidade */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">2</span>
-                  Estimativa da Temperatura de Carregamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <ResultField label="Volume NF" value={`${fmt(inputs.volumeNF, 2)} L`} />
-                  <ResultField label="Peso Líquido NF" value={`${fmt(inputs.pesoLiquido, 2)} kg`} />
-                  <ResultField label="Massa Esp. 20°C NF" value={`${fmt(inputs.massaEspecifica20NF, 1)} kg/m³`} />
-                </div>
-                <Separator className="my-4" />
-                <div className="max-w-xs">
-                  <ResultField label="Temp. Estimada" value={`${temperaturaEstimada?.toFixed(1) ?? "—"} °C`} highlight />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Seção 3 - Análise de Qualidade */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
                   Análise de Qualidade do Produto
                 </CardTitle>
               </CardHeader>
@@ -236,11 +227,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 4 - VCT */}
+            {/* Seção 3 - VCT */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
                   Cálculo VCT — Volume na Temperatura de Recebimento
                 </CardTitle>
               </CardHeader>
@@ -253,11 +244,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 5 - Fator de Correção do CT */}
+            {/* Seção 4 - Fator de Correção do CT */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">5</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
                   Fator de Correção do CT
                 </CardTitle>
               </CardHeader>
