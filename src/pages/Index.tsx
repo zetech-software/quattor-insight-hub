@@ -26,6 +26,7 @@ const Index = () => {
     data: new Date().toISOString().split("T")[0],
     numeroNF: "",
     placaCT: "",
+    municipioBase: "",
     valorNF: "",
     volumeNF: "",
     pesoLiquido: "",
@@ -91,6 +92,7 @@ const Index = () => {
       data: new Date().toISOString().split("T")[0],
       numeroNF: "",
       placaCT: "",
+      municipioBase: "",
       valorNF: "",
       volumeNF: "",
       pesoLiquido: "",
@@ -113,6 +115,7 @@ const Index = () => {
       data: inputs.data,
       numero_nf: inputs.numeroNF || null,
       placa_ct: inputs.placaCT || null,
+      municipio_base: rawInputs.municipioBase || null,
       valor_nf: parseFloat(rawInputs.valorNF) || null,
       volume_nf: inputs.volumeNF,
       peso_liquido: inputs.pesoLiquido,
@@ -200,6 +203,10 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Placa do CT</Label>
                     <Input placeholder="ABC-1234" value={rawInputs.placaCT} onChange={(e) => updateField("placaCT", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Município da Base</Label>
+                    <Input placeholder="Ex: Paulínia" value={rawInputs.municipioBase} onChange={(e) => updateField("municipioBase", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Valor da NF (R$)</Label>
