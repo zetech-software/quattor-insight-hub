@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/qu4ttuor-logo.png";
+import logo from "@/assets/qu4ttuor-logo.svg";
 import type { ReactNode } from "react";
 
 interface ProtectedRouteProps {
