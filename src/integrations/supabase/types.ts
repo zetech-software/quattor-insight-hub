@@ -14,16 +14,199 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      calculations: {
+        Row: {
+          created_at: string
+          dac20: number | null
+          data: string
+          densidade_amostra: number
+          diferenca_volume: number | null
+          dnf20: number | null
+          fcct: number | null
+          fcnf: number | null
+          id: string
+          massa_especifica_20_nf: number
+          numero_nf: string | null
+          peso_liquido: number
+          placa_ct: string | null
+          qualidade_diff: number | null
+          situacao: string | null
+          temperatura_amostra: number
+          temperatura_ct: number
+          temperatura_estimada: number | null
+          user_id: string
+          v20: number | null
+          vct: number | null
+          vct_max: number | null
+          vct_min: number | null
+          volume_atestado: number | null
+          volume_nf: number
+          volume_recebido: number | null
+        }
+        Insert: {
+          created_at?: string
+          dac20?: number | null
+          data?: string
+          densidade_amostra: number
+          diferenca_volume?: number | null
+          dnf20?: number | null
+          fcct?: number | null
+          fcnf?: number | null
+          id?: string
+          massa_especifica_20_nf: number
+          numero_nf?: string | null
+          peso_liquido: number
+          placa_ct?: string | null
+          qualidade_diff?: number | null
+          situacao?: string | null
+          temperatura_amostra: number
+          temperatura_ct: number
+          temperatura_estimada?: number | null
+          user_id: string
+          v20?: number | null
+          vct?: number | null
+          vct_max?: number | null
+          vct_min?: number | null
+          volume_atestado?: number | null
+          volume_nf: number
+          volume_recebido?: number | null
+        }
+        Update: {
+          created_at?: string
+          dac20?: number | null
+          data?: string
+          densidade_amostra?: number
+          diferenca_volume?: number | null
+          dnf20?: number | null
+          fcct?: number | null
+          fcnf?: number | null
+          id?: string
+          massa_especifica_20_nf?: number
+          numero_nf?: string | null
+          peso_liquido?: number
+          placa_ct?: string | null
+          qualidade_diff?: number | null
+          situacao?: string | null
+          temperatura_amostra?: number
+          temperatura_ct?: number
+          temperatura_estimada?: number | null
+          user_id?: string
+          v20?: number | null
+          vct?: number | null
+          vct_max?: number | null
+          vct_min?: number | null
+          volume_atestado?: number | null
+          volume_nf?: number
+          volume_recebido?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company_name: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_name: string
+          starts_at: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_name?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_name?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "client"
+      subscription_status: "active" | "trial" | "expired" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +333,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "client"],
+      subscription_status: ["active", "trial", "expired", "cancelled"],
+    },
   },
 } as const
