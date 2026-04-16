@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { estimateLoadingTemperature } from "@/lib/dieselCalculations";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
