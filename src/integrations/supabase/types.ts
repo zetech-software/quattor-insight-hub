@@ -32,6 +32,7 @@ export type Database = {
           placa_ct: string | null
           qualidade_diff: number | null
           situacao: string | null
+          situacao_seta: number | null
           temperatura_amostra: number
           temperatura_ct: number
           temperatura_estimada: number | null
@@ -62,6 +63,7 @@ export type Database = {
           placa_ct?: string | null
           qualidade_diff?: number | null
           situacao?: string | null
+          situacao_seta?: number | null
           temperatura_amostra: number
           temperatura_ct: number
           temperatura_estimada?: number | null
@@ -92,6 +94,7 @@ export type Database = {
           placa_ct?: string | null
           qualidade_diff?: number | null
           situacao?: string | null
+          situacao_seta?: number | null
           temperatura_amostra?: number
           temperatura_ct?: number
           temperatura_estimada?: number | null

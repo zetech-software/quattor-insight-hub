@@ -1,0 +1,1 @@
+ALTER TABLE public.calculations ADD COLUMN situacao_seta numeric DEFAULT 0;

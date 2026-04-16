@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info } from "lucide-react";
 import { calculateDiesel, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT"] as const;
+const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT", "situacaoSeta"] as const;
 
 function validateDensity(value: string, unit: "kg/m³" | "kg/l"): string | null {
   if (!value || value.trim() === "") return null;
@@ -35,7 +36,6 @@ const Index = () => {
   const [massaUnit, setMassaUnit] = useState<"kg/m³" | "kg/l">("kg/m³");
   const [daUnit, setDaUnit] = useState<"kg/l" | "kg/m³">("kg/l");
 
-  // String state for raw input values (preserves decimals while typing)
   const [rawInputs, setRawInputs] = useState<Record<string, string>>({
     data: new Date().toISOString().split("T")[0],
     numeroNF: "",
@@ -48,9 +48,9 @@ const Index = () => {
     temperaturaAmostra: "",
     densidadeAmostra: "",
     temperaturaCT: "",
+    situacaoSeta: "",
   });
 
-  // Derived numeric inputs for calculations
   const inputs: DieselInputs = useMemo(() => ({
     data: rawInputs.data,
     numeroNF: rawInputs.numeroNF,
@@ -67,9 +67,9 @@ const Index = () => {
       return daUnit === "kg/m³" ? v / 1000 : v;
     })(),
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
+    situacaoSeta: parseFloat(rawInputs.situacaoSeta) || 0,
   }), [rawInputs, massaUnit, daUnit]);
 
-  // Validation errors for density fields
   const massaError = useMemo(() => validateDensity(rawInputs.massaEspecifica20NF, massaUnit), [rawInputs.massaEspecifica20NF, massaUnit]);
   const daError = useMemo(() => validateDensity(rawInputs.densidadeAmostra, daUnit), [rawInputs.densidadeAmostra, daUnit]);
   const hasValidationErrors = !!massaError || !!daError;
@@ -78,7 +78,6 @@ const Index = () => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Real-time temperature estimation (only needs 3 inputs)
   const temperaturaEstimada = useMemo(() => {
     if (inputs.volumeNF > 0 && inputs.pesoLiquido > 0 && inputs.massaEspecifica20NF > 0) {
       try {
@@ -119,6 +118,7 @@ const Index = () => {
       temperaturaAmostra: "",
       densidadeAmostra: "",
       temperaturaCT: "",
+      situacaoSeta: "",
     });
   };
 
@@ -142,6 +142,7 @@ const Index = () => {
       temperatura_amostra: inputs.temperaturaAmostra,
       densidade_amostra: inputs.densidadeAmostra,
       temperatura_ct: inputs.temperaturaCT,
+      situacao_seta: inputs.situacaoSeta,
       dnf20: results.dnf20,
       fcnf: results.fcnf,
       temperatura_estimada: results.temperaturaEstimada,
@@ -271,7 +272,7 @@ const Index = () => {
                   <ResultField label="DNF 20°C (NF)" value={`${fmt(results?.dnf20, 4)} kg/l`} />
                 </div>
 
-                {/* Temperatura estimada + Temperatura CT lado a lado */}
+                {/* Temperatura estimada */}
                 <Separator className="my-4" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                   <ResultField
@@ -279,24 +280,24 @@ const Index = () => {
                     value={`${temperaturaEstimada?.toFixed(1) ?? "—"} °C`}
                     highlight
                   />
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Temperatura do CT - TCT (°C)</Label>
-                    <Input type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e) => updateField("temperaturaCT", e.target.value)} />
-                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Seção 2 - Análise de Qualidade */}
+            {/* Seção 2 - Dados de Campo */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">2</span>
-                  Análise de Qualidade do Produto
+                  Dados de Campo
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Temperatura do CT - TCT (°C)</Label>
+                    <Input type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e) => updateField("temperaturaCT", e.target.value)} />
+                  </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Temperatura da Amostra - TA (°C)</Label>
                     <Input type="number" step="any" value={rawInputs.temperaturaAmostra} onChange={(e) => updateField("temperaturaAmostra", e.target.value)} />
@@ -324,8 +325,45 @@ const Index = () => {
                     </div>
                     {daError && <p className="text-[11px] text-destructive">{daError}</p>}
                   </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Situação da Seta (L)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                            <p className="font-semibold mb-1">O que é a Situação da Seta?</p>
+                            <p className="mb-1">
+                              Diferença de volume lida na seta (régua) do caminhão-tanque no momento do recebimento.
+                            </p>
+                            <ul className="list-disc pl-4 mb-2 space-y-0.5">
+                              <li><strong>Negativo</strong> = volume abaixo da seta (falta)</li>
+                              <li><strong>Positivo</strong> = volume acima da seta (sobra)</li>
+                            </ul>
+                            <p className="text-[10px] italic text-muted-foreground border-t border-border pt-1">
+                              Estas informações são apenas para fins informativos e, nos termos da lei, não devem ser utilizadas como prova.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input type="number" step="any" value={rawInputs.situacaoSeta} onChange={(e) => updateField("situacaoSeta", e.target.value)} placeholder="0" />
+                  </div>
                 </div>
-                <Separator className="my-3" />
+              </CardContent>
+            </Card>
+
+            {/* Seção 3 - Análise de Qualidade */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-heading flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
+                  Análise de Qualidade do Produto
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Coluna kg/m³ */}
                   <div className="space-y-2">
@@ -343,11 +381,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 3 - Fator de Correção do CT */}
+            {/* Seção 4 - Fator de Correção do CT */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
                   Fator de Correção do CT
                 </CardTitle>
               </CardHeader>
@@ -360,11 +398,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 4 - VCT */}
+            {/* Seção 5 - VCT */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">5</span>
                   Cálculo VCT — Volume na Temperatura de Recebimento
                 </CardTitle>
               </CardHeader>
@@ -386,7 +424,7 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <SummaryRow label="Volume NF" value={`${fmt(results?.volumeNF ?? inputs.volumeNF, 0)} L`} />
-                <SummaryRow label="Situação SETA" value={`${fmt(results?.situacaoSeta ?? 0, 0)} L`} />
+                <SummaryRow label="Situação SETA" value={`${fmt(results?.situacaoSeta ?? inputs.situacaoSeta, 0)} L`} />
                 <SummaryRow label="Volume Recebido" value={`${fmt(results?.volumeRecebido, 0)} L`} />
                 <Separator />
                 <SummaryRow label="VCT" value={`${fmt(results?.vct, 0)} L`} />
