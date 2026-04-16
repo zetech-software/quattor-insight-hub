@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import logo from "@/assets/qu4ttuor-logo.png";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,11 +52,8 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <span className="text-primary-foreground font-bold text-2xl font-heading">Q4</span>
-          </div>
-          <h1 className="text-3xl font-bold font-heading tracking-tight">Qu4ttuor</h1>
-          <p className="text-muted-foreground">Consultoria — Sistema de Cálculos</p>
+          <img src={logo} alt="Qu4ttuor Consultoria" className="h-14 mx-auto mb-4" />
+          <p className="text-muted-foreground">Sistema de Cálculos</p>
         </div>
 
         <Card className="border-0 shadow-xl">
