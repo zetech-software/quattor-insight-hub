@@ -1,27 +1,50 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
+  const { session, role, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+
+  if (loading) return null;
+  if (session) {
+    return <Navigate to={role === "admin" ? "/admin" : "/"} replace />;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    // TODO: Replace with Supabase auth
-    setTimeout(() => {
-      setLoading(false);
+    setSubmitting(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setSubmitting(false);
+    if (error) {
+      toast({ title: "Erro ao entrar", description: "Email ou senha inválidos.", variant: "destructive" });
+    } else {
       toast({ title: "Login realizado", description: "Bem-vindo ao sistema Qu4ttuor!" });
-      navigate("/");
-    }, 1000);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({ title: "Informe seu email", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSubmitting(false);
+    toast({ title: "Email enviado", description: "Verifique sua caixa de entrada para redefinir a senha." });
+    setForgotMode(false);
   };
 
   return (
@@ -37,11 +60,17 @@ const Login = () => {
 
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl font-heading">Entrar</CardTitle>
-            <CardDescription>Insira suas credenciais para acessar o sistema</CardDescription>
+            <CardTitle className="text-xl font-heading">
+              {forgotMode ? "Recuperar Senha" : "Entrar"}
+            </CardTitle>
+            <CardDescription>
+              {forgotMode
+                ? "Informe seu email para receber o link de redefinição"
+                : "Insira suas credenciais para acessar o sistema"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={forgotMode ? handleForgotPassword : handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -53,20 +82,29 @@ const Login = () => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Entrando..." : "Entrar"}
+              {!forgotMode && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? "Aguarde..." : forgotMode ? "Enviar link" : "Entrar"}
               </Button>
+              <button
+                type="button"
+                onClick={() => setForgotMode(!forgotMode)}
+                className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                {forgotMode ? "Voltar ao login" : "Esqueceu a senha?"}
+              </button>
             </form>
           </CardContent>
         </Card>
