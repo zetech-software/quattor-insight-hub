@@ -301,14 +301,15 @@ export function calculateDiesel(inputs: DieselInputs): DieselResults | null {
   );
   if (temperaturaEstimada === null) return null;
 
-  // FCNF = fator de correção na temp estimada (H43 in spreadsheet)
-  // Uses density20 from NF and estimated temperature
-  const fcnf = calculateCorrectionFactor(dnf20, temperaturaEstimada);
-  if (fcnf === null) return null;
-
   // DAC 20°C = densidade amostra corrigida a 20°C (E45 in calc sheet)
+  // Must be computed BEFORE FCNF because spreadsheet uses DAC20 for all correction factors
   const dac20 = calculateDensity20(densidadeAmostra, temperaturaAmostra);
   if (dac20 === null) return null;
+
+  // FCNF = fator de correção na temp estimada (H43 in spreadsheet)
+  // Spreadsheet uses DAC20 (sample density) as base, not DNF20
+  const fcnf = calculateCorrectionFactor(dac20, temperaturaEstimada);
+  if (fcnf === null) return null;
 
   // Qualidade diff
   const qualidadeDiff = dac20 - dnf20;
