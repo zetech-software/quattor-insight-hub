@@ -76,7 +76,8 @@ const Historico = () => {
     return (
       c.data?.includes(s) ||
       c.numero_nf?.toLowerCase().includes(s) ||
-      c.placa_ct?.toLowerCase().includes(s)
+      c.placa_ct?.toLowerCase().includes(s) ||
+      ((c as any).municipio_base as string)?.toLowerCase().includes(s)
     );
   });
 
