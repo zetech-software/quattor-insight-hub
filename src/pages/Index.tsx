@@ -19,6 +19,7 @@ const Index = () => {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
   const [massaUnit, setMassaUnit] = useState<"kg/m³" | "kg/l">("kg/m³");
+  const [daUnit, setDaUnit] = useState<"kg/l" | "kg/m³">("kg/l");
 
   // String state for raw input values (preserves decimals while typing)
   const [rawInputs, setRawInputs] = useState<Record<string, string>>({
