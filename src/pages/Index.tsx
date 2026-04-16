@@ -19,6 +19,7 @@ const Index = () => {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
   const [massaUnit, setMassaUnit] = useState<"kg/m³" | "kg/l">("kg/m³");
+  const [daUnit, setDaUnit] = useState<"kg/l" | "kg/m³">("kg/l");
 
   // String state for raw input values (preserves decimals while typing)
   const [rawInputs, setRawInputs] = useState<Record<string, string>>({
@@ -46,9 +47,12 @@ const Index = () => {
       return massaUnit === "kg/l" ? v * 1000 : v;
     })(),
     temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
-    densidadeAmostra: parseFloat(rawInputs.densidadeAmostra) || 0,
+    densidadeAmostra: (() => {
+      const v = parseFloat(rawInputs.densidadeAmostra) || 0;
+      return daUnit === "kg/m³" ? v / 1000 : v;
+    })(),
     temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
-  }), [rawInputs, massaUnit]);
+  }), [rawInputs, massaUnit, daUnit]);
 
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
@@ -262,8 +266,26 @@ const Index = () => {
                     <Input type="number" step="any" value={rawInputs.temperaturaAmostra} onChange={(e) => updateField("temperaturaAmostra", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Massa Específica Amostra - DA (kg/l)</Label>
-                    <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} />
+                    <Label className="text-xs">Massa Específica Amostra - DA</Label>
+                    <div className="flex gap-1">
+                      <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} className="flex-1" />
+                      <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                        <button
+                          type="button"
+                          className={`px-2 py-1 text-[10px] font-medium transition-colors ${daUnit === "kg/l" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                          onClick={() => setDaUnit("kg/l")}
+                        >
+                          kg/l
+                        </button>
+                        <button
+                          type="button"
+                          className={`px-2 py-1 text-[10px] font-medium transition-colors ${daUnit === "kg/m³" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                          onClick={() => setDaUnit("kg/m³")}
+                        >
+                          kg/m³
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <Separator className="my-3" />
