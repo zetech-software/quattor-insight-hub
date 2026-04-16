@@ -244,11 +244,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 5 - Fator de Correção do CT */}
+            {/* Seção 4 - Fator de Correção do CT */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">5</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
                   Fator de Correção do CT
                 </CardTitle>
               </CardHeader>
