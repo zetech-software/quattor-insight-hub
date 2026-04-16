@@ -13,23 +13,40 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT"] as const;
+
 const Index = () => {
   const { session } = useAuth();
   const [saving, setSaving] = useState(false);
-  const [inputs, setInputs] = useState<DieselInputs>({
+
+  // String state for raw input values (preserves decimals while typing)
+  const [rawInputs, setRawInputs] = useState<Record<string, string>>({
     data: new Date().toISOString().split("T")[0],
     numeroNF: "",
     placaCT: "",
-    volumeNF: 0,
-    pesoLiquido: 0,
-    massaEspecifica20NF: 0,
-    temperaturaAmostra: 0,
-    densidadeAmostra: 0,
-    temperaturaCT: 0,
+    volumeNF: "",
+    pesoLiquido: "",
+    massaEspecifica20NF: "",
+    temperaturaAmostra: "",
+    densidadeAmostra: "",
+    temperaturaCT: "",
   });
 
-  const updateField = (field: keyof DieselInputs, value: string | number) => {
-    setInputs((prev) => ({ ...prev, [field]: value }));
+  // Derived numeric inputs for calculations
+  const inputs: DieselInputs = useMemo(() => ({
+    data: rawInputs.data,
+    numeroNF: rawInputs.numeroNF,
+    placaCT: rawInputs.placaCT,
+    volumeNF: parseFloat(rawInputs.volumeNF) || 0,
+    pesoLiquido: parseFloat(rawInputs.pesoLiquido) || 0,
+    massaEspecifica20NF: parseFloat(rawInputs.massaEspecifica20NF) || 0,
+    temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
+    densidadeAmostra: parseFloat(rawInputs.densidadeAmostra) || 0,
+    temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
+  }), [rawInputs]);
+
+  const updateField = (field: string, value: string) => {
+    setRawInputs((prev) => ({ ...prev, [field]: value }));
   };
 
   // Real-time temperature estimation (only needs 3 inputs)
