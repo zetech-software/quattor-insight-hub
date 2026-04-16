@@ -105,6 +105,7 @@ const Index = () => {
       data: inputs.data,
       numero_nf: inputs.numeroNF || null,
       placa_ct: inputs.placaCT || null,
+      valor_nf: parseFloat(rawInputs.valorNF) || null,
       volume_nf: inputs.volumeNF,
       peso_liquido: inputs.pesoLiquido,
       massa_especifica_20_nf: inputs.massaEspecifica20NF,
