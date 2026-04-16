@@ -324,7 +324,7 @@ const Index = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <ResultField label="DAC 20°C" value={`${fmt(results?.dac20CT)} kg/l`} />
                   <ResultField label="FCCT (Fator Correção)" value={fmt(results?.fcct, 6)} highlight />
-                  <ResultField label="Volume 20°C (V20)" value={`${fmt(results?.v20, 2)} L`} highlight />
+                  <ResultField label="Volume 20°C (V20)" value={`${fmt(results?.v20, 0)} L`} highlight />
                 </div>
               </CardContent>
             </Card>
@@ -339,9 +339,9 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <ResultField label="VCT Mínimo (-0,06%)" value={`${fmt(results?.vctMin, 2)} L`} />
-                  <ResultField label="VCT" value={`${fmt(results?.vct, 2)} L`} highlight />
-                  <ResultField label="VCT Máximo (+0,05%)" value={`${fmt(results?.vctMax, 2)} L`} />
+                  <ResultField label="VCT Mínimo (-0,06%)" value={`${fmt(results?.vctMin, 0)} L`} />
+                  <ResultField label="VCT" value={`${fmt(results?.vct, 0)} L`} highlight />
+                  <ResultField label="VCT Máximo (+0,05%)" value={`${fmt(results?.vctMax, 0)} L`} />
                 </div>
               </CardContent>
             </Card>
@@ -354,14 +354,15 @@ const Index = () => {
                 <CardTitle className="text-base font-heading">Resumo do Cálculo</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <SummaryRow label="Volume NF" value={`${fmt(results?.volumeNF ?? inputs.volumeNF, 2)} L`} />
-                <SummaryRow label="Situação SETA" value={`${fmt(results?.situacaoSeta ?? 0, 2)} L`} />
-                <SummaryRow label="Volume Recebido" value={`${fmt(results?.volumeRecebido, 2)} L`} />
+                <SummaryRow label="Volume NF" value={`${fmt(results?.volumeNF ?? inputs.volumeNF, 0)} L`} />
+                <SummaryRow label="Situação SETA" value={`${fmt(results?.situacaoSeta ?? 0, 0)} L`} />
+                <SummaryRow label="Volume Recebido" value={`${fmt(results?.volumeRecebido, 0)} L`} />
                 <Separator />
-                <SummaryRow label="VCT" value={`${fmt(results?.vct, 2)} L`} />
-                <SummaryRow label="Diferença" value={`${fmt(results?.diferencaVolume, 2)} L`} />
+                <SummaryRow label="VCT" value={`${fmt(results?.vct, 0)} L`} />
+                <SummaryRow label="Diferença" value={`${fmt(results?.diferencaVolume, 0)} L`} />
                 <Separator />
-                <SummaryRow label="Volume Atestado" value={`${fmt(results?.volumeAtestado, 2)} L`} bold />
+                <SummaryRow label="Volume Atestado" value={`${fmt(results?.volumeAtestado, 0)} L`} bold />
+                <SummaryRow label="Volume 20°C (V20)" value={`${fmt(results?.v20, 0)} L`} />
 
                 {results && (
                   <div className={`mt-4 p-4 rounded-xl text-center ${isNegative ? "bg-destructive/10" : "bg-green-50 dark:bg-green-950/30"}`}>
@@ -377,7 +378,7 @@ const Index = () => {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{results.situacao}</p>
                     <p className={`text-lg font-bold font-heading ${isNegative ? "text-destructive" : "text-green-600"}`}>
-                      {fmt(Math.abs(results.diferencaVolume), 2)} L
+                      {fmt(Math.abs(results.diferencaVolume), 0)} L
                     </p>
                   </div>
                 )}
