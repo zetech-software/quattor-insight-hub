@@ -26,6 +26,7 @@ export type Database = {
           fcnf: number | null
           id: string
           massa_especifica_20_nf: number
+          municipio_base: string | null
           numero_nf: string | null
           peso_liquido: number
           placa_ct: string | null
@@ -55,6 +56,7 @@ export type Database = {
           fcnf?: number | null
           id?: string
           massa_especifica_20_nf: number
+          municipio_base?: string | null
           numero_nf?: string | null
           peso_liquido: number
           placa_ct?: string | null
@@ -84,6 +86,7 @@ export type Database = {
           fcnf?: number | null
           id?: string
           massa_especifica_20_nf?: number
+          municipio_base?: string | null
           numero_nf?: string | null
           peso_liquido?: number
           placa_ct?: string | null
