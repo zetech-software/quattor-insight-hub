@@ -24,6 +24,7 @@ const Index = () => {
     data: new Date().toISOString().split("T")[0],
     numeroNF: "",
     placaCT: "",
+    valorNF: "",
     volumeNF: "",
     pesoLiquido: "",
     massaEspecifica20NF: "",
@@ -82,6 +83,7 @@ const Index = () => {
       data: new Date().toISOString().split("T")[0],
       numeroNF: "",
       placaCT: "",
+      valorNF: "",
       volumeNF: "",
       pesoLiquido: "",
       massaEspecifica20NF: "",
@@ -103,6 +105,7 @@ const Index = () => {
       data: inputs.data,
       numero_nf: inputs.numeroNF || null,
       placa_ct: inputs.placaCT || null,
+      valor_nf: parseFloat(rawInputs.valorNF) || null,
       volume_nf: inputs.volumeNF,
       peso_liquido: inputs.pesoLiquido,
       massa_especifica_20_nf: inputs.massaEspecifica20NF,
@@ -189,6 +192,10 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Placa do CT</Label>
                     <Input placeholder="ABC-1234" value={rawInputs.placaCT} onChange={(e) => updateField("placaCT", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Valor da NF (R$)</Label>
+                    <Input type="number" step="any" value={rawInputs.valorNF} onChange={(e) => updateField("valorNF", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Volume NF (Litros)</Label>
