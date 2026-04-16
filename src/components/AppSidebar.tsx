@@ -2,6 +2,7 @@ import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut } fro
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import logo from "@/assets/qu4ttuor-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -48,13 +49,7 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
       <SidebarHeader className="p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm font-heading">Q4</span>
-            </div>
-            <div>
-              <h2 className="font-semibold text-sm font-heading">Qu4ttuor</h2>
-              <p className="text-[10px] text-muted-foreground">Consultoria</p>
-            </div>
+            <img src={logo} alt="Qu4ttuor" className="h-9 w-auto" />
           </div>
         )}
         {collapsed && (
