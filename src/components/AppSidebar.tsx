@@ -1,6 +1,7 @@
-import { Calculator, History, LayoutDashboard, Users, FileBarChart, Settings, LogOut } from "lucide-react";
+import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -33,8 +34,14 @@ interface AppSidebarProps {
 
 export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const { state } = useSidebar();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const collapsed = state === "collapsed";
-  const location = useLocation();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -106,7 +113,12 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
         )}
       </SidebarContent>
       <SidebarFooter className="p-2">
-        <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 text-muted-foreground"
+          onClick={handleLogout}
+        >
           <LogOut className="h-4 w-4" />
           {!collapsed && <span>Sair</span>}
         </Button>
