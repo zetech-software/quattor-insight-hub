@@ -227,11 +227,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 4 - VCT */}
+            {/* Seção 3 - VCT */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">4</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
                   Cálculo VCT — Volume na Temperatura de Recebimento
                 </CardTitle>
               </CardHeader>
