@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/qu4ttuor-logo.png";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -59,9 +60,7 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <span className="text-primary-foreground font-bold text-2xl font-heading">Q4</span>
-          </div>
+          <img src={logo} alt="Qu4ttuor" className="h-12 mx-auto mb-4" />
           <h1 className="text-2xl font-bold font-heading">Redefinir Senha</h1>
         </div>
         <Card className="border-0 shadow-xl">
