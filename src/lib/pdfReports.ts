@@ -1,6 +1,9 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Calculation = Tables<"calculations">;
 
 const BRAND_COLOR: [number, number, number] = [232, 145, 58]; // #E8913A
 const HEADER_BG: [number, number, number] = [232, 145, 58];
