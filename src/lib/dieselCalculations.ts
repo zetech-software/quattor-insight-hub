@@ -232,12 +232,12 @@ export interface DieselInputs {
   pesoLiquido: number; // kg (F9)
   massaEspecifica20NF: number; // kg/m³ (F10) → B10 = F10/1000
 
-  // Seção 3 - Análise qualidade
+  // Seção 2 - Dados de campo
+  temperaturaCT: number; // °C (B26)
   temperaturaAmostra: number; // °C (B14)
   densidadeAmostra: number; // kg/l (B15)
+  situacaoSeta: number; // litros (F14) — leitura da seta do CT
 
-  // Seção 5 - CT
-  temperaturaCT: number; // °C (B26)
 }
 
 export interface DieselResults {
@@ -320,7 +320,7 @@ export function calculateDiesel(inputs: DieselInputs): DieselResults | null {
   const v20 = volumeNF * fcct;
 
   // Resumo
-  const situacaoSeta = 0; // F14 is always 0 in spreadsheet
+  const situacaoSeta = inputs.situacaoSeta ?? 0;
   const volumeRecebido = volumeNF + situacaoSeta; // F15 = F13 + F14
   const diferencaVolume = volumeRecebido - vct; // F17
   const volumeAtestado = volumeNF + diferencaVolume; // F18
