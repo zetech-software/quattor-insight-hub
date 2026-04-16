@@ -242,7 +242,7 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Massa Específica a 20°C</Label>
                     <div className="flex gap-1">
-                      <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className="flex-1" />
+                      <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className={`flex-1 ${massaError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
                       <div className="flex rounded-md border border-input overflow-hidden shrink-0">
                         <button
                           type="button"
@@ -260,6 +260,7 @@ const Index = () => {
                         </button>
                       </div>
                     </div>
+                    {massaError && <p className="text-[11px] text-destructive">{massaError}</p>}
                   </div>
                 </div>
                 {/* DNF 20°C results */}
