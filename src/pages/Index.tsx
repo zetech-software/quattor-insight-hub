@@ -193,6 +193,7 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Valor da NF (R$)</Label>
                     <Input type="number" step="any" value={rawInputs.valorNF} onChange={(e) => updateField("valorNF", e.target.value)} />
+                  </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Volume NF (Litros)</Label>
                     <Input type="number" step="any" value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} />
