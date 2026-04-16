@@ -204,10 +204,8 @@ const Index = () => {
                   <ResultField label="Massa Esp. 20°C NF" value={`${fmt(inputs.massaEspecifica20NF, 1)} kg/m³`} />
                 </div>
                 <Separator className="my-4" />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <ResultField label="DNF 20°C" value={`${fmt(results?.dnf20)} kg/l`} highlight />
-                  <ResultField label="FCNF (Fator Correção)" value={fmt(results?.fcnf, 6)} highlight />
-                  <ResultField label="Temp. Estimada" value={`${results?.temperaturaEstimada?.toFixed(1) ?? "—"} °C`} highlight />
+                <div className="max-w-xs">
+                  <ResultField label="Temp. Estimada" value={`${temperaturaEstimada?.toFixed(1) ?? "—"} °C`} highlight />
                 </div>
               </CardContent>
             </Card>
