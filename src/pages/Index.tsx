@@ -201,11 +201,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 3 - Análise de Qualidade */}
+            {/* Seção 2 - Análise de Qualidade */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">2</span>
                   Análise de Qualidade do Produto
                 </CardTitle>
               </CardHeader>
