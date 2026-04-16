@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info } from "lucide-react";
 import { calculateDiesel, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
@@ -328,26 +328,26 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1">
                       <Label className="text-xs">Situação da Seta (L)</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button type="button" className="inline-flex items-center justify-center rounded-full hover:bg-muted p-0.5 transition-colors">
                             <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                            <p className="font-semibold mb-1">O que é a Situação da Seta?</p>
-                            <p className="mb-1">
-                              Diferença de volume lida na seta (régua) do caminhão-tanque no momento do recebimento.
-                            </p>
-                            <ul className="list-disc pl-4 mb-2 space-y-0.5">
-                              <li><strong>Negativo</strong> = volume abaixo da seta (falta)</li>
-                              <li><strong>Positivo</strong> = volume acima da seta (sobra)</li>
-                            </ul>
-                            <p className="text-[10px] italic text-muted-foreground border-t border-border pt-1">
-                              Estas informações são apenas para fins informativos e, nos termos da lei, não devem ser utilizadas como prova.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent side="top" className="max-w-xs text-xs leading-relaxed">
+                          <p className="font-semibold mb-1">O que é a Situação da Seta?</p>
+                          <p className="mb-1">
+                            Diferença de volume lida na seta (régua) do caminhão-tanque no momento do recebimento.
+                          </p>
+                          <ul className="list-disc pl-4 mb-2 space-y-0.5">
+                            <li><strong>Negativo</strong> = volume abaixo da seta (falta)</li>
+                            <li><strong>Positivo</strong> = volume acima da seta (sobra)</li>
+                          </ul>
+                          <p className="text-[10px] italic text-muted-foreground border-t border-border pt-1">
+                            Estas informações são apenas para fins informativos e, nos termos da lei, não devem ser utilizadas como prova.
+                          </p>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <Input type="number" step="any" value={rawInputs.situacaoSeta} onChange={(e) => updateField("situacaoSeta", e.target.value)} placeholder="0" />
                   </div>
