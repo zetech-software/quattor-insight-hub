@@ -78,16 +78,16 @@ const Index = () => {
   }, [inputs]);
 
   const handleReset = () => {
-    setInputs({
+    setRawInputs({
       data: new Date().toISOString().split("T")[0],
       numeroNF: "",
       placaCT: "",
-      volumeNF: 0,
-      pesoLiquido: 0,
-      massaEspecifica20NF: 0,
-      temperaturaAmostra: 0,
-      densidadeAmostra: 0,
-      temperaturaCT: 0,
+      volumeNF: "",
+      pesoLiquido: "",
+      massaEspecifica20NF: "",
+      temperaturaAmostra: "",
+      densidadeAmostra: "",
+      temperaturaCT: "",
     });
   };
 
