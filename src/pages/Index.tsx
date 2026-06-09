@@ -66,7 +66,7 @@ const Index = () => {
       const v = parseFloat(rawInputs.densidadeAmostra) || 0;
       return daUnit === "kg/m³" ? v / 1000 : v;
     })(),
-    temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
+    temperaturaCT: parseFloat(rawInputs.temperaturaCT || rawInputs.temperaturaAmostra) || 0,
     situacaoSeta: parseFloat(rawInputs.situacaoSeta) || 0,
   }), [rawInputs, massaUnit, daUnit]);
 
@@ -295,10 +295,6 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Temperatura do CT - TCT (°C)</Label>
-                    <Input type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e) => updateField("temperaturaCT", e.target.value)} />
-                  </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Temperatura da Amostra - TA (°C)</Label>
                     <Input type="number" step="any" value={rawInputs.temperaturaAmostra} onChange={(e) => updateField("temperaturaAmostra", e.target.value)} />
