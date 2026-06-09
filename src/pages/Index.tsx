@@ -378,7 +378,7 @@ const Index = () => {
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">em kg/l</p>
                     <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20, 4)} kg/l`} highlight />
-                    <ResultField label="Diferença (DAC - DNF)" value={fmt(results?.qualidadeDiff, 4)} highlight />
+                    <ResultField label="Diferença (DAC - DNF)" value={fmt(results?.qualidadeDiff, 3)} highlight />
                   </div>
                 </div>
               </CardContent>
