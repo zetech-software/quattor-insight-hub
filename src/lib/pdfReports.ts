@@ -224,7 +224,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     body: [
       ["VCT Mínimo (-0,06%)", `${fmtVol(calc.vct_min)} L`, ""],
       ["VCT", `${fmtVol(calc.vct)} L`, ""],
-      ["VCT Máximo (+0,05%)", `${fmtVol(calc.vct_max)} L`, ""],
+      ["VCT Máximo (+0,06%)", `${fmtVol(calc.vct_max)} L`, ""],
     ],
     headStyles: { fillColor: HEADER_BG, textColor: HEADER_TEXT, fontStyle: "bold", fontSize: 9 },
     bodyStyles: { fontSize: 8 },
