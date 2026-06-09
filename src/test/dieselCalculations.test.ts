@@ -201,4 +201,58 @@ describe('avaliarQualidade — tolerância |DAC − DNF| ≤ 0,003 kg/l', () => 
   });
 });
 
+describe('avaliarQualidade — casas decimais e arredondamento de ponto flutuante', () => {
+  it('DAC e DNF com 4 casas decimais resultando em diferença = 0,003 → aprovado', () => {
+    const dac = 0.8350;
+    const dnf = 0.8320;
+    expect(avaliarQualidade(dac - dnf)).toBe('aprovado');
+  });
+
+  it('DAC e DNF com 4 casas decimais resultando em diferença = 0,0031 → reprovado', () => {
+    const dac = 0.8351;
+    const dnf = 0.8320;
+    expect(avaliarQualidade(dac - dnf)).toBe('reprovado');
+  });
+
+  it('soma de floats que produz ruído (0.1 + 0.2 - 0.297) ≈ 0,003 → aprovado', () => {
+    // 0.1 + 0.2 - 0.297 = 0.0030000000000000027 (clássico erro IEEE-754)
+    const diff = 0.1 + 0.2 - 0.297;
+    expect(diff).toBeGreaterThan(0.003);
+    // Mesmo com o ruído acima de 0,003, deve continuar reprovado
+    // porque a regra é estritamente |diff| ≤ 0,003.
+    expect(avaliarQualidade(diff)).toBe('reprovado');
+  });
+
+  it('subtração simétrica positiva e negativa produz mesmo veredito', () => {
+    const dac = 0.8401;
+    const dnf = 0.8372;
+    const diffPos = dac - dnf;      // ≈ 0,0029
+    const diffNeg = dnf - dac;      // ≈ -0,0029
+    expect(avaliarQualidade(diffPos)).toBe('aprovado');
+    expect(avaliarQualidade(diffNeg)).toBe('aprovado');
+  });
+
+  it('arredondamento na 4ª casa decimal pode mover o veredito (0,00305 → reprovado, arredondado 0,0031)', () => {
+    const diffBruto = 0.00305;
+    const diffArredondado = Math.round(diffBruto * 1000) / 1000; // → 0,003
+    expect(avaliarQualidade(diffBruto)).toBe('reprovado');
+    expect(avaliarQualidade(diffArredondado)).toBe('aprovado');
+  });
+
+  it('diferença com 6 casas decimais imediatamente acima do limite → reprovado', () => {
+    expect(avaliarQualidade(0.003000001)).toBe('reprovado');
+    expect(avaliarQualidade(-0.003000001)).toBe('reprovado');
+  });
+
+  it('diferença com 6 casas decimais imediatamente abaixo do limite → aprovado', () => {
+    expect(avaliarQualidade(0.002999999)).toBe('aprovado');
+    expect(avaliarQualidade(-0.002999999)).toBe('aprovado');
+  });
+
+  it('Number.EPSILON acima de 0,003 → reprovado (sensibilidade máxima do double)', () => {
+    expect(avaliarQualidade(0.003 + Number.EPSILON)).toBe('reprovado');
+  });
+});
+
+
 });
