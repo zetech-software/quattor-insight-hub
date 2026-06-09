@@ -296,10 +296,6 @@ const Index = () => {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Temperatura do CT - TCT (°C)</Label>
-                    <Input type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e) => updateField("temperaturaCT", e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
                     <Label className="text-xs">Temperatura da Amostra - TA (°C)</Label>
                     <Input type="number" step="any" value={rawInputs.temperaturaAmostra} onChange={(e) => updateField("temperaturaAmostra", e.target.value)} />
                   </div>
