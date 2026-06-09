@@ -50,7 +50,31 @@ const AdminRelatorios = () => {
           <p className="text-muted-foreground text-sm mt-1">Exporte relatórios detalhados do sistema em PDF</p>
         </div>
 
+        {/* Featured: Conferences */}
+        <Card className="border-primary/40 bg-gradient-to-br from-card to-accent/30 hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                <ClipboardCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-heading">Relatório de Conferências</CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Filtre por período, cliente, placa do CT ou situação. Baixe um consolidado em PDF ou laudos individuais por NF.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button size="sm" onClick={() => setConfOpen(true)}>
+              <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+              Abrir gerador de conferências
+            </Button>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           {reports.map((report) => (
             <Card key={report.key} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
