@@ -400,28 +400,6 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Seção 5 - VCT */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">5</span>
-                  Cálculo VCT — Volume na Temperatura de Recebimento
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <ResultField label="VCT Mínimo (-0,06%)" value={`${fmt(results?.vctMin, 0)} L`} />
-                  <ResultField label="VCT" value={`${fmt(results?.vct, 0)} L`} highlight />
-                  <ResultField label="VCT Máximo (+0,06%)" value={`${fmt(results?.vctMax, 0)} L`} />
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Tolerância operacional de <strong>±0,06%</strong> aplicada sobre o VCT: volumes recebidos entre o
-                  <strong> VCT Mínimo</strong> e o <strong>VCT Máximo</strong> são considerados dentro da faixa aceitável.
-                  Valores abaixo do mínimo indicam <span className="text-destructive font-medium">falta</span> e acima do máximo
-                  indicam <span className="text-green-600 font-medium">sobra</span> além da margem permitida.
-                </p>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Bottom: Summary */}
