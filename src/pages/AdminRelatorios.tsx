@@ -24,6 +24,8 @@ const generators: Record<ReportKey, () => Promise<void>> = {
 
 const AdminRelatorios = () => {
   const [loading, setLoading] = useState<ReportKey | null>(null);
+  const [confOpen, setConfOpen] = useState(false);
+
 
   const handleExport = async (key: ReportKey) => {
     setLoading(key);
