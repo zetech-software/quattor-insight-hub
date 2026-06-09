@@ -1,0 +1,226 @@
+[
+  {
+    "name": "base_25_30",
+    "inputs": {
+      "volumeNF": 10000,
+      "pesoLiquido": 8350,
+      "massaEspecifica20NF": 840.0,
+      "temperaturaAmostra": 25,
+      "densidadeAmostra": 0.838,
+      "temperaturaCT": 30,
+      "situacaoSeta": 0
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.84,
+      "B11": "#N/A",
+      "B16": 0.841323688087999,
+      "B17": 0.00132368808799854,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.991863730160726,
+      "B29": 9918.63730160726,
+      "F15": 10000,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  },
+  {
+    "name": "isoterma",
+    "inputs": {
+      "volumeNF": 20000,
+      "pesoLiquido": 16800,
+      "massaEspecifica20NF": 840.0,
+      "temperaturaAmostra": 28,
+      "densidadeAmostra": 0.835,
+      "temperaturaCT": 32,
+      "situacaoSeta": 0
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.84,
+      "B11": "#N/A",
+      "B16": 0.840322000313178,
+      "B17": 0.000322000313177528,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.990214325531845,
+      "B29": 19804.2865106369,
+      "F15": 20000,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  },
+  {
+    "name": "cross_faixa",
+    "inputs": {
+      "volumeNF": 10000,
+      "pesoLiquido": 8240,
+      "massaEspecifica20NF": 835.0,
+      "temperaturaAmostra": 30,
+      "densidadeAmostra": 0.824,
+      "temperaturaCT": 32,
+      "situacaoSeta": 0
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.835,
+      "B11": "#N/A",
+      "B16": 0.830712670904204,
+      "B17": -0.00428732909579566,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.990016921795106,
+      "B29": 9900.16921795106,
+      "F15": 10000,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  },
+  {
+    "name": "alta_temp",
+    "inputs": {
+      "volumeNF": 15000,
+      "pesoLiquido": 12450,
+      "massaEspecifica20NF": 830.0,
+      "temperaturaAmostra": 35,
+      "densidadeAmostra": 0.82,
+      "temperaturaCT": 38,
+      "situacaoSeta": 0
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.83,
+      "B11": "#N/A",
+      "B16": 0.830073693215584,
+      "B17": 7.36932155839254e-05,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.984999960150725,
+      "B29": 14774.9994022609,
+      "F15": 15000,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  },
+  {
+    "name": "baixa_temp",
+    "inputs": {
+      "volumeNF": 10000,
+      "pesoLiquido": 8500,
+      "massaEspecifica20NF": 850.0,
+      "temperaturaAmostra": 18,
+      "densidadeAmostra": 0.852,
+      "temperaturaCT": 22,
+      "situacaoSeta": 0
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.85,
+      "B11": "#N/A",
+      "B16": 0.850681490527307,
+      "B17": 0.00068149052730726,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.998404530235438,
+      "B29": 9984.04530235438,
+      "F15": 10000,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  },
+  {
+    "name": "denso_alto",
+    "inputs": {
+      "volumeNF": 12000,
+      "pesoLiquido": 10220,
+      "massaEspecifica20NF": 852.0,
+      "temperaturaAmostra": 26,
+      "densidadeAmostra": 0.851,
+      "temperaturaCT": 28,
+      "situacaoSeta": 0
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.852,
+      "B11": "#N/A",
+      "B16": 0.854936496548699,
+      "B17": 0.00293649654869921,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.993670591497616,
+      "B29": 11924.0470979714,
+      "F15": 12000,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  },
+  {
+    "name": "seta_neg",
+    "inputs": {
+      "volumeNF": 10000,
+      "pesoLiquido": 8350,
+      "massaEspecifica20NF": 840.0,
+      "temperaturaAmostra": 25,
+      "densidadeAmostra": 0.838,
+      "temperaturaCT": 30,
+      "situacaoSeta": -50
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.84,
+      "B11": "#N/A",
+      "B16": 0.841323688087999,
+      "B17": 0.00132368808799854,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.991863730160726,
+      "B29": 9918.63730160726,
+      "F15": 9950,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  },
+  {
+    "name": "seta_pos",
+    "inputs": {
+      "volumeNF": 10000,
+      "pesoLiquido": 8350,
+      "massaEspecifica20NF": 840.0,
+      "temperaturaAmostra": 25,
+      "densidadeAmostra": 0.838,
+      "temperaturaCT": 30,
+      "situacaoSeta": 120
+    },
+    "expected": {
+      "B9": "#N/A",
+      "B10": 0.84,
+      "B11": "#N/A",
+      "B16": 0.841323688087999,
+      "B17": 0.00132368808799854,
+      "B20": "#N/A",
+      "B21": "#N/A",
+      "B22": "#N/A",
+      "B28": 0.991863730160726,
+      "B29": 9918.63730160726,
+      "F15": 10120,
+      "F17": "#N/A",
+      "F18": "#N/A",
+      "E17": "#N/A"
+    }
+  }
+]
