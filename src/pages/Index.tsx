@@ -382,7 +382,7 @@ const Index = () => {
                   </div>
                 </div>
                 {results?.qualidadeDiff !== undefined && (() => {
-                  const aprovado = Math.abs(results.qualidadeDiff) <= 0.003;
+                  const aprovado = avaliarQualidade(results.qualidadeDiff) === 'aprovado';
                   return (
                     <div className={`mt-4 p-4 rounded-xl text-center ${aprovado ? "bg-green-50 dark:bg-green-950/30" : "bg-destructive/10"}`}>
                       <Badge className={aprovado ? "bg-green-600" : ""} variant={aprovado ? "default" : "destructive"}>
