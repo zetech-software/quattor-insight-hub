@@ -417,68 +417,43 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Bottom: Summary + NF Info */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-2 border-primary/20 bg-gradient-to-br from-card to-accent/30">
+          {/* Bottom: Summary */}
+          <Card className="border-primary/20 bg-gradient-to-br from-card to-accent/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-heading">Resumo do Cálculo</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SummaryRow label="Volume NF" value={`${fmt(results?.volumeNF ?? inputs.volumeNF, 0)} L`} />
+              <SummaryRow label="Situação SETA" value={`${fmt(results?.situacaoSeta ?? inputs.situacaoSeta, 0)} L`} />
+              <SummaryRow label="Volume Recebido" value={`${fmt(results?.volumeRecebido, 0)} L`} />
+              <Separator />
+              <SummaryRow label="Diferença" value={`${fmt(results?.diferencaVolume, 0)} L`} />
+              <Separator />
+              <SummaryRow label="Volume Atestado" value={`${fmt(results?.volumeAtestado, 0)} L`} bold />
 
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-heading">Resumo do Cálculo</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <SummaryRow label="Volume NF" value={`${fmt(results?.volumeNF ?? inputs.volumeNF, 0)} L`} />
-                <SummaryRow label="Situação SETA" value={`${fmt(results?.situacaoSeta ?? inputs.situacaoSeta, 0)} L`} />
-                <SummaryRow label="Volume Recebido" value={`${fmt(results?.volumeRecebido, 0)} L`} />
-                <Separator />
-                <SummaryRow label="VCT" value={`${fmt(results?.vct, 0)} L`} />
-                <SummaryRow label="Diferença" value={`${fmt(results?.diferencaVolume, 0)} L`} />
-                <Separator />
-                <SummaryRow label="Volume Atestado" value={`${fmt(results?.volumeAtestado, 0)} L`} bold />
-                <SummaryRow label="Volume 20°C (V20)" value={`${fmt(results?.v20, 0)} L`} />
-
-                {results && (
-                  <div className={`mt-4 p-4 rounded-xl text-center ${isZero ? "bg-muted" : isNegative ? "bg-destructive/10" : "bg-green-50 dark:bg-green-950/30"}`}>
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      {isZero ? (
-                        <Minus className="h-5 w-5 text-muted-foreground" />
-                      ) : isNegative ? (
-                        <ArrowDown className="h-5 w-5 text-destructive" />
-                      ) : (
-                        <ArrowUp className="h-5 w-5 text-green-600" />
-                      )}
-                      <Badge variant={isZero ? "secondary" : isNegative ? "destructive" : "default"} className={isZero ? "" : !isNegative ? "bg-green-600" : ""}>
-                        {isZero ? "Igual" : isNegative ? "Abaixo" : "Acima"}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{results.situacao}</p>
-                    <p className={`text-lg font-bold font-heading ${isZero ? "text-muted-foreground" : isNegative ? "text-destructive" : "text-green-600"}`}>
-                      {fmt(Math.abs(results.diferencaVolume), 0)} L
-                    </p>
+              {results && (
+                <div className={`mt-4 p-4 rounded-xl text-center ${isZero ? "bg-muted" : isNegative ? "bg-destructive/10" : "bg-green-50 dark:bg-green-950/30"}`}>
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    {isZero ? (
+                      <Minus className="h-5 w-5 text-muted-foreground" />
+                    ) : isNegative ? (
+                      <ArrowDown className="h-5 w-5 text-destructive" />
+                    ) : (
+                      <ArrowUp className="h-5 w-5 text-green-600" />
+                    )}
+                    <Badge variant={isZero ? "secondary" : isNegative ? "destructive" : "default"} className={isZero ? "" : !isNegative ? "bg-green-600" : ""}>
+                      {isZero ? "Igual" : isNegative ? "Abaixo" : "Acima"}
+                    </Badge>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <p className="text-sm text-muted-foreground mt-1">{results.situacao}</p>
+                  <p className={`text-lg font-bold font-heading ${isZero ? "text-muted-foreground" : isNegative ? "text-destructive" : "text-green-600"}`}>
+                    {fmt(Math.abs(results.diferencaVolume), 0)} L
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            {/* Quick NF Info */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-heading text-muted-foreground">Dados da NF</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Data</span>
-                  <span className="font-medium">{inputs.data}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">NF</span>
-                  <span className="font-medium">{inputs.numeroNF || "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Placa CT</span>
-                  <span className="font-medium">{inputs.placaCT || "—"}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </AppLayout>
