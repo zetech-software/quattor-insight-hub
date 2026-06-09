@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info } from "lucide-react";
-import { calculateDiesel, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
+import { calculateDiesel, avaliarQualidade, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
