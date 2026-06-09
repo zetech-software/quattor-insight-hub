@@ -346,7 +346,13 @@ const Index = () => {
                         </PopoverContent>
                       </Popover>
                     </div>
-                    <Input type="number" step="any" value={rawInputs.situacaoSeta} onChange={(e) => updateField("situacaoSeta", e.target.value)} placeholder="0" />
+                    <Input type="number" step="1" value={rawInputs.situacaoSeta} onChange={(e) => updateField("situacaoSeta", e.target.value)} placeholder="0" />
+                    {rawInputs.situacaoSeta !== "" && !isNaN(parseFloat(rawInputs.situacaoSeta)) && (() => {
+                      const v = parseFloat(rawInputs.situacaoSeta);
+                      const label = v === 0 ? "Na seta" : v < 0 ? "Abaixo da seta (falta)" : "Acima da seta (sobra)";
+                      const cls = v === 0 ? "text-muted-foreground" : v < 0 ? "text-destructive" : "text-green-600";
+                      return <p className={`text-[11px] font-medium ${cls}`}>{label}</p>;
+                    })()}
                   </div>
                 </div>
               </CardContent>
