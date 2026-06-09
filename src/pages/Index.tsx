@@ -417,9 +417,10 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Right Column: Summary Panel */}
-          <div className="space-y-4">
-            <Card className="border-primary/20 bg-gradient-to-br from-card to-accent/30 sticky top-6">
+          {/* Bottom: Summary + NF Info */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2 border-primary/20 bg-gradient-to-br from-card to-accent/30">
+
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading">Resumo do Cálculo</CardTitle>
               </CardHeader>
