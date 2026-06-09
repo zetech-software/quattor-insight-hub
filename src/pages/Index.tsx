@@ -66,7 +66,7 @@ const Index = () => {
       const v = parseFloat(rawInputs.densidadeAmostra) || 0;
       return daUnit === "kg/m³" ? v / 1000 : v;
     })(),
-    temperaturaCT: parseFloat(rawInputs.temperaturaCT) || 0,
+    temperaturaCT: parseFloat(rawInputs.temperaturaCT || rawInputs.temperaturaAmostra) || 0,
     situacaoSeta: parseFloat(rawInputs.situacaoSeta) || 0,
   }), [rawInputs, massaUnit, daUnit]);
 
