@@ -288,4 +288,52 @@ export function calculateDiesel(inputs: DieselInputs): DieselResults | null {
   );
   if (temperaturaEstimada === null) return null;
 
-  // DAC20 (E45) — cal
+  // DAC20 (E45) — densidade da amostra corrigida a 20 °C.
+  // CNP lookup pelo OBSERVADO (DA), exatamente como a planilha (E26 = B15).
+  const dac20 = calculateDensity20(densidadeAmostra, temperaturaAmostra);
+  if (dac20 === null) return null;
+
+  // FCNF (H43) e FCCT (K43): coeficientes CNP via DA observada; DAC20 entra só
+  // como divisor de (P1·ΔT)/DAC20.
+  const fcnf = calculateCorrectionFactor(densidadeAmostra, dac20, temperaturaEstimada);
+  if (fcnf === null) return null;
+
+  const fcct = calculateCorrectionFactor(densidadeAmostra, dac20, temperaturaCT);
+  if (fcct === null) return null;
+
+  const qualidadeDiff = dac20 - dnf20;
+
+  // VCT = (VNF * FCNF) / FCCT (B21)
+  const vct = (volumeNF * fcnf) / fcct;
+  const vctMin = vct * (1 - 0.0006); // B20 = -0,06%
+  const vctMax = vct * (1 + 0.0005); // B22 = +0,05%
+
+  // V20 = VNF * FCCT (B29)
+  const v20 = volumeNF * fcct;
+
+  const situacaoSeta = inputs.situacaoSeta ?? 0;
+  const volumeRecebido = volumeNF + situacaoSeta;          // F15 = F13 + F14
+  const diferencaVolume = volumeRecebido - vct;            // F17 = F15 - F16
+  const volumeAtestado = volumeNF + diferencaVolume;       // F18 = F13 + F17
+  const situacao = diferencaVolume < 0 ? 'Falta de Produto' : 'Sobra de Produto';
+
+  return {
+    dnf20,
+    fcnf,
+    temperaturaEstimada,
+    dac20,
+    qualidadeDiff,
+    vctMin,
+    vct,
+    vctMax,
+    dac20CT: dac20,
+    fcct,
+    v20,
+    volumeNF,
+    situacaoSeta,
+    volumeRecebido,
+    volumeAtestado,
+    diferencaVolume,
+    situacao,
+  };
+}
