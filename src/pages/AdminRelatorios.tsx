@@ -2,9 +2,10 @@ import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileBarChart, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { FileBarChart, Download, FileSpreadsheet, FileText, Loader2, ClipboardCheck } from "lucide-react";
 import { generateClientReport, generateCalculationsReport, generateSubscriptionsReport } from "@/lib/pdfReports";
 import { toast } from "@/hooks/use-toast";
+import { ConferenceReportDialog } from "@/components/admin/ConferenceReportDialog";
 
 type ReportKey = "clientes" | "calculos" | "assinaturas";
 
@@ -13,6 +14,7 @@ const reports: { key: ReportKey; title: string; description: string; icon: typeo
   { key: "calculos", title: "Relatório de Cálculos", description: "Todos os cálculos realizados por período, filtrados por cliente", icon: FileBarChart },
   { key: "assinaturas", title: "Relatório de Assinaturas", description: "Status de assinaturas, pagamentos e renovações", icon: FileText },
 ];
+
 
 const generators: Record<ReportKey, () => Promise<void>> = {
   clientes: generateClientReport,
