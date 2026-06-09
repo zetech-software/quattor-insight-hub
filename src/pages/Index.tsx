@@ -381,6 +381,22 @@ const Index = () => {
                     <ResultField label="Diferença (DAC - DNF)" value={fmt(results?.qualidadeDiff, 3)} highlight />
                   </div>
                 </div>
+                {results?.qualidadeDiff !== undefined && (() => {
+                  const aprovado = Math.abs(results.qualidadeDiff) <= 0.003;
+                  return (
+                    <div className={`mt-4 p-4 rounded-xl text-center ${aprovado ? "bg-green-50 dark:bg-green-950/30" : "bg-destructive/10"}`}>
+                      <Badge className={aprovado ? "bg-green-600" : ""} variant={aprovado ? "default" : "destructive"}>
+                        {aprovado ? "APROVADO" : "REPROVADO"}
+                      </Badge>
+                      <p className={`text-sm font-medium mt-2 ${aprovado ? "text-green-700 dark:text-green-400" : "text-destructive"}`}>
+                        {aprovado ? "Pode descarregar o caminhão" : "Devolver o caminhão"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Critério: |DAC − DNF| {aprovado ? "≤" : ">"} 0,003 kg/l (atual: {fmt(Math.abs(results.qualidadeDiff), 3)})
+                      </p>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
