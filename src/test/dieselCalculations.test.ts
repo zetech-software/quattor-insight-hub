@@ -23,6 +23,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   CNP_TABLE,
+  QUALIDADE_TOLERANCIA,
+  avaliarQualidade,
   calculateCorrectionFactor,
   calculateDensity20,
   calculateDiesel,
@@ -167,5 +169,36 @@ describe('CNP_TABLE — integridade', () => {
   it('cobre faixas contíguas de 0 a 999', () => {
     expect(CNP_TABLE[0].min).toBe(0);
     expect(CNP_TABLE[CNP_TABLE.length - 1].max).toBe(999);
+});
+
+describe('avaliarQualidade — tolerância |DAC − DNF| ≤ 0,003 kg/l', () => {
+  it('tolerância exposta vale 0,003', () => {
+    expect(QUALIDADE_TOLERANCIA).toBe(0.003);
   });
+
+  it('diferença exatamente +0,003 → aprovado (limite inclusivo)', () => {
+    expect(avaliarQualidade(0.003)).toBe('aprovado');
+  });
+
+  it('diferença exatamente -0,003 → aprovado (limite inclusivo)', () => {
+    expect(avaliarQualidade(-0.003)).toBe('aprovado');
+  });
+
+  it('diferença levemente acima de +0,003 → reprovado', () => {
+    expect(avaliarQualidade(0.0031)).toBe('reprovado');
+    expect(avaliarQualidade(0.00301)).toBe('reprovado');
+  });
+
+  it('diferença levemente abaixo de -0,003 → reprovado', () => {
+    expect(avaliarQualidade(-0.0031)).toBe('reprovado');
+    expect(avaliarQualidade(-0.00301)).toBe('reprovado');
+  });
+
+  it('diferença levemente dentro da faixa (±0,0029) → aprovado', () => {
+    expect(avaliarQualidade(0.0029)).toBe('aprovado');
+    expect(avaliarQualidade(-0.0029)).toBe('aprovado');
+    expect(avaliarQualidade(0)).toBe('aprovado');
+  });
+});
+
 });

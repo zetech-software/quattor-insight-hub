@@ -9,6 +9,15 @@
 // in FCNF (H43) and FCCT (K43): FC = 1 + P2·ΔT + (P1·ΔT)/DAC20.
 // ============================================================
 
+// Quality approval threshold: |DAC − DNF| must be ≤ 0,003 kg/l
+export const QUALIDADE_TOLERANCIA = 0.003;
+export type QualidadeStatus = 'aprovado' | 'reprovado';
+export function avaliarQualidade(qualidadeDiff: number): QualidadeStatus {
+  return Math.abs(qualidadeDiff) <= QUALIDADE_TOLERANCIA ? 'aprovado' : 'reprovado';
+}
+
+
+
 // CNP Density correction table (from "Planilha de Cálculo a 20ºC" sheet)
 export const CNP_TABLE = [
   { min: 0, max: 0.4979, a1: -2462, a2: 3215, b1: -10.14, b2: 17.38 },

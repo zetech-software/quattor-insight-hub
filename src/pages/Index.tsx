@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info } from "lucide-react";
-import { calculateDiesel, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
+import { calculateDiesel, avaliarQualidade, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -382,7 +382,7 @@ const Index = () => {
                   </div>
                 </div>
                 {results?.qualidadeDiff !== undefined && (() => {
-                  const aprovado = Math.abs(results.qualidadeDiff) <= 0.003;
+                  const aprovado = avaliarQualidade(results.qualidadeDiff) === 'aprovado';
                   return (
                     <div className={`mt-4 p-4 rounded-xl text-center ${aprovado ? "bg-green-50 dark:bg-green-950/30" : "bg-destructive/10"}`}>
                       <Badge className={aprovado ? "bg-green-600" : ""} variant={aprovado ? "default" : "destructive"}>
