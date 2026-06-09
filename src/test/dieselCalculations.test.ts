@@ -23,6 +23,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   CNP_TABLE,
+  QUALIDADE_TOLERANCIA,
+  avaliarQualidade,
   calculateCorrectionFactor,
   calculateDensity20,
   calculateDiesel,
