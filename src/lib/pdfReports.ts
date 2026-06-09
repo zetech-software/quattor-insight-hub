@@ -233,7 +233,41 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = (doc as any).lastAutoTable.finalY + 4;
+
+  // Legenda + validação da faixa VCT (±0,06%)
+  const vRec = calc.volume_recebido ?? 0;
+  const vMin = calc.vct_min ?? 0;
+  const vMax = calc.vct_max ?? 0;
+  let statusText = "";
+  let statusColor: [number, number, number] = [22, 163, 74];
+  if (vRec < vMin) {
+    statusText = `FORA DA FAIXA — Falta de ${fmtVol(vMin - vRec)} L abaixo do VCT Mínimo`;
+    statusColor = [220, 38, 38];
+  } else if (vRec > vMax) {
+    statusText = `FORA DA FAIXA — Sobra de ${fmtVol(vRec - vMax)} L acima do VCT Máximo`;
+    statusColor = [220, 38, 38];
+  } else {
+    statusText = "DENTRO DA FAIXA — Volume recebido está dentro da tolerância de ±0,06%";
+    statusColor = [22, 163, 74];
+  }
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(90, 90, 90);
+  const legend = "Tolerância operacional de ±0,06% aplicada sobre o VCT. Volumes entre VCT Mínimo e VCT Máximo são aceitáveis; abaixo indica falta e acima indica sobra além da margem.";
+  const legendLines = doc.splitTextToSize(legend, 182);
+  doc.text(legendLines, 14, y);
+  y += legendLines.length * 3.5 + 2;
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.setFont("helvetica", "bold");
+  const statusLines = doc.splitTextToSize(statusText, 182);
+  doc.text(statusLines, 14, y);
+  y += statusLines.length * 4 + 4;
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
 
   // Section 5 - Resumo
   const diff = calc.diferenca_volume ?? 0;
