@@ -96,11 +96,30 @@ describe('Identidades algébricas (independem da planilha)', () => {
     }
   });
 
-  it('VCT min = VCT × (1 − 0,06%) e VCT max = VCT × (1 + 0,05%)', () => {
+  it('VCT min = VCT × (1 − 0,06%) e VCT max = VCT × (1 + 0,06%)', () => {
     const c = cases[0];
     const r = calculateDiesel({ data: '', numeroNF: '', placaCT: '', ...c.inputs })!;
     expect(r.vctMin).toBeCloseTo(r.vct * (1 - 0.0006), 8);
     expect(r.vctMax).toBeCloseTo(r.vct * (1 + 0.0006), 8);
+  });
+
+  it('Resumo: diferença = volume recebido − situação da seta − volume NF, mantendo volume atestado sem divergência', () => {
+    const base = cases[0].inputs;
+
+    for (const situacaoSeta of [200, 0, -300]) {
+      const r = calculateDiesel({
+        data: '',
+        numeroNF: '',
+        placaCT: '',
+        ...base,
+        situacaoSeta,
+      })!;
+
+      expect(r.volumeRecebido).toBeCloseTo(r.volumeNF + situacaoSeta, 8);
+      expect(r.diferencaVolume).toBeCloseTo(r.volumeRecebido - situacaoSeta - r.volumeNF, 8);
+      expect(r.diferencaVolume).toBeCloseTo(0, 8);
+      expect(r.volumeAtestado).toBeCloseTo(r.volumeNF, 8);
+    }
   });
 
   it('Quando TA = 20 °C, DAC20 = DA (sem correção térmica)', () => {
