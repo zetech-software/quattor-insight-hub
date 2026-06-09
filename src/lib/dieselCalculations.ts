@@ -200,22 +200,36 @@ export function estimateLoadingTemperature(
     rows.push({ temp: Math.round(t * 1e6) / 1e6, density });
   }
 
-  // VLOOKUP TRUE: a densidade decresce com a temperatura.
-  // Procuramos o último ponto cuja densidade ainda é >= target, e interpolamos
-  // até o próximo (cuja densidade < target).
+  // A coluna E da tabela representa "qual seria a densidade a 20 °C se a
+  // densidade observada (densCarga) tivesse sido medida na temperatura T".
+  // Para target = DNF20 (densidade real a 20 °C), procuramos o intervalo onde
+  // a curva cruza o target — pode ser ascendente OU descendente dependendo
+  // da relação entre densCarga e DNF20.
   let lowerIdx = -1;
   for (let i = 0; i < rows.length - 1; i++) {
-    if (rows[i].density >= target && rows[i + 1].density < target) {
+    const a = rows[i].density;
+    const b = rows[i + 1].density;
+    if ((a <= target && target <= b) || (a >= target && target >= b)) {
       lowerIdx = i;
       break;
     }
   }
 
   if (lowerIdx < 0) {
-    // target fora do intervalo coberto pela tabela — fallback: clamp
-    if (rows[0].density < target) return rows[0].temp;
-    return rows[rows.length - 1].temp;
+    // Fallback: target fora da faixa coberta. Retorna a temperatura mais
+    // próxima do target.
+    let closest = 0;
+    let bestDiff = Math.abs(rows[0].density - target);
+    for (let i = 1; i < rows.length; i++) {
+      const diff = Math.abs(rows[i].density - target);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        closest = i;
+      }
+    }
+    return rows[closest].temp;
   }
+
 
   const lower = rows[lowerIdx];
   const upper = rows[lowerIdx + 1];
