@@ -15,10 +15,10 @@ interface PetChatProps {
 }
 
 const QUICK_PROMPTS = [
-  "Como funciona o FCCT?",
-  "O que é DAC20?",
-  "Como cadastrar uma NF?",
-  "Explique a diferença entre VCT e V20",
+  "Por que sobrou ou faltou diesel na entrega?",
+  "Como faço um novo cálculo?",
+  "O que significa o resultado do laudo?",
+  "Onde vejo meus cálculos anteriores?",
 ];
 
 export function PetChat({ className, showHeader = true, showResetButton = true }: PetChatProps) {
