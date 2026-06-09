@@ -1,0 +1,186 @@
+import { useEffect, useRef, useState, KeyboardEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import { Send, RotateCcw, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { usePet } from "@/hooks/usePet";
+import petAvatar from "@/assets/pet-avatar.png";
+
+interface PetChatProps {
+  className?: string;
+  showHeader?: boolean;
+  showResetButton?: boolean;
+}
+
+const QUICK_PROMPTS = [
+  "Como funciona o FCCT?",
+  "O que é DAC20?",
+  "Como cadastrar uma NF?",
+  "Explique a diferença entre VCT e V20",
+];
+
+export function PetChat({ className, showHeader = true, showResetButton = true }: PetChatProps) {
+  const { messages, sendMessage, status, reset } = usePet();
+  const [input, setInput] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isBusy = status === "submitted" || status === "streaming";
+
+  // Auto-focus
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, [messages.length, status]);
+
+  // Auto-scroll
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, status]);
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text || isBusy) return;
+    setInput("");
+    try {
+      await sendMessage(text);
+    } catch (e) {
+      console.error("PET send error:", e);
+    }
+  };
+
+  const handleKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const renderText = (m: typeof messages[number]) =>
+    m.parts
+      .map((p) => (p.type === "text" ? p.text : ""))
+      .join("");
+
+  return (
+    <div className={cn("flex flex-col h-full bg-background", className)}>
+      {showHeader && (
+        <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
+          <img src={petAvatar} alt="PET" className="w-10 h-10 rounded-full bg-primary/10" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm">PET</h3>
+            <p className="text-xs text-muted-foreground truncate">
+              Planilha Explicativa Técnica
+            </p>
+          </div>
+          {showResetButton && messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={reset}
+              title="Nova conversa"
+              className="h-8 w-8"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )}
+
+      <ScrollArea className="flex-1">
+        <div ref={scrollRef} className="px-4 py-4 space-y-4 overflow-y-auto h-full">
+          {messages.length === 0 && (
+            <div className="text-center py-6 space-y-4">
+              <img
+                src={petAvatar}
+                alt="PET mascote"
+                className="w-24 h-24 mx-auto"
+              />
+              <div>
+                <h4 className="font-semibold">Olá! Eu sou o PET 👋</h4>
+                <p className="text-sm text-muted-foreground mt-1 px-2">
+                  Pergunte sobre fórmulas, como usar o sistema ou peça pra
+                  interpretar um resultado.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 px-2">
+                {QUICK_PROMPTS.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => sendMessage(q).catch(console.error)}
+                    className="text-xs text-left px-3 py-2 rounded-md border border-border hover:bg-accent hover:border-primary/40 transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((m) => {
+            const text = renderText(m);
+            if (m.role === "user") {
+              return (
+                <div key={m.id} className="flex justify-end">
+                  <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2 max-w-[85%] text-sm whitespace-pre-wrap break-words">
+                    {text}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={m.id} className="flex gap-2">
+                <img
+                  src={petAvatar}
+                  alt=""
+                  className="w-7 h-7 rounded-full bg-primary/10 shrink-0 mt-1"
+                />
+                <div className="flex-1 min-w-0 text-sm prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-pre:text-xs prose-code:text-xs prose-headings:mt-2 prose-headings:mb-1 prose-ul:my-1 prose-ol:my-1">
+                  <ReactMarkdown>{text}</ReactMarkdown>
+                </div>
+              </div>
+            );
+          })}
+
+          {status === "submitted" && (
+            <div className="flex gap-2 items-center text-muted-foreground text-sm">
+              <img src={petAvatar} alt="" className="w-7 h-7 rounded-full bg-primary/10" />
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Pensando…</span>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      <div className="border-t p-3 shrink-0">
+        <div className="flex gap-2 items-end">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Pergunte ao PET…"
+            rows={1}
+            className="min-h-[40px] max-h-32 resize-none text-sm"
+            disabled={isBusy}
+          />
+          <Button
+            onClick={handleSend}
+            disabled={!input.trim() || isBusy}
+            size="icon"
+            className="shrink-0"
+          >
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+          PET responde apenas sobre cálculos de diesel e uso do sistema.
+        </p>
+      </div>
+    </div>
+  );
+}
