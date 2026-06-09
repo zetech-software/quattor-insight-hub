@@ -272,3 +272,114 @@ export function generateSingleCalculationPDF(calc: Calculation) {
   const nf = calc.numero_nf || "sem-nf";
   doc.save(`relatorio-calculo-${nf}-${calc.data}.pdf`);
 }
+
+// ============ Relatório de Conferências (Admin) ============
+export type ConferenceFilters = {
+  startDate?: string;        // YYYY-MM-DD
+  endDate?: string;          // YYYY-MM-DD
+  userId?: string;           // cliente
+  placaCT?: string;          // contém
+  situacao?: "todas" | "sobra" | "falta" | "igual";
+};
+
+export async function fetchConferenceCalculations(filters: ConferenceFilters) {
+  let q = supabase.from("calculations").select("*").order("data", { ascending: false });
+  if (filters.startDate) q = q.gte("data", filters.startDate);
+  if (filters.endDate) q = q.lte("data", filters.endDate);
+  if (filters.userId) q = q.eq("user_id", filters.userId);
+  if (filters.placaCT && filters.placaCT.trim()) q = q.ilike("placa_ct", `%${filters.placaCT.trim()}%`);
+  const { data, error } = await q;
+  if (error) throw error;
+  let rows = data ?? [];
+  if (filters.situacao && filters.situacao !== "todas") {
+    rows = rows.filter((r) => {
+      const d = r.diferenca_volume ?? 0;
+      if (filters.situacao === "sobra") return d > 0;
+      if (filters.situacao === "falta") return d < 0;
+      return d === 0;
+    });
+  }
+  return rows as Calculation[];
+}
+
+function periodLabel(f: ConferenceFilters) {
+  const fmt = (d?: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
+  if (!f.startDate && !f.endDate) return "Todos os períodos";
+  return `${fmt(f.startDate)} a ${fmt(f.endDate)}`;
+}
+
+export async function generateConferenceReport(
+  filters: ConferenceFilters,
+  clientName?: string,
+) {
+  const rows = await fetchConferenceCalculations(filters);
+  const { data: profiles } = await supabase.from("profiles").select("user_id, company_name, full_name");
+  const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p.company_name || p.full_name || "—"]));
+
+  const doc = new jsPDF({ orientation: "landscape" });
+  addHeader(doc, "Relatório de Conferências");
+
+  let y = 38;
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  doc.text(`Período: ${periodLabel(filters)}`, 14, y);
+  if (clientName) doc.text(`Cliente: ${clientName}`, 120, y);
+  if (filters.placaCT) doc.text(`Placa CT: ${filters.placaCT}`, 200, y);
+  if (filters.situacao && filters.situacao !== "todas") doc.text(`Situação: ${filters.situacao}`, 250, y);
+  y += 6;
+
+  // Totais
+  const totVolNF = rows.reduce((s, r) => s + Number(r.volume_nf ?? 0), 0);
+  const totVCT = rows.reduce((s, r) => s + Number(r.vct ?? 0), 0);
+  const totV20 = rows.reduce((s, r) => s + Number(r.v20 ?? 0), 0);
+  const totDif = rows.reduce((s, r) => s + Number(r.diferenca_volume ?? 0), 0);
+  const sobras = rows.filter((r) => (r.diferenca_volume ?? 0) > 0).length;
+  const faltas = rows.filter((r) => (r.diferenca_volume ?? 0) < 0).length;
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(8);
+  doc.text(
+    `Conferências: ${rows.length}  |  Sobras: ${sobras}  |  Faltas: ${faltas}  |  Σ Volume NF: ${Math.round(totVolNF).toLocaleString("pt-BR")} L  |  Σ VCT: ${Math.round(totVCT).toLocaleString("pt-BR")} L  |  Σ V20: ${Math.round(totV20).toLocaleString("pt-BR")} L  |  Σ Diferença: ${Math.round(totDif).toLocaleString("pt-BR")} L`,
+    14,
+    y,
+  );
+  y += 4;
+
+  autoTable(doc, {
+    startY: y + 2,
+    head: [["Data", "Cliente", "NF", "Placa CT", "Vol. NF (L)", "VCT (L)", "V20 (L)", "Vol. Atestado (L)", "Diferença (L)", "%", "Situação"]],
+    body: rows.map((r) => {
+      const vnf = Number(r.volume_nf ?? 0);
+      const diff = Number(r.diferenca_volume ?? 0);
+      const pct = vnf ? ((diff / vnf) * 100).toFixed(2) + "%" : "—";
+      return [
+        new Date(r.data).toLocaleDateString("pt-BR"),
+        profileMap.get(r.user_id) ?? "—",
+        r.numero_nf ?? "—",
+        r.placa_ct ?? "—",
+        Math.round(vnf).toLocaleString("pt-BR"),
+        r.vct !== null ? Math.round(Number(r.vct)).toLocaleString("pt-BR") : "—",
+        r.v20 !== null ? Math.round(Number(r.v20)).toLocaleString("pt-BR") : "—",
+        r.volume_atestado !== null ? Math.round(Number(r.volume_atestado)).toLocaleString("pt-BR") : "—",
+        r.diferenca_volume !== null ? Math.round(diff).toLocaleString("pt-BR") : "—",
+        pct,
+        r.situacao ?? "—",
+      ];
+    }),
+    headStyles: { fillColor: HEADER_BG, textColor: HEADER_TEXT, fontStyle: "bold", fontSize: 8 },
+    bodyStyles: { fontSize: 7 },
+    alternateRowStyles: { fillColor: [252, 243, 232] },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.section === "body" && (data.column.index === 8 || data.column.index === 9)) {
+        const raw = rows[data.row.index]?.diferenca_volume ?? 0;
+        if (Number(raw) < 0) data.cell.styles.textColor = [220, 38, 38];
+        else if (Number(raw) > 0) data.cell.styles.textColor = [22, 163, 74];
+      }
+    },
+  });
+
+  addFooter(doc);
+  doc.save(`relatorio-conferencias-${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
