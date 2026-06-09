@@ -107,8 +107,10 @@ const AdminRelatorios = () => {
           ))}
         </div>
       </div>
+      <ConferenceReportDialog open={confOpen} onOpenChange={setConfOpen} />
     </AppLayout>
   );
 };
 
 export default AdminRelatorios;
+
