@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PetProvider } from "@/hooks/usePet";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
@@ -13,6 +14,7 @@ import Historico from "./pages/Historico";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClientes from "./pages/AdminClientes";
 import AdminRelatorios from "./pages/AdminRelatorios";
+import Pet from "./pages/Pet";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,16 +27,19 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/clientes" element={<ProtectedRoute requiredRole="admin"><AdminClientes /></ProtectedRoute>} />
-              <Route path="/admin/relatorios" element={<ProtectedRoute requiredRole="admin"><AdminRelatorios /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <PetProvider>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
+                <Route path="/pet" element={<ProtectedRoute><Pet /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin/clientes" element={<ProtectedRoute requiredRole="admin"><AdminClientes /></ProtectedRoute>} />
+                <Route path="/admin/relatorios" element={<ProtectedRoute requiredRole="admin"><AdminRelatorios /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </PetProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

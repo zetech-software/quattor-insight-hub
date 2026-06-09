@@ -1,5 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { PetFab } from "@/components/pet/PetFab";
 import { useAuth } from "@/hooks/useAuth";
 import { ReactNode } from "react";
 
