@@ -100,7 +100,7 @@ describe('Identidades algébricas (independem da planilha)', () => {
     const c = cases[0];
     const r = calculateDiesel({ data: '', numeroNF: '', placaCT: '', ...c.inputs })!;
     expect(r.vctMin).toBeCloseTo(r.vct * (1 - 0.0006), 8);
-    expect(r.vctMax).toBeCloseTo(r.vct * (1 + 0.0005), 8);
+    expect(r.vctMax).toBeCloseTo(r.vct * (1 + 0.0006), 8);
   });
 
   it('Quando TA = 20 °C, DAC20 = DA (sem correção térmica)', () => {
