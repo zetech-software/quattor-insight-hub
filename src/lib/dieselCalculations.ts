@@ -1,6 +1,12 @@
 // ============================================================
 // Diesel Receipt Calculation Engine
 // Reproduces ALL formulas from the Qu4ttuor spreadsheet
+// (Calculo_de_Recebimento_de_Diesel_-_Web.xlsx)
+//
+// CRITICAL: In the spreadsheet, the CNP coefficients (a1, a2, b1, b2)
+// are resolved by VLOOKUP on the OBSERVED sample density (B15 / DA),
+// NOT on the corrected DAC20. The DAC20 only appears as the divisor
+// in FCNF (H43) and FCCT (K43): FC = 1 + P2·ΔT + (P1·ΔT)/DAC20.
 // ============================================================
 
 // CNP Density correction table (from "Planilha de Cálculo a 20ºC" sheet)
@@ -28,245 +34,238 @@ export const CNP_TABLE = [
   { min: 0.996, max: 999, a1: -542.6, a2: 177.8, b1: 2.31, b2: -2.2 },
 ];
 
-// Temperature estimation now uses the full CNP_TABLE via findCNPCoefficients,
-// so it works for ALL diesel density ranges, not just a narrow subset.
+interface CNPCoefficients {
+  a1: number;
+  a2: number;
+  b1: number;
+  b2: number;
+}
 
-function findCNPCoefficients(density: number) {
-  const a1_raw = CNP_TABLE.find(r => {
+function findCNPCoefficients(density: number): CNPCoefficients | null {
+  const row = CNP_TABLE.find((r) => {
     if (r.min === 0) return density < 0.498;
     if (r.min === 0.996) return density > 0.9959;
     return density >= r.min && density <= r.max;
   });
-  if (!a1_raw) return null;
+  if (!row) return null;
   return {
-    a1: a1_raw.a1 / 1_000_000,
-    a2: a1_raw.a2 / 1_000_000,
-    b1: a1_raw.b1 / 1_000_000,
-    b2: a1_raw.b2 / 1_000_000,
+    a1: row.a1 / 1_000_000,
+    a2: row.a2 / 1_000_000,
+    b1: row.b1 / 1_000_000,
+    b2: row.b2 / 1_000_000,
   };
 }
 
 /**
- * Calculate density corrected to 20°C
- * Reproduces "Planilha de Cálculo a 20ºC" sheet formulas
+ * Compute P1, P2, P3, P4 helpers (rows E31-K32 of "Planilha de Cálculo a 20ºC")
+ * from CNP coefficients. These derive ONLY from a1/a2/b1/b2 and are independent
+ * of temperature.
+ */
+function derivePCoefficients(c: CNPCoefficients) {
+  const { a1, a2, b1, b2 } = c;
+  const E28 = (a2 + 16 * b2) * (8 * a1 + 64 * b1);
+  const E29 = 1 + 8 * a2 + 64 * b2;
+  const E30 = a1 + 16 * b1 - E28 / E29; // densidade sem correção
+  const P1 = (9 / 5) * 0.999042 * E30;
+  const P2 = (9 / 5) * (a2 + 16 * b2) / E29;
+  const I30 = b1 - (b2 * (8 * a1 + 64 * b1)) / E29;
+  const P3 = (81 / 25) * 0.999042 * I30;
+  const K30 = b2 / E29;
+  const P4 = (81 / 25) * K30;
+  return { P1, P2, P3, P4 };
+}
+
+/**
+ * DAC 20°C — Density corrected to 20°C (cell E45 = E43 * E35).
+ * CNP coefficients are looked up by the OBSERVED density (DA), matching the
+ * spreadsheet's VLOOKUP on E26 = 'Mascará de Cálculos'!B15.
  */
 export function calculateDensity20(
-  observedDensity: number, // g/cm³ (DA)
-  temperature: number // °C (TA)
+  observedDensity: number, // DA (g/cm³ / kg·L⁻¹)
+  temperature: number,     // TA (°C)
 ): number | null {
   const coeffs = findCNPCoefficients(observedDensity);
   if (!coeffs) return null;
-  const { a1, a2, b1, b2 } = coeffs;
+  const { P1, P2, P3, P4 } = derivePCoefficients(coeffs);
 
-  // Intermediate calculations (E28-E30 in spreadsheet)
-  const factor1 = (a2 + 16 * b2) * (8 * a1 + 64 * b1);
-  const factor2 = 1 + 8 * a2 + 64 * b2;
-  const densityNoCorr = a1 + 16 * b1 - factor1 / factor2;
-
-  // P1 = (9/5) * 0.999042 * densityNoCorr
-  const P1 = (9 / 5) * 0.999042 * densityNoCorr;
-
-  // P2 = (9/5) * (a2 + 16*b2) / (1 + 8*a2 + 64*b2)
-  const P2 = (9 / 5) * (a2 + 16 * b2) / factor2;
-
-  // b1_calc = b1 - (b2*(8*a1+64*b1)) / (1+8*a2+64*b2)
-  const b1Calc = b1 - (b2 * (8 * a1 + 64 * b1)) / factor2;
-  // P3 = (81/25) * 0.999042 * b1Calc
-  const P3 = (81 / 25) * 0.999042 * b1Calc;
-
-  // b2_calc = b2 / (1 + 8*a2 + 64*b2)
-  const b2Calc = b2 / factor2;
-  // P4 = (81/25) * b2Calc
-  const P4 = (81 / 25) * b2Calc;
-
-  // Delta T and hydrometer correction
   const deltaT = temperature - 20;
   const deltaT2 = deltaT * deltaT;
   const HyC = 1 - 0.000023 * deltaT - 0.00000002 * deltaT2;
 
-  // Density numerator and denominator
   const numerator = observedDensity - P1 * deltaT - P3 * deltaT2;
   const denominator = 1 + P2 * deltaT + P4 * deltaT2;
   const density20_4 = numerator / denominator;
 
-  // Apply hydrometer correction
-  const density20Corrected = density20_4 * HyC;
-
-  return density20Corrected;
+  return density20_4 * HyC;
 }
 
 /**
- * Calculate volumetric correction factor (FC) at a given temperature
- * Uses the density corrected to 20°C and a temperature
- * Reproduces H43 and K43 formulas in spreadsheet
+ * Volumetric correction factor (cells H43 and K43 in the spreadsheet).
+ *
+ * FC = 1 + P2·ΔT + (P1·ΔT) / DAC20
+ *
+ * @param lookupDensity Observed sample density (DA) — used as the CNP VLOOKUP key.
+ * @param density20     DAC20 — divisor only; corresponds to E45 in the sheet.
+ * @param temperature   Temperature at which the factor is being evaluated.
  */
 export function calculateCorrectionFactor(
-  density20: number, // corrected density at 20°C (g/cm³)
-  temperature: number // °C
+  lookupDensity: number,
+  density20: number,
+  temperature: number,
 ): number | null {
-  const coeffs = findCNPCoefficients(density20);
+  const coeffs = findCNPCoefficients(lookupDensity);
   if (!coeffs) return null;
-  const { a1, a2, b1, b2 } = coeffs;
-
-  const factor1 = (a2 + 16 * b2) * (8 * a1 + 64 * b1);
-  const factor2 = 1 + 8 * a2 + 64 * b2;
-  const densityNoCorr = a1 + 16 * b1 - factor1 / factor2;
-  const P1 = (9 / 5) * 0.999042 * densityNoCorr;
-  const P2 = (9 / 5) * (a2 + 16 * b2) / factor2;
-
+  const { P1, P2 } = derivePCoefficients(coeffs);
   const deltaT = temperature - 20;
+  return 1 + P2 * deltaT + (P1 * deltaT) / density20;
+}
 
-  // FC = 1 + P2 * deltaT + (P1 * deltaT) / density20
-  // This is the formula from H43/K43: =1+(H39)+((H37)/E45)
-  // H39 = P2 * deltaT, H37 = P1 * deltaT
-  const FC = 1 + P2 * deltaT + (P1 * deltaT) / density20;
+// ============================================================
+// Estimativa de Temperatura de Carregamento (aba "NAO EDITAR")
+//
+// A planilha usa uma tabela própria de 3 faixas (NÃO a tabela CNP completa)
+// e coeficientes B1/B2 FIXOS. A faixa é resolvida pela DENSIDADE DA CARGA
+// (peso líquido / volume), não pela massa específica a 20 °C.
+// ============================================================
 
-  return FC;
+const NAO_EDITAR_FAIXAS = [
+  // [min, max, A1, A2] — colunas E/F/G/H linhas 3-5 da aba NAO EDITAR
+  { min: 0.806, max: 0.8259, A1: -0.0008435, A2: 0.00055 },
+  { min: 0.826, max: 0.8459, A1: -0.000719, A2: 0.0004 },
+  { min: 0.846, max: 0.8709, A1: -0.000617, A2: 0.00028 },
+];
+const NAO_EDITAR_B1 = -4.9e-7; // E10 (fixo)
+const NAO_EDITAR_B2 = 6e-7;    // E11 (fixo)
+
+function naoEditarLookup(densityLoad: number): { A1: number; A2: number } | null {
+  // Reproduz E8/E9: =IF(E33<F3, G3, IF(E33<E5, G4, G5))
+  if (densityLoad < NAO_EDITAR_FAIXAS[0].max) {
+    return { A1: NAO_EDITAR_FAIXAS[0].A1, A2: NAO_EDITAR_FAIXAS[0].A2 };
+  }
+  if (densityLoad < NAO_EDITAR_FAIXAS[2].min) {
+    return { A1: NAO_EDITAR_FAIXAS[1].A1, A2: NAO_EDITAR_FAIXAS[1].A2 };
+  }
+  return { A1: NAO_EDITAR_FAIXAS[2].A1, A2: NAO_EDITAR_FAIXAS[2].A2 };
 }
 
 /**
- * Estimate loading temperature from NF data
- * Reproduces "NAO EDITAR" sheet logic
+ * Estima a temperatura de carregamento (célula L13 da aba "NAO EDITAR").
+ *
+ * 1. Constrói tabela densidade × temperatura (0 a 100 °C, passo 0,5 °C) usando
+ *    coeficientes da própria aba NAO EDITAR (3 faixas) + B1/B2 fixos.
+ * 2. Localiza o intervalo onde a densidade atinge a massa específica a 20 °C
+ *    da NF (M13 = F10/1000).
+ * 3. Interpola linearmente.
  */
 export function estimateLoadingTemperature(
-  volumeNF: number, // liters
-  pesoLiquido: number, // kg
-  massaEspecifica20: number // kg/m³
+  volumeNF: number,      // litros (B8)
+  pesoLiquido: number,   // kg (F9)
+  massaEspecifica20: number, // kg/m³ (F10)
 ): number | null {
-  // Densidade da carga = peso / volume (em kg/L = g/cm³)
-  const densidadeCarga = pesoLiquido / volumeNF;
+  if (volumeNF <= 0) return null;
+  const densidadeCarga = pesoLiquido / volumeNF; // E33 / M7 (g/cm³ equivalente)
+  const lookup = naoEditarLookup(densidadeCarga);
+  if (!lookup) return null;
 
-  // Use CNP table coefficients for the NF density
-  const densGCm3 = massaEspecifica20 / 1000;
-  const coeffs = findCNPCoefficients(densGCm3);
-  if (!coeffs) return null;
+  const { A1, A2 } = lookup;
+  const B1 = NAO_EDITAR_B1;
+  const B2 = NAO_EDITAR_B2;
 
-  const { a1: A1, a2: A2, b1: B1, b2: B2 } = coeffs;
-
-  // Calculate P values for temperature table (same as NAO EDITAR formulas)
+  // P1..P4 (rows E14-E28 da aba NAO EDITAR)
   const A1_1 = (8 * A1 + 64 * B1) * (A2 + 16 * B2);
   const A1_2 = 1 + 8 * A2 + 64 * B2;
   const A1_3 = A1 + 16 * B1 - A1_1 / A1_2;
   const P1 = (9 / 5) * 0.999042 * A1_3;
 
-  const A2_1 = A2 + 16 * B2;
-  const A2_2 = 1 + 8 * A2 + 64 * B2;
-  const P2 = (9 / 5) * A2_1 / A2_2;
+  const P2 = (9 / 5) * (A2 + 16 * B2) / (1 + 8 * A2 + 64 * B2);
 
   const B1_1 = B2 * (8 * A1 + 64 * B1);
-  const B1_2 = 1 + 8 * A2 + 64 * B2;
-  const B1_3 = B1 - B1_1 / B1_2;
+  const B1_3 = B1 - B1_1 / (1 + 8 * A2 + 64 * B2);
   const P3 = (81 / 25) * 0.999042 * B1_3;
 
   const B2_3 = B2 / (1 + 8 * A2 + 64 * B2);
   const P4 = 3.24 * B2_3;
 
-  // Build temperature lookup table from 0°C to 50°C in 0.5 steps
-  const densidadeCargaGCm3 = densidadeCarga; // already in g/cm³ equivalent
-  const tempTable: { temp: number; density: number }[] = [];
-
-  for (let t = 0; t <= 50; t += 0.5) {
-    const deltaT = t - 20;
-    const deltaT2 = deltaT * deltaT;
-    const HyC = 1 - 0.000023 * deltaT - 0.00000002 * deltaT2;
-
-    const p1dt = P1 * deltaT;
-    const p2dt = P2 * deltaT;
-    const p3dt2 = P3 * deltaT2;
-    const p4dt2 = P4 * deltaT2;
-
-    const density = ((densidadeCargaGCm3 - p1dt - p3dt2) / (1 + p2dt + p4dt2)) * HyC;
-    tempTable.push({ temp: t, density });
+  // Tabela de densidades em função da temperatura (D34..D234 / E34..E234)
+  const target = massaEspecifica20 / 1000; // M13
+  const step = 0.5;
+  const tMax = 100;
+  const rows: Array<{ temp: number; density: number }> = [];
+  for (let t = 0; t <= tMax + 1e-9; t += step) {
+    const dT = t - 20;
+    const dT2 = dT * dT;
+    const HyC = 1 - 0.000023 * dT - 0.00000002 * dT2;
+    const density =
+      ((densidadeCarga - P1 * dT - P3 * dT2) / (1 + P2 * dT + P4 * dT2)) * HyC;
+    rows.push({ temp: Math.round(t * 1e6) / 1e6, density });
   }
 
-  // Now interpolate: find where the density matches massaEspecifica20/1000
-  const targetDensity = massaEspecifica20 / 1000;
-
-  // Find the row where density crosses the target
-  // VLOOKUP equivalent: find the row with density <= target
+  // VLOOKUP TRUE: a densidade decresce com a temperatura.
+  // Procuramos o último ponto cuja densidade ainda é >= target, e interpolamos
+  // até o próximo (cuja densidade < target).
   let lowerIdx = -1;
-  for (let i = 0; i < tempTable.length; i++) {
-    if (tempTable[i].density <= targetDensity) {
+  for (let i = 0; i < rows.length - 1; i++) {
+    if (rows[i].density >= target && rows[i + 1].density < target) {
       lowerIdx = i;
+      break;
     }
   }
 
-  if (lowerIdx < 0 || lowerIdx >= tempTable.length - 1) {
-    // Fallback: use closest match
-    let closestIdx = 0;
-    let closestDiff = Math.abs(tempTable[0].density - targetDensity);
-    for (let i = 1; i < tempTable.length; i++) {
-      const diff = Math.abs(tempTable[i].density - targetDensity);
-      if (diff < closestDiff) {
-        closestDiff = diff;
-        closestIdx = i;
-      }
-    }
-    return tempTable[closestIdx].temp;
+  if (lowerIdx < 0) {
+    // target fora do intervalo coberto pela tabela — fallback: clamp
+    if (rows[0].density < target) return rows[0].temp;
+    return rows[rows.length - 1].temp;
   }
 
-  // Linear interpolation between lowerIdx and lowerIdx+1
-  const lower = tempTable[lowerIdx];
-  const upper = tempTable[lowerIdx + 1];
-
-  if (Math.abs(upper.density - lower.density) < 1e-12) {
-    return lower.temp;
-  }
-
-  const fraction = (targetDensity - lower.density) / (upper.density - lower.density);
-  const estimatedTemp = lower.temp + fraction * 0.5;
-
-  return Math.round(estimatedTemp * 10) / 10;
+  const lower = rows[lowerIdx];
+  const upper = rows[lowerIdx + 1];
+  if (Math.abs(upper.density - lower.density) < 1e-15) return lower.temp;
+  const fraction = (target - lower.density) / (upper.density - lower.density);
+  return lower.temp + fraction * step;
 }
 
 // ============================================================
-// Main calculation interface
+// Interface pública
 // ============================================================
 
 export interface DieselInputs {
-  // Seção 1 - NF
+  // Seção 1 — NF
   data: string;
   numeroNF: string;
   placaCT: string;
-  volumeNF: number; // liters (B8)
-  pesoLiquido: number; // kg (F9)
+  volumeNF: number;          // litros (B8)
+  pesoLiquido: number;       // kg (F9)
   massaEspecifica20NF: number; // kg/m³ (F10) → B10 = F10/1000
 
-  // Seção 2 - Dados de campo
-  temperaturaCT: number; // °C (B26)
+  // Seção 2 — Dados de campo
+  temperaturaCT: number;     // °C (B26)
   temperaturaAmostra: number; // °C (B14)
-  densidadeAmostra: number; // kg/l (B15)
-  situacaoSeta: number; // litros (F14) — leitura da seta do CT
-
+  densidadeAmostra: number;  // kg/L (B15)
+  situacaoSeta: number;      // litros (F14)
 }
 
 export interface DieselResults {
-  // Seção 2
-  dnf20: number; // massa esp NF em kg/l (B10)
-  fcnf: number; // fator correção NF (B9)
-  temperaturaEstimada: number; // °C (B11/F11)
+  dnf20: number;
+  fcnf: number;
+  temperaturaEstimada: number;
 
-  // Seção 3
-  dac20: number; // massa esp amostra corrigida (B16)
-  qualidadeDiff: number; // B17 = B16 - B10
+  dac20: number;
+  qualidadeDiff: number;
 
-  // Seção 4
-  vctMin: number; // B20
-  vct: number; // B21
-  vctMax: number; // B22
+  vctMin: number;
+  vct: number;
+  vctMax: number;
 
-  // Seção 5
-  dac20CT: number; // B27 = B16
-  fcct: number; // B28
-  v20: number; // B29
+  dac20CT: number;
+  fcct: number;
+  v20: number;
 
-  // Resumo
   volumeNF: number;
-  situacaoSeta: number; // F14 (always 0 from spreadsheet)
-  volumeRecebido: number; // F15
-  volumeAtestado: number; // F18
-  diferencaVolume: number; // F17
-  situacao: string; // "Falta" ou "Sobra"
+  situacaoSeta: number;
+  volumeRecebido: number;
+  volumeAtestado: number;
+  diferencaVolume: number;
+  situacao: string;
 }
 
 export function calculateDiesel(inputs: DieselInputs): DieselResults | null {
@@ -279,70 +278,14 @@ export function calculateDiesel(inputs: DieselInputs): DieselResults | null {
     temperaturaCT,
   } = inputs;
 
-  // B10 = F10/1000 (converter kg/m³ para kg/l)
+  // B10 = F10/1000 (kg/m³ → kg/L)
   const dnf20 = massaEspecifica20NF / 1000;
 
-  // Temperatura estimada de carregamento
   const temperaturaEstimada = estimateLoadingTemperature(
     volumeNF,
     pesoLiquido,
-    massaEspecifica20NF
+    massaEspecifica20NF,
   );
   if (temperaturaEstimada === null) return null;
 
-  // DAC 20°C = densidade amostra corrigida a 20°C (E45 in calc sheet)
-  // Must be computed BEFORE FCNF because spreadsheet uses DAC20 for all correction factors
-  const dac20 = calculateDensity20(densidadeAmostra, temperaturaAmostra);
-  if (dac20 === null) return null;
-
-  // FCNF = fator de correção na temp estimada (H43 in spreadsheet)
-  // Spreadsheet uses DAC20 (sample density) as base, not DNF20
-  const fcnf = calculateCorrectionFactor(dac20, temperaturaEstimada);
-  if (fcnf === null) return null;
-
-  // Qualidade diff
-  const qualidadeDiff = dac20 - dnf20;
-
-  // FCCT = fator de correção do CT (K43 in spreadsheet)
-  const fcct = calculateCorrectionFactor(dac20, temperaturaCT);
-  if (fcct === null) return null;
-
-  // VCT = (VNF * FCNF) / FCCT (B21)
-  const vct = (volumeNF * fcnf) / fcct;
-  const vctMin = vct * (1 - 0.0006); // -0.06%
-  const vctMax = vct * (1 + 0.0005); // +0.05%
-
-  // V20 = VNF * FCCT (B29) - volume corrigido a 20°C
-  // Wait, spreadsheet says B29 = B8 * B28 = volumeNF * FCCT
-  // But B28 is FCCT from K43
-  // Actually checking: B28 = 'Planilha de Cálculo a 20ºC'!K43
-  // K43 uses K27 (TCT temperature) and E45 (DAC20)
-  const v20 = volumeNF * fcct;
-
-  // Resumo
-  const situacaoSeta = inputs.situacaoSeta ?? 0;
-  const volumeRecebido = volumeNF + situacaoSeta; // F15 = F13 + F14
-  const diferencaVolume = volumeRecebido - vct; // F17
-  const volumeAtestado = volumeNF + diferencaVolume; // F18
-  const situacao = diferencaVolume < 0 ? 'Falta de Produto' : 'Sobra de Produto';
-
-  return {
-    dnf20,
-    fcnf,
-    temperaturaEstimada,
-    dac20,
-    qualidadeDiff,
-    vctMin,
-    vct,
-    vctMax,
-    dac20CT: dac20,
-    fcct,
-    v20,
-    volumeNF,
-    situacaoSeta,
-    volumeRecebido,
-    volumeAtestado,
-    diferencaVolume,
-    situacao,
-  };
-}
+  // DAC20 (E45) — cal
