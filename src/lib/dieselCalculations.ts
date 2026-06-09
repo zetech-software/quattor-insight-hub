@@ -323,10 +323,10 @@ export function calculateDiesel(inputs: DieselInputs): DieselResults | null {
 
   // VCT = V20 / FCCT (B21) — volume na temperatura de recebimento. Como V20 é
   // derivado da própria VNF via FCCT, VCT retorna exatamente VNF (tolerâncias
-  // operacionais ±0,06% / +0,05% são aplicadas em VCT mín/máx).
+  // operacionais ±0,06% são aplicadas em VCT mín/máx).
   const vct = v20 / fcct;
   const vctMin = vct * (1 - 0.0006); // B20 = -0,06%
-  const vctMax = vct * (1 + 0.0005); // B22 = +0,05%
+  const vctMax = vct * (1 + 0.0006); // B22 = +0,06%
 
 
   const situacaoSeta = inputs.situacaoSeta ?? 0;
