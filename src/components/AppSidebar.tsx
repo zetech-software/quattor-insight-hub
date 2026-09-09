@@ -22,7 +22,7 @@ import { useTheme } from "@/hooks/useTheme";
 const clientItems = [
   { title: "Calculadora", url: "/", icon: Calculator },
   { title: "Histórico", url: "/historico", icon: History },
-  { title: "PET (Assistente)", url: "/pet", icon: Bot },
+  { title: "Regina (Assistente)", url: "/regina", icon: Bot },
 ];
 
 const adminItems = [

@@ -3,7 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
 
-type PetContextValue = {
+type ReginaContextValue = {
   messages: UIMessage[];
   sendMessage: (text: string) => Promise<void>;
   status: "ready" | "submitted" | "streaming" | "error";
@@ -12,12 +12,12 @@ type PetContextValue = {
   reset: () => void;
 };
 
-const PetContext = createContext<PetContextValue | null>(null);
+const ReginaContext = createContext<ReginaContextValue | null>(null);
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
-export function PetProvider({ children }: { children: ReactNode }) {
+export function ReginaProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [chatId, setChatId] = useState(() => crypto.randomUUID());
 
@@ -33,12 +33,12 @@ export function PetProvider({ children }: { children: ReactNode }) {
     transport,
   });
 
-  const value: PetContextValue = {
+  const value: ReginaContextValue = {
     messages,
     sendMessage: async (text: string) => {
       await sendMessage({ text });
     },
-    status: status as PetContextValue["status"],
+    status: status as ReginaContextValue["status"],
     isOpen,
     setIsOpen,
     reset: () => {
@@ -47,11 +47,11 @@ export function PetProvider({ children }: { children: ReactNode }) {
     },
   };
 
-  return <PetContext.Provider value={value}>{children}</PetContext.Provider>;
+  return <ReginaContext.Provider value={value}>{children}</ReginaContext.Provider>;
 }
 
-export function usePet() {
-  const ctx = useContext(PetContext);
-  if (!ctx) throw new Error("usePet must be used inside PetProvider");
+export function useRegina() {
+  const ctx = useContext(ReginaContext);
+  if (!ctx) throw new Error("useRegina must be used inside ReginaProvider");
   return ctx;
 }

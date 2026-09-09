@@ -1,11 +1,11 @@
 import { AppLayout } from "@/components/AppLayout";
-import { PetChat } from "@/components/pet/PetChat";
+import { ReginaChat } from "@/components/regina/ReginaChat";
 
-export default function Pet() {
+export default function Regina() {
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto h-[calc(100vh-8rem)] border rounded-xl overflow-hidden shadow-sm bg-card">
-        <PetChat showHeader showResetButton={false} />
+        <ReginaChat showHeader showResetButton={false} />
       </div>
     </AppLayout>
   );

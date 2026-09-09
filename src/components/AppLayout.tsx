@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { PetFab } from "@/components/pet/PetFab";
+import { ReginaFab } from "@/components/regina/ReginaFab";
 import { useAuth } from "@/hooks/useAuth";
 import { ReactNode } from "react";
 
@@ -37,7 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      <PetFab />
+      <ReginaFab />
     </SidebarProvider>
   );
 }

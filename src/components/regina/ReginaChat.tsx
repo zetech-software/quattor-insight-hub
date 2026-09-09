@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { usePet } from "@/hooks/usePet";
-import petAvatar from "@/assets/pet-avatar.png";
+import { useRegina } from "@/hooks/useRegina";
+import reginaAvatarAsset from "@/assets/regina-avatar.png.asset.json";
 
-interface PetChatProps {
+const reginaAvatar = reginaAvatarAsset.url;
+
+interface ReginaChatProps {
   className?: string;
   showHeader?: boolean;
   showResetButton?: boolean;
@@ -21,19 +23,17 @@ const QUICK_PROMPTS = [
   "Onde vejo meus cálculos anteriores?",
 ];
 
-export function PetChat({ className, showHeader = true, showResetButton = true }: PetChatProps) {
-  const { messages, sendMessage, status, reset } = usePet();
+export function ReginaChat({ className, showHeader = true, showResetButton = true }: ReginaChatProps) {
+  const { messages, sendMessage, status, reset } = useRegina();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isBusy = status === "submitted" || status === "streaming";
 
-  // Auto-focus
   useEffect(() => {
     textareaRef.current?.focus();
   }, [messages.length, status]);
 
-  // Auto-scroll
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -46,7 +46,7 @@ export function PetChat({ className, showHeader = true, showResetButton = true }
     try {
       await sendMessage(text);
     } catch (e) {
-      console.error("PET send error:", e);
+      console.error("Regina send error:", e);
     }
   };
 
@@ -58,19 +58,21 @@ export function PetChat({ className, showHeader = true, showResetButton = true }
   };
 
   const renderText = (m: typeof messages[number]) =>
-    m.parts
-      .map((p) => (p.type === "text" ? p.text : ""))
-      .join("");
+    m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {showHeader && (
         <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
-          <img src={petAvatar} alt="PET" className="w-10 h-10 rounded-full bg-primary/10" />
+          <img
+            src={reginaAvatar}
+            alt="Regina — Assistente Virtual"
+            className="w-10 h-10 rounded-full object-cover bg-primary/10"
+          />
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm">PET</h3>
+            <h3 className="font-semibold text-sm">Regina</h3>
             <p className="text-xs text-muted-foreground truncate">
-              Planilha Explicativa Técnica
+              Assistente Virtual de Engenharia
             </p>
           </div>
           {showResetButton && messages.length > 0 && (
@@ -92,12 +94,12 @@ export function PetChat({ className, showHeader = true, showResetButton = true }
           {messages.length === 0 && (
             <div className="text-center py-6 space-y-4">
               <img
-                src={petAvatar}
-                alt="PET mascote"
-                className="w-24 h-24 mx-auto"
+                src={reginaAvatar}
+                alt="Regina — Assistente Virtual"
+                className="w-24 h-24 mx-auto rounded-full object-cover shadow-sm"
               />
               <div>
-                <h4 className="font-semibold">Olá! Eu sou o PET 👋</h4>
+                <h4 className="font-semibold">Olá! Eu sou a Regina 👋</h4>
                 <p className="text-sm text-muted-foreground mt-1 px-2">
                   Pergunte sobre fórmulas, como usar o sistema ou peça pra
                   interpretar um resultado.
@@ -131,9 +133,9 @@ export function PetChat({ className, showHeader = true, showResetButton = true }
             return (
               <div key={m.id} className="flex gap-2">
                 <img
-                  src={petAvatar}
+                  src={reginaAvatar}
                   alt=""
-                  className="w-7 h-7 rounded-full bg-primary/10 shrink-0 mt-1"
+                  className="w-7 h-7 rounded-full object-cover bg-primary/10 shrink-0 mt-1"
                 />
                 <div className="flex-1 min-w-0 text-sm prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-pre:text-xs prose-code:text-xs prose-headings:mt-2 prose-headings:mb-1 prose-ul:my-1 prose-ol:my-1">
                   <ReactMarkdown>{text}</ReactMarkdown>
@@ -144,7 +146,11 @@ export function PetChat({ className, showHeader = true, showResetButton = true }
 
           {status === "submitted" && (
             <div className="flex gap-2 items-center text-muted-foreground text-sm">
-              <img src={petAvatar} alt="" className="w-7 h-7 rounded-full bg-primary/10" />
+              <img
+                src={reginaAvatar}
+                alt=""
+                className="w-7 h-7 rounded-full object-cover bg-primary/10"
+              />
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Pensando…</span>
             </div>
@@ -159,7 +165,7 @@ export function PetChat({ className, showHeader = true, showResetButton = true }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Pergunte ao PET…"
+            placeholder="Pergunte à Regina…"
             rows={1}
             className="min-h-[40px] max-h-32 resize-none text-sm"
             disabled={isBusy}
@@ -178,7 +184,7 @@ export function PetChat({ className, showHeader = true, showResetButton = true }
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-          PET responde apenas sobre cálculos de diesel e uso do sistema.
+          Regina responde apenas sobre cálculos de diesel e uso do sistema.
         </p>
       </div>
     </div>
