@@ -290,5 +290,44 @@ describe('avaliarQualidade — casas decimais e arredondamento de ponto flutuant
   });
 });
 
+describe('Tolerância operacional ±0,06% sobre o VCT', () => {
+  const base = cases[0].inputs;
+  const run = (situacaoSeta: number) =>
+    calculateDiesel({ data: '', numeroNF: '', placaCT: '', ...base, situacaoSeta })!;
+
+  it('faixa é VCT × 0,9994 .. VCT × 1,0006', () => {
+    const r = run(0);
+    expect(r.vctMin).toBeCloseTo(r.vct * 0.9994, 8);
+    expect(r.vctMax).toBeCloseTo(r.vct * 1.0006, 8);
+    expect(r.vct).toBeCloseTo(r.volumeNF, 6);
+  });
+
+  it('volume atestado dentro da faixa quando a seta é menor que a tolerância', () => {
+    const r = run(1); // 1 L em 10.000 L = 0,01%
+    expect(r.volumeAtestado).toBeGreaterThanOrEqual(r.vctMin);
+    expect(r.volumeAtestado).toBeLessThanOrEqual(r.vctMax);
+  });
+
+  it('volume atestado abaixo do mínimo quando a seta é negativa além da tolerância', () => {
+    const r = run(-50);
+    expect(r.volumeAtestado).toBeLessThan(r.vctMin);
+    expect(r.diferencaVolume).toBeCloseTo(-50, 8);
+  });
+
+  it('volume atestado acima do máximo quando a seta é positiva além da tolerância', () => {
+    const r = run(50);
+    expect(r.volumeAtestado).toBeGreaterThan(r.vctMax);
+    expect(r.diferencaVolume).toBeCloseTo(50, 8);
+  });
+
+  it('sem dupla contagem: diferença é exatamente a situação da seta', () => {
+    for (const s of [0, 7, -7, 0.25, -0.25, 1234.5]) {
+      expect(run(s).diferencaVolume).toBeCloseTo(s, 8);
+    }
+  });
+});
+
+
+
 
 });

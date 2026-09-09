@@ -335,10 +335,13 @@ const Index = () => {
                           <p className="font-semibold mb-1">O que é a Situação da Seta?</p>
                           <p className="mb-1">
                             Diferença de volume lida na seta (régua) do caminhão-tanque no momento do recebimento.
+                            Informe apenas a variação, nunca o volume total do tanque: este valor é somado ao
+                            volume da NF para formar o Volume Atestado.
                           </p>
                           <ul className="list-disc pl-4 mb-2 space-y-0.5">
                             <li><strong>Negativo</strong> = volume abaixo da seta (falta)</li>
                             <li><strong>Positivo</strong> = volume acima da seta (sobra)</li>
+                            <li><strong>Zero</strong> = exatamente na seta (volume conforme)</li>
                           </ul>
                           <p className="text-[10px] italic text-muted-foreground border-t border-border pt-1">
                             Estas informações são apenas para fins informativos e, nos termos da lei, não devem ser utilizadas como prova.
