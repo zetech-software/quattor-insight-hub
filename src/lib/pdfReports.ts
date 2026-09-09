@@ -147,9 +147,9 @@ export function generateSingleCalculationPDF(calc: Calculation) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(100, 100, 100);
   doc.text(`NF: ${calc.numero_nf || "—"}  |  Placa CT: ${calc.placa_ct || "—"}  |  Data: ${new Date(calc.data).toLocaleDateString("pt-BR")}`, 14, y);
-  if ((calc as any).municipio_base) {
+  if (calc.municipio_base) {
     y += 6;
-    doc.text(`Município da Base: ${(calc as any).municipio_base}`, 14, y);
+    doc.text(`Município da Base: ${calc.municipio_base}`, 14, y);
   }
   doc.setTextColor(0, 0, 0);
   y += 10;
@@ -176,7 +176,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = lastAutoTableY(doc) + 8;
 
   // Section 2 - Qualidade
   autoTable(doc, {
@@ -196,7 +196,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = lastAutoTableY(doc) + 8;
 
   // Section 3 - Fator de Correção CT
   autoTable(doc, {
@@ -215,7 +215,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = lastAutoTableY(doc) + 8;
 
   // Section 4 - VCT
   autoTable(doc, {
@@ -233,7 +233,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 4;
+  y = lastAutoTableY(doc) + 4;
 
   // Legenda + validação da faixa VCT (±0,06%)
   const vRec = calc.volume_recebido ?? 0;

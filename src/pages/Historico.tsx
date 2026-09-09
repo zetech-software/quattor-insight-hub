@@ -77,7 +77,7 @@ const Historico = () => {
       c.data?.includes(s) ||
       c.numero_nf?.toLowerCase().includes(s) ||
       c.placa_ct?.toLowerCase().includes(s) ||
-      ((c as any).municipio_base as string)?.toLowerCase().includes(s)
+      c.municipio_base?.toLowerCase().includes(s)
     );
   });
 
@@ -143,7 +143,7 @@ const Historico = () => {
                         <TableCell className="font-mono text-sm">{row.data}</TableCell>
                         <TableCell className="font-mono">{row.numero_nf || "—"}</TableCell>
                         <TableCell>{row.placa_ct || "—"}</TableCell>
-                        <TableCell>{(row as any).municipio_base || "—"}</TableCell>
+                        <TableCell>{row.municipio_base || "—"}</TableCell>
                         <TableCell className="text-right font-mono">{Number(row.volume_nf).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right font-mono">{row.vct !== null ? Number(row.vct).toLocaleString("pt-BR", { minimumFractionDigits: 1 }) : "—"}</TableCell>
                         <TableCell className={`text-right font-mono font-semibold ${isNeg ? "text-destructive" : "text-green-600"}`}>
@@ -194,7 +194,7 @@ const Historico = () => {
                 <DetailRow label="Data" value={selected.data} />
                 <DetailRow label="Nº NF" value={selected.numero_nf || "—"} />
                 <DetailRow label="Placa CT" value={selected.placa_ct || "—"} />
-                <DetailRow label="Município da Base" value={(selected as any).municipio_base || "—"} />
+                <DetailRow label="Município da Base" value={selected.municipio_base || "—"} />
                 <DetailRow label="Volume NF" value={`${fmt(selected.volume_nf)} L`} />
                 <DetailRow label="Peso Líquido" value={`${fmt(selected.peso_liquido)} kg`} />
                 <DetailRow label="Massa Esp. 20°C" value={`${fmt(selected.massa_especifica_20_nf, 1)} kg/m³`} />
