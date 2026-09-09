@@ -217,7 +217,7 @@ const Historico = () => {
               </div>
               <Separator />
               <div className="grid grid-cols-2 gap-2">
-                <DetailRow label="Vol. Recebido" value={`${fmt(selected.volume_recebido)} L`} />
+                <DetailRow label="Situação da Seta" value={`${fmt(selected.situacao_seta)} L`} />
                 <DetailRow label="Vol. Atestado" value={`${fmt(selected.volume_atestado)} L`} />
                 <DetailRow label="Diferença" value={`${fmt(selected.diferenca_volume)} L`} />
                 <DetailRow label="Situação" value={selected.situacao || "—"} />

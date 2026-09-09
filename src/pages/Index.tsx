@@ -426,7 +426,6 @@ const Index = () => {
             <CardContent className="space-y-4">
               <SummaryRow label="Volume NF" value={`${fmt(results?.volumeNF ?? inputs.volumeNF, 0)} L`} />
               <SummaryRow label="Situação SETA" value={`${fmt(results?.situacaoSeta ?? inputs.situacaoSeta, 0)} L`} />
-              <SummaryRow label="Volume Recebido" value={`${fmt(results?.volumeRecebido, 0)} L`} />
               <Separator />
               <SummaryRow label="Diferença" value={`${fmt(results?.diferencaVolume, 0)} L`} />
               <Separator />

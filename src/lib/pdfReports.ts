@@ -241,7 +241,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
   y = lastAutoTableY(doc) + 4;
 
   // Legenda + validação da faixa VCT (±0,06%)
-  const vRec = calc.volume_recebido ?? 0;
+  const vRec = calc.volume_atestado ?? 0;
   const vMin = calc.vct_min ?? 0;
   const vMax = calc.vct_max ?? 0;
   let statusText = "";
@@ -253,7 +253,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     statusText = `FORA DA FAIXA — Sobra de ${fmtVol(vRec - vMax)} L acima do VCT Máximo`;
     statusColor = [220, 38, 38];
   } else {
-    statusText = "DENTRO DA FAIXA — Volume recebido está dentro da tolerância de ±0,06%";
+    statusText = "DENTRO DA FAIXA — Volume atestado está dentro da tolerância de ±0,06%";
     statusColor = [22, 163, 74];
   }
 
@@ -283,7 +283,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     head: [["Resumo Final", ""]],
     body: [
       ["Volume NF", `${fmtVol(calc.volume_nf)} L`],
-      ["Volume Recebido", `${fmtVol(calc.volume_recebido)} L`],
+      ["Situação da Seta", `${fmtVol(calc.situacao_seta)} L`],
       ["VCT", `${fmtVol(calc.vct)} L`],
       ["Volume Atestado", `${fmtVol(calc.volume_atestado)} L`],
       ["Volume 20°C (V20)", `${fmtVol(calc.v20)} L`],

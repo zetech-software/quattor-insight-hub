@@ -105,24 +105,47 @@ describe('Identidades algébricas (independem da planilha)', () => {
     expect(r.vctMax).toBeCloseTo(r.vct * (1 + 0.0006), 8);
   });
 
-  it('Resumo: diferença = volume recebido − situação da seta − volume NF, mantendo volume atestado sem divergência', () => {
+  it('Volume Atestado = NF + seta e Diferença = Atestado − NF', () => {
     const base = cases[0].inputs;
+    const run = (situacaoSeta: number) =>
+      calculateDiesel({ data: '', numeroNF: '', placaCT: '', ...base, situacaoSeta })!;
 
-    for (const situacaoSeta of [200, 0, -300]) {
-      const r = calculateDiesel({
-        data: '',
-        numeroNF: '',
-        placaCT: '',
-        ...base,
-        situacaoSeta,
-      })!;
+    // 1. atestado igual à NF
+    const igual = run(0);
+    expect(igual.volumeAtestado).toBeCloseTo(igual.volumeNF, 8);
+    expect(igual.diferencaVolume).toBeCloseTo(0, 8);
+    expect(igual.situacao).toBe('Volume Conforme');
 
-      expect(r.volumeRecebido).toBeCloseTo(r.volumeNF + situacaoSeta, 8);
-      expect(r.diferencaVolume).toBeCloseTo(r.volumeRecebido - situacaoSeta - r.volumeNF, 8);
-      expect(r.diferencaVolume).toBeCloseTo(0, 8);
-      expect(r.volumeAtestado).toBeCloseTo(r.volumeNF, 8);
+    // 2. atestado maior que a NF
+    const maior = run(200);
+    expect(maior.volumeAtestado).toBeCloseTo(maior.volumeNF + 200, 8);
+    expect(maior.diferencaVolume).toBeCloseTo(200, 8);
+    expect(maior.situacao).toBe('Sobra de Produto');
+
+    // 3. atestado menor que a NF
+    const menor = run(-300);
+    expect(menor.volumeAtestado).toBeCloseTo(menor.volumeNF - 300, 8);
+    expect(menor.diferencaVolume).toBeCloseTo(-300, 8);
+    expect(menor.situacao).toBe('Falta de Produto');
+
+    // 5. valores decimais
+    const dec = run(12.5);
+    expect(dec.volumeAtestado).toBeCloseTo(dec.volumeNF + 12.5, 8);
+    expect(dec.diferencaVolume).toBeCloseTo(12.5, 8);
+
+    // volume recebido acompanha o volume atestado
+    for (const r of [igual, maior, menor, dec]) {
+      expect(r.volumeRecebido).toBeCloseTo(r.volumeAtestado, 8);
     }
   });
+
+  it('Valores zerados: seta 0 mantém diferença zero', () => {
+    const base = cases[0].inputs;
+    const r = calculateDiesel({ data: '', numeroNF: '', placaCT: '', ...base, situacaoSeta: 0 })!;
+    expect(r.diferencaVolume).toBe(0);
+    expect(r.volumeAtestado).toBe(r.volumeNF);
+  });
+
 
   it('Quando TA = 20 °C, DAC20 = DA (sem correção térmica)', () => {
     for (const da of [0.820, 0.835, 0.852]) {
