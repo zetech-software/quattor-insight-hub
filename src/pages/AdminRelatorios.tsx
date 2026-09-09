@@ -32,8 +32,9 @@ const AdminRelatorios = () => {
     try {
       await generators[key]();
       toast({ title: "PDF gerado!", description: "O download foi iniciado automaticamente." });
-    } catch (err: any) {
-      toast({ title: "Erro ao gerar PDF", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Tente novamente em instantes.";
+      toast({ title: "Erro ao gerar PDF", description: message, variant: "destructive" });
     } finally {
       setLoading(null);
     }

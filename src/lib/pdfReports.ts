@@ -9,6 +9,11 @@ const BRAND_COLOR: [number, number, number] = [232, 145, 58]; // #E8913A
 const HEADER_BG: [number, number, number] = [232, 145, 58];
 const HEADER_TEXT: [number, number, number] = [255, 255, 255];
 
+/** Última posição Y ocupada por uma tabela gerada pelo jspdf-autotable. */
+function lastAutoTableY(doc: jsPDF): number {
+  return (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+}
+
 function addHeader(doc: jsPDF, title: string) {
   doc.setFillColor(...BRAND_COLOR);
   doc.rect(0, 0, doc.internal.pageSize.width, 32, "F");
@@ -147,9 +152,9 @@ export function generateSingleCalculationPDF(calc: Calculation) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(100, 100, 100);
   doc.text(`NF: ${calc.numero_nf || "—"}  |  Placa CT: ${calc.placa_ct || "—"}  |  Data: ${new Date(calc.data).toLocaleDateString("pt-BR")}`, 14, y);
-  if ((calc as any).municipio_base) {
+  if (calc.municipio_base) {
     y += 6;
-    doc.text(`Município da Base: ${(calc as any).municipio_base}`, 14, y);
+    doc.text(`Município da Base: ${calc.municipio_base}`, 14, y);
   }
   doc.setTextColor(0, 0, 0);
   y += 10;
@@ -176,7 +181,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = lastAutoTableY(doc) + 8;
 
   // Section 2 - Qualidade
   autoTable(doc, {
@@ -186,8 +191,8 @@ export function generateSingleCalculationPDF(calc: Calculation) {
       ["Temp. Amostra (TA)", `${fmt(calc.temperatura_amostra, 1)} °C`, ""],
       ["Massa Esp. Amostra (DA)", `${fmt(calc.densidade_amostra ? Number(calc.densidade_amostra) * 1000 : null, 1)} kg/m³`, `${fmt(calc.densidade_amostra, 4)} kg/l`],
       ["DNF 20°C (NF)", `${fmt(calc.massa_especifica_20_nf, 1)}`, `${fmt(calc.dnf20, 4)}`],
-      ["DAC 20°C (Corrigida)", `${fmt(calc.dac20 ? Number(calc.dac20) * 1000 : null, 1)}`, `${fmt(calc.dac20, 4)}`],
-      ["Diferença (DAC - DNF)", `${fmt(calc.qualidade_diff ? Number(calc.qualidade_diff) * 1000 : null, 1)}`, `${fmt(calc.qualidade_diff, 4)}`],
+      ["DAC 20°C (Corrigida)", `${fmt(calc.dac20 != null ? Number(calc.dac20) * 1000 : null, 1)}`, `${fmt(calc.dac20, 4)}`],
+      ["Diferença (DAC - DNF)", `${fmt(calc.qualidade_diff != null ? Number(calc.qualidade_diff) * 1000 : null, 1)}`, `${fmt(calc.qualidade_diff, 4)}`],
     ],
     headStyles: { fillColor: HEADER_BG, textColor: HEADER_TEXT, fontStyle: "bold", fontSize: 9 },
     bodyStyles: { fontSize: 8 },
@@ -196,7 +201,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = lastAutoTableY(doc) + 8;
 
   // Section 3 - Fator de Correção CT
   autoTable(doc, {
@@ -215,7 +220,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = lastAutoTableY(doc) + 8;
 
   // Section 4 - VCT
   autoTable(doc, {
@@ -233,7 +238,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 4;
+  y = lastAutoTableY(doc) + 4;
 
   // Legenda + validação da faixa VCT (±0,06%)
   const vRec = calc.volume_recebido ?? 0;
