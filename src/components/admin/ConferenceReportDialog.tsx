@@ -14,6 +14,9 @@ import {
   type ConferenceFilters,
 } from "@/lib/pdfReports";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Calculation = Tables<"calculations">;
 
 type ClientOpt = { user_id: string; label: string };
 
@@ -33,7 +36,7 @@ export function ConferenceReportDialog({ open, onOpenChange }: Props) {
     placaCT: "",
     situacao: "todas",
   });
-  const [preview, setPreview] = useState<any[] | null>(null);
+  const [preview, setPreview] = useState<Calculation[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -63,8 +66,8 @@ export function ConferenceReportDialog({ open, onOpenChange }: Props) {
     try {
       const rows = await fetchConferenceCalculations(filters);
       setPreview(rows);
-    } catch (e: any) {
-      toast({ title: "Erro ao buscar", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erro ao buscar", description: e instanceof Error ? e.message : "Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -75,18 +78,18 @@ export function ConferenceReportDialog({ open, onOpenChange }: Props) {
     try {
       await generateConferenceReport(filters, selectedClient);
       toast({ title: "PDF gerado!", description: "O consolidado foi baixado." });
-    } catch (e: any) {
-      toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erro ao gerar PDF", description: e instanceof Error ? e.message : "Tente novamente.", variant: "destructive" });
     } finally {
       setExporting(false);
     }
   };
 
-  const exportIndividual = (calc: any) => {
+  const exportIndividual = (calc: Calculation) => {
     try {
       generateSingleCalculationPDF(calc);
-    } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erro", description: e instanceof Error ? e.message : "Tente novamente.", variant: "destructive" });
     }
   };
 
@@ -131,7 +134,7 @@ export function ConferenceReportDialog({ open, onOpenChange }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Situação</Label>
-            <Select value={filters.situacao} onValueChange={(v) => setF({ situacao: v as any })}>
+            <Select value={filters.situacao} onValueChange={(v) => setF({ situacao: v as ConferenceFilters["situacao"] })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
