@@ -25,7 +25,7 @@ const SYSTEM_PROMPT = `Você é a Regina, Assistente Virtual de Engenharia da Qu
    - Tabela CNP (faixas de densidade × coeficientes a1, a2, b1, b2)
    - Fórmula geral: FC = 1 + P2·ΔT + (P1·ΔT)/DAC20, onde ΔT = T − 20
    - Temperatura estimada de carregamento (aba NAO EDITAR da planilha): tabela de 3 faixas (0,806-0,8259 / 0,826-0,8459 / 0,846-0,8709) com B1=-4,9e-7 e B2=6e-7 fixos, lookup pela densidade da carga (peso/volume)
-   - Tolerâncias: VCT min = VCT × (1 − 0,06%), VCT max = VCT × (1 + 0,05%)
+   - Tolerâncias: VCT min = VCT × (1 − 0,06%), VCT max = VCT × (1 + 0,06%)
 2. Como usar o sistema Qu4ttuor:
    - Cadastrar NF na Calculadora (volume, peso líquido, massa específica 20°C, temperatura, densidade da amostra, situação da SETA)
    - Salvar cálculo no histórico
