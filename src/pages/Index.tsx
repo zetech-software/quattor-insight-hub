@@ -371,8 +371,8 @@ const Index = () => {
                   {/* Coluna kg/m³ */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">em kg/m³</p>
-                    <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20 ? results.dac20 * 1000 : undefined, 1)} kg/m³`} highlight />
-                    <ResultField label="Diferença (DAC - DNF)" value={`${fmt(results?.qualidadeDiff ? results.qualidadeDiff * 1000 : undefined, 1)} kg/m³`} highlight />
+                    <ResultField label="DAC 20°C (Corrigida)" value={`${fmt(results?.dac20 != null ? results.dac20 * 1000 : undefined, 1)} kg/m³`} highlight />
+                    <ResultField label="Diferença (DAC - DNF)" value={`${fmt(results?.qualidadeDiff != null ? results.qualidadeDiff * 1000 : undefined, 1)} kg/m³`} highlight />
                   </div>
                   {/* Coluna kg/l */}
                   <div className="space-y-2">

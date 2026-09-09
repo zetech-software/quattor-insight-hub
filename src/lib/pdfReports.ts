@@ -9,6 +9,11 @@ const BRAND_COLOR: [number, number, number] = [232, 145, 58]; // #E8913A
 const HEADER_BG: [number, number, number] = [232, 145, 58];
 const HEADER_TEXT: [number, number, number] = [255, 255, 255];
 
+/** Última posição Y ocupada por uma tabela gerada pelo jspdf-autotable. */
+function lastAutoTableY(doc: jsPDF): number {
+  return (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+}
+
 function addHeader(doc: jsPDF, title: string) {
   doc.setFillColor(...BRAND_COLOR);
   doc.rect(0, 0, doc.internal.pageSize.width, 32, "F");
