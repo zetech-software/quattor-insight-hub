@@ -338,16 +338,18 @@ export function calculateDiesel(inputs: DieselInputs): DieselResults | null {
   const vctMax = vct * (1 + 0.0006); // B22 = +0,06%
 
 
+  // A Situação da Seta representa o volume efetivamente medido no tanque em
+  // relação à marca da seta: abaixo da seta entra negativo, acima entra positivo.
+  //   Volume Atestado = Volume NF + Situação da Seta   (volume medido no tanque)
+  //   Diferença       = Volume Atestado − Volume NF
   const situacaoSeta = inputs.situacaoSeta ?? 0;
-  const volumeRecebido = volumeNF + situacaoSeta;          // F15 = F13 + F14
-  // Volume efetivo após descontar a situação da seta: Volume Recebido - Situação da Seta.
-  // A diferença exibida é a divergência final contra a NF depois desse ajuste.
-  const volumeAjustadoPelaSeta = volumeRecebido - situacaoSeta;
-  const diferencaVolume = volumeAjustadoPelaSeta - volumeNF;
-  const volumeAtestado = volumeAjustadoPelaSeta;
+  const volumeAtestado = volumeNF + situacaoSeta;
+  const volumeRecebido = volumeAtestado; // mesmo valor: o que efetivamente entrou
+  const diferencaVolume = volumeAtestado - volumeNF;
   const situacao = diferencaVolume === 0
     ? 'Volume Conforme'
     : diferencaVolume < 0 ? 'Falta de Produto' : 'Sobra de Produto';
+
 
   return {
     dnf20,
