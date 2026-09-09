@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/qu4ttuor-logo.svg";
 import type { ReactNode } from "react";
 
@@ -9,7 +11,19 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { session, role, loading } = useAuth();
+  const { session, role, profile, loading, signOut } = useAuth();
+  const isBlocked = !!session && profile !== null && profile.is_active === false;
+
+  useEffect(() => {
+    if (isBlocked) {
+      toast({
+        title: "Acesso desativado",
+        description: "Sua conta está desativada. Fale com o administrador.",
+        variant: "destructive",
+      });
+      signOut();
+    }
+  }, [isBlocked, signOut]);
 
   if (loading) {
     return (
@@ -22,7 +36,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
-  if (!session) {
+  if (!session || isBlocked) {
     return <Navigate to="/login" replace />;
   }
 
