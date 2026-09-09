@@ -72,7 +72,8 @@ export function ReginaChat({ className, showHeader = true, showResetButton = tru
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm">Regina</h3>
             <p className="text-xs text-muted-foreground truncate">
-              Assistente Virtual de Engenharia
+              <span className="sm:hidden">Assistente Virtual</span>
+              <span className="hidden sm:inline">Assistente Virtual de Engenharia</span>
             </p>
           </div>
           {showResetButton && messages.length > 0 && (
