@@ -22,7 +22,9 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const anonKey =
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
+      Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Verify caller identity
     const callerClient = createClient(supabaseUrl, anonKey, {
@@ -64,6 +66,17 @@ Deno.serve(async (req) => {
           return json({ error: "Este email já está cadastrado no sistema" }, 409);
         }
         return json({ error: createError.message }, 400);
+      }
+
+      // Assign the default "cliente" role
+      if (newUser.user) {
+        const { error: roleError } = await adminClient
+          .from("user_roles")
+          .upsert({ user_id: newUser.user.id, role: "client" }, { onConflict: "user_id,role" });
+
+        if (roleError) {
+          return json({ error: "Cliente criado, mas a permissão não pôde ser atribuída. Tente novamente." }, 500);
+        }
       }
 
       // Update profile with company name
