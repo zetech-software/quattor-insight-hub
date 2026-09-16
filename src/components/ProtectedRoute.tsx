@@ -43,9 +43,14 @@ export function ProtectedRoute({ children, requiredRole, allowPasswordChange }: 
     return <Navigate to="/login" replace />;
   }
 
-  if (profile?.must_change_password) {
+  if (profile?.must_change_password && !allowPasswordChange) {
     return <Navigate to="/definir-senha" replace />;
   }
+
+  if (allowPasswordChange && profile && !profile.must_change_password) {
+    return <Navigate to="/" replace />;
+  }
+
 
   if (requiredRole && role !== requiredRole && role !== "admin") {
     return <Navigate to="/" replace />;
