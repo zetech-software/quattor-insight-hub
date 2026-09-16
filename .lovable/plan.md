@@ -58,16 +58,23 @@ O controle de rotas hoje compara com **uma única** permissão. Passa a aceitar 
 
 Sem mudança de conteúdo: Gestão vê os mesmos números e os mesmos relatórios (leitura). O que muda é apenas que ela não pode apagar nada nem mexer em plano. A geração de relatórios em PDF continua igual.
 
-## 9. Migração da conta de suporte
+## 9. Validação com conta temporária e migração do suporte
 
-Feita **depois** de implementar e testar tudo, em uma etapa separada e reversível:
+Antes de tocar em suporte@qu4ttuor.com.br, criar uma **conta temporária de gestão** só para validar o perfil de ponta a ponta.
+
+Com ela serão testados: painel, clientes, relatórios, convite de cliente, ativar/desativar cliente, bloqueio de exclusão, bloqueio de assinatura/plano, bloqueio de alteração de permissão, bloqueio de qualquer ação sobre administrador ou outra conta de gestão, acesso direto por endereço, F5, sair, e tentativa de chamar as ações sensíveis diretamente no servidor (sem passar pela tela).
+
+Só depois de **todos** esses pontos passarem:
 
 1. Confirmar que existe outro administrador ativo (o proprietário) — sem isso, não prossegue.
 2. Trocar a permissão de suporte@qu4ttuor.com.br de admin para gestão.
-3. Entrar com ela e conferir: painel, clientes e relatórios abrem; convidar e ativar/desativar funcionam; plano, exclusões e alteração de permissão não aparecem e são recusados pelo servidor.
+3. Entrar com ela e reconferir os mesmos pontos.
 4. Confirmar que o proprietário mantém acesso total e que o cliente segue restrito.
 
-Reverter é uma linha: devolver a permissão de admin. A senha e os dados da conta não são tocados.
+Por fim, apagar a conta temporária e todos os dados ligados a ela, e confirmar que não sobrou nenhum registro de teste.
+
+Reverter é uma linha: devolver a permissão de admin ao suporte. A senha e os dados da conta não são tocados.
+
 
 ## 10. Testes previstos
 
