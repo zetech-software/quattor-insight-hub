@@ -18,6 +18,7 @@ import AdminClientes from "./pages/AdminClientes";
 import AdminRelatorios from "./pages/AdminRelatorios";
 import Regina from "./pages/Regina";
 import NotFound from "./pages/NotFound";
+import DevPerfis from "./pages/DevPerfis";
 
 const queryClient = new QueryClient();
 
