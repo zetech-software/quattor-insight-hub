@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Users, UserPlus, Search, Mail, MoreHorizontal, Loader2, Power, PowerOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ClientRow {
   user_id: string;
@@ -25,6 +26,8 @@ interface ClientRow {
 }
 
 const AdminClientes = () => {
+  const { role } = useAuth();
+  const canManagePlans = role === "admin";
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
