@@ -18,6 +18,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminClientes from "./pages/AdminClientes";
 import AdminRelatorios from "./pages/AdminRelatorios";
 import Regina from "./pages/Regina";
+import Chamados from "./pages/Chamados";
+import ChamadoDetalhe from "./pages/ChamadoDetalhe";
+import SuporteCaixa from "./pages/SuporteCaixa";
+import SuporteChamado from "./pages/SuporteChamado";
 import NotFound from "./pages/NotFound";
 const DevPerfis = lazy(() => import("./pages/DevPerfis"));
 const isDev = import.meta.env.DEV;
@@ -43,6 +47,10 @@ const App = () => (
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
                 <Route path="/regina" element={<ProtectedRoute><Regina /></ProtectedRoute>} />
                 <Route path="/pet" element={<Navigate to="/regina" replace />} />
+                <Route path="/chamados" element={<ProtectedRoute requiredRole={["admin", "manager", "client"]}><Chamados /></ProtectedRoute>} />
+                <Route path="/chamados/:id" element={<ProtectedRoute requiredRole={["admin", "manager", "client"]}><ChamadoDetalhe /></ProtectedRoute>} />
+                <Route path="/suporte" element={<ProtectedRoute requiredRole={["support", "admin"]}><SuporteCaixa /></ProtectedRoute>} />
+                <Route path="/suporte/:id" element={<ProtectedRoute requiredRole={["support", "admin"]}><SuporteChamado /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "manager"]}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/clientes" element={<ProtectedRoute requiredRole={["admin", "manager"]}><AdminClientes /></ProtectedRoute>} />
                 <Route path="/admin/relatorios" element={<ProtectedRoute requiredRole={["admin", "manager"]}><AdminRelatorios /></ProtectedRoute>} />
