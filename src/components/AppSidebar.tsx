@@ -46,8 +46,9 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
+
 
   return (
     <Sidebar collapsible="icon">

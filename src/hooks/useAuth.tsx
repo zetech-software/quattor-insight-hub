@@ -86,15 +86,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setRole(null);
-    setProfile(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // Se o encerramento remoto falhar (rede, sessão já expirada),
+        // garante o encerramento local para não manter o usuário dentro.
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      }
+    } catch {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+    } finally {
+      setSession(null);
+      setUser(null);
+      setRole(null);
+      setProfile(null);
+      setLoading(false);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, profile, loading, signIn, signOut, refreshProfile }}>
+
       {children}
     </AuthContext.Provider>
   );

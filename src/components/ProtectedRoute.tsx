@@ -40,9 +40,14 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />;
   }
 
+  if (profile?.must_change_password) {
+    return <Navigate to="/definir-senha" replace />;
+  }
+
   if (requiredRole && role !== requiredRole && role !== "admin") {
     return <Navigate to="/" replace />;
   }
+
 
   return <>{children}</>;
 }
