@@ -16,6 +16,17 @@ import { useAuth } from "@/hooks/useAuth";
 
 const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT", "situacaoSeta"] as const;
 
+const VOLUME_NF_MAX = 60000;
+
+function validateVolumeNF(value: string): string | null {
+  if (!value || value.trim() === "") return null;
+  const num = parseFloat(value);
+  if (isNaN(num)) return "Valor inválido";
+  if (num < 0) return "O volume não pode ser negativo";
+  if (num > VOLUME_NF_MAX) return "Volume acima do limite permitido (máximo 60.000 L)";
+  return null;
+}
+
 function validateDensity(value: string, unit: "kg/m³" | "kg/l"): string | null {
   if (!value || value.trim() === "") return null;
   const num = parseFloat(value);
