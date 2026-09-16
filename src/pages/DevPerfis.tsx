@@ -92,9 +92,9 @@ export default function DevPerfis() {
           </div>
         </header>
 
-        <Card className="border-warning/40">
+        <Card className="border-chart-warning/40">
           <CardContent className="flex gap-3 pt-6 text-sm text-muted-foreground">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-chart-warning" />
             <p>
               As senhas não ficam aqui nem em nenhum arquivo do projeto. Para testar, entre pela tela
               normal de acesso com a conta indicada e depois navegue pelas rotas listadas.
@@ -152,7 +152,7 @@ export default function DevPerfis() {
                     {p.acoes.map((a) => (
                       <li key={a.rotulo} className="flex items-start gap-2">
                         {a.permitido ? (
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         ) : (
                           <X className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                         )}
