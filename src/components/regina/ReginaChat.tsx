@@ -168,6 +168,27 @@ export function ReginaChat({ className, showHeader = true, showResetButton = tru
               <span>Pensando…</span>
             </div>
           )}
+
+          {errorKind && !isBusy && (
+            <div
+              role="alert"
+              className="flex gap-2 items-start rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm"
+            >
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <p className="text-foreground">
+                  {errorKind === "auth"
+                    ? "Sua sessão expirou. Entre novamente para continuar conversando com a Regina."
+                    : "Não consegui responder agora. Tente novamente em instantes."}
+                </p>
+                {errorKind === "generic" && lastPrompt && (
+                  <Button size="sm" variant="outline" onClick={handleRetry} className="h-7 text-xs">
+                    Tentar novamente
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
 
