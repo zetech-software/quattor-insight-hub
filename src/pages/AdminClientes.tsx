@@ -301,12 +301,16 @@ const AdminClientes = () => {
                                 <><Power className="h-4 w-4 mr-2" /> Ativar</>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
-                              Plano Básico
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
-                              Plano Premium
-                            </DropdownMenuItem>
+                            {canManagePlans && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
+                                  Plano Básico
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
+                                  Plano Premium
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

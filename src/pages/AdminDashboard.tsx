@@ -44,7 +44,9 @@ const AdminDashboard = () => {
     ]);
 
     const adminIds = new Set(
-      (rolesRes.data || []).filter((r) => r.role === "admin").map((r) => r.user_id)
+      (rolesRes.data || [])
+        .filter((r) => r.role === "admin" || r.role === "manager")
+        .map((r) => r.user_id)
     );
 
     const clientProfiles = (profilesRes.data || []).filter((p) => !adminIds.has(p.user_id));
