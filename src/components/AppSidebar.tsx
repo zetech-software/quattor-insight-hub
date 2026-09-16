@@ -76,10 +76,10 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{collapsed ? "" : "Principal"}</SidebarGroupLabel>
+          <SidebarGroupLabel>{collapsed ? "" : mainLabel}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {clientItems.map((item) => (
+              {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -90,6 +90,9 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
                     >
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && unread > 0 && (item.url === "/chamados" || item.url === "/suporte") && (
+                        <Badge variant="default" className="ml-auto">{unread}</Badge>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -98,7 +101,7 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {isAdmin && (
+        {showAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>{collapsed ? "" : "Administração"}</SidebarGroupLabel>
             <SidebarGroupContent>
