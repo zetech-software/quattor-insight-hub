@@ -24,8 +24,9 @@ const QUICK_PROMPTS = [
 ];
 
 export function ReginaChat({ className, showHeader = true, showResetButton = true }: ReginaChatProps) {
-  const { messages, sendMessage, status, reset } = useRegina();
+  const { messages, sendMessage, status, errorKind, clearError, reset } = useRegina();
   const [input, setInput] = useState("");
+  const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isBusy = status === "submitted" || status === "streaming";
@@ -37,17 +38,28 @@ export function ReginaChat({ className, showHeader = true, showResetButton = tru
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, status]);
+  }, [messages, status, errorKind]);
+
+  const send = async (text: string) => {
+    setLastPrompt(text);
+    try {
+      await sendMessage(text);
+    } catch {
+      /* mensagem de falha é exibida na conversa */
+    }
+  };
 
   const handleSend = async () => {
     const text = input.trim();
     if (!text || isBusy) return;
     setInput("");
-    try {
-      await sendMessage(text);
-    } catch (e) {
-      console.error("Regina send error:", e);
-    }
+    await send(text);
+  };
+
+  const handleRetry = async () => {
+    if (isBusy) return;
+    clearError();
+    if (lastPrompt) await send(lastPrompt);
   };
 
   const handleKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -110,7 +122,7 @@ export function ReginaChat({ className, showHeader = true, showResetButton = tru
                 {QUICK_PROMPTS.map((q) => (
                   <button
                     key={q}
-                    onClick={() => sendMessage(q).catch(console.error)}
+                    onClick={() => send(q)}
                     className="text-xs text-left px-3 py-2 rounded-md border border-border hover:bg-accent hover:border-primary/40 transition-colors"
                   >
                     {q}
