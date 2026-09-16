@@ -83,7 +83,8 @@ const Index = () => {
 
   const massaError = useMemo(() => validateDensity(rawInputs.massaEspecifica20NF, massaUnit), [rawInputs.massaEspecifica20NF, massaUnit]);
   const daError = useMemo(() => validateDensity(rawInputs.densidadeAmostra, daUnit), [rawInputs.densidadeAmostra, daUnit]);
-  const hasValidationErrors = !!massaError || !!daError;
+  const volumeNFError = useMemo(() => validateVolumeNF(rawInputs.volumeNF), [rawInputs.volumeNF]);
+  const hasValidationErrors = !!massaError || !!daError || !!volumeNFError;
 
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
