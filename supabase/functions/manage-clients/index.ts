@@ -66,6 +66,17 @@ Deno.serve(async (req) => {
         return json({ error: createError.message }, 400);
       }
 
+      // Assign the default "cliente" role
+      if (newUser.user) {
+        const { error: roleError } = await adminClient
+          .from("user_roles")
+          .upsert({ user_id: newUser.user.id, role: "cliente" }, { onConflict: "user_id,role" });
+
+        if (roleError) {
+          return json({ error: "Cliente criado, mas a permissão não pôde ser atribuída. Tente novamente." }, 500);
+        }
+      }
+
       // Update profile with company name
       if (companyName && newUser.user) {
         await adminClient
