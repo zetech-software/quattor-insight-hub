@@ -44,11 +44,24 @@ export function ProtectedRoute({ children, requiredRole, allowPasswordChange }: 
   }
 
   if (profile?.must_change_password && !allowPasswordChange) {
-    return <Navigate to="/definir-senha" replace />;
+    return <Navigate to="/definir-nova-senha" replace />;
   }
 
-  if (allowPasswordChange && profile && !profile.must_change_password) {
-    return <Navigate to="/" replace />;
+  if (allowPasswordChange) {
+    // Só renderiza o formulário depois que o perfil chegou do banco.
+    if (!profile) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-3">
+            <img src={logo} alt="Qu4ttuor" className="h-10 animate-pulse" />
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          </div>
+        </div>
+      );
+    }
+    if (!profile.must_change_password) {
+      return <Navigate to="/" replace />;
+    }
   }
 
 
