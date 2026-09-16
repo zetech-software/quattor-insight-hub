@@ -118,6 +118,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean
+          must_change_password: boolean
           phone: string | null
           updated_at: string
           user_id: string
@@ -129,6 +130,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean
+          must_change_password?: boolean
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -140,6 +142,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean
+          must_change_password?: boolean
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -205,6 +208,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_must_change_password: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
