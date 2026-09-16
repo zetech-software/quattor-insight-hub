@@ -1,0 +1,109 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import logo from "@/assets/qu4ttuor-logo.svg";
+
+const DefinirSenha = () => {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { session, refreshProfile, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirm) {
+      toast({ title: "As senhas não coincidem", variant: "destructive" });
+      return;
+    }
+    if (password.length < 6) {
+      toast({ title: "A senha deve ter ao menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      setLoading(false);
+      toast({ title: "Não foi possível definir a nova senha", description: error.message, variant: "destructive" });
+      return;
+    }
+    const { error: flagError } = await supabase.rpc("clear_must_change_password");
+    if (flagError) {
+      setLoading(false);
+      toast({
+        title: "Senha atualizada, mas houve uma falha ao liberar o acesso",
+        description: "Tente entrar novamente em instantes.",
+        variant: "destructive",
+      });
+      return;
+    }
+    await refreshProfile();
+    setLoading(false);
+    toast({ title: "Senha definida com sucesso!" });
+    navigate("/", { replace: true });
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
+
+  if (!session) return null;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <img src={logo} alt="Qu4ttuor" className="h-12 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold font-heading">Definir nova senha</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Sua senha atual é temporária. Defina uma nova senha para continuar.
+          </p>
+        </div>
+        <Card className="border-0 shadow-xl">
+          <CardHeader><CardTitle className="text-lg">Nova senha</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="nova-senha">Nova senha</Label>
+                <Input
+                  id="nova-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmar-senha">Confirmar nova senha</Label>
+                <Input
+                  id="confirmar-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Salvando..." : "Salvar nova senha"}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={handleSignOut}>
+                Sair
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default DefinirSenha;

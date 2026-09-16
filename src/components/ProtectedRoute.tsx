@@ -8,10 +8,13 @@ import type { ReactNode } from "react";
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: "admin" | "client";
+  /** Tela de definição de senha: exige sessão, mas não aplica o bloqueio de senha temporária. */
+  allowPasswordChange?: boolean;
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredRole, allowPasswordChange }: ProtectedRouteProps) {
   const { session, role, profile, loading, signOut } = useAuth();
+
   const isBlocked = !!session && profile !== null && profile.is_active === false;
 
   useEffect(() => {
@@ -40,9 +43,19 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />;
   }
 
+  if (profile?.must_change_password && !allowPasswordChange) {
+    return <Navigate to="/definir-senha" replace />;
+  }
+
+  if (allowPasswordChange && profile && !profile.must_change_password) {
+    return <Navigate to="/" replace />;
+  }
+
+
   if (requiredRole && role !== requiredRole && role !== "admin") {
     return <Navigate to="/" replace />;
   }
+
 
   return <>{children}</>;
 }
