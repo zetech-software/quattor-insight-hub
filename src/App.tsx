@@ -10,6 +10,8 @@ import { ReginaProvider } from "@/hooks/useRegina";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import DefinirSenha from "./pages/DefinirSenha";
+
 import Historico from "./pages/Historico";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClientes from "./pages/AdminClientes";
@@ -31,7 +33,9 @@ const App = () => (
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/definir-senha" element={<ProtectedRoute allowPasswordChange><DefinirSenha /></ProtectedRoute>} />
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
                 <Route path="/regina" element={<ProtectedRoute><Regina /></ProtectedRoute>} />
                 <Route path="/pet" element={<Navigate to="/regina" replace />} />
