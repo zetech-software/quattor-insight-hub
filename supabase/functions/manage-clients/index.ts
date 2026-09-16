@@ -33,16 +33,29 @@ Deno.serve(async (req) => {
     const { data: { user: caller } } = await callerClient.auth.getUser();
     if (!caller) return json({ error: "Não autorizado" }, 401);
 
-    // Verify admin role
+    // Permissão do chamador: admin ou gestão (manager)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: roleData } = await adminClient
+    const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin")
-      .limit(1)
-      .single();
-    if (!roleData) return json({ error: "Acesso restrito a administradores" }, 403);
+      .eq("user_id", caller.id);
+
+    const roles = (callerRoles ?? []).map((r: { role: string }) => r.role);
+    const isAdmin = roles.includes("admin");
+    const isManager = roles.includes("manager");
+    if (!isAdmin && !isManager) {
+      return json({ error: "Acesso restrito a administradores" }, 403);
+    }
+
+    // Só o admin pode agir sobre contas administrativas (admin/gestão)
+    const isStaffAccount = async (userId: string) => {
+      const { data } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["admin", "manager"]);
+      return (data ?? []).length > 0;
+    };
 
     const body = await req.json();
     const { action } = body;
