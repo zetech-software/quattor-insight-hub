@@ -13,14 +13,17 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [valid, setValid] = useState(false);
+  const [isInvite, setIsInvite] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
+    if (hash.includes("type=recovery") || hash.includes("type=invite")) {
       setValid(true);
+      setIsInvite(hash.includes("type=invite"));
     }
   }, []);
+
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
