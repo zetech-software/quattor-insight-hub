@@ -58,6 +58,26 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Exige sessão autenticada válida (validação no servidor)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const unauthorized = () =>
+      new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    if (!token) return unauthorized();
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+    if (!supabaseUrl || !anonKey) return unauthorized();
+    if (token === anonKey) return unauthorized();
+
+    const authClient = createClient(supabaseUrl, anonKey);
+    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+    if (userError || !userData?.user) return unauthorized();
+
     const key = Deno.env.get("LOVABLE_API_KEY");
     if (!key) {
       return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
