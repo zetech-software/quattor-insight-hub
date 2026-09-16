@@ -209,6 +209,7 @@ export type Database = {
     }
     Functions: {
       clear_must_change_password: { Args: never; Returns: undefined }
+      has_admin_area_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
