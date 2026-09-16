@@ -21,7 +21,7 @@ const PERFIS: Perfil[] = [
     email: "admin@qu4ttuor.com.br",
     papel: "admin",
     descricao: "Acesso total ao sistema, incluindo ações sensíveis.",
-    rotasLiberadas: ["/admin", "/admin/clientes", "/admin/relatorios", "/", "/historico", "/regina"],
+    rotasLiberadas: ["/admin", "/admin/clientes", "/admin/relatorios", "/", "/historico", "/regina", "/chamados", "/suporte"],
     rotasBloqueadas: [],
     acoes: [
       { rotulo: "Ver painel, clientes e relatórios", permitido: true },
@@ -30,15 +30,16 @@ const PERFIS: Perfil[] = [
       { rotulo: "Alterar plano e assinatura", permitido: true },
       { rotulo: "Excluir contas e cálculos", permitido: true },
       { rotulo: "Alterar permissões de outras contas", permitido: true },
+      { rotulo: "Abrir chamado e acompanhar a caixa do suporte", permitido: true },
     ],
   },
   {
     nome: "Gestão",
-    email: "suporte@qu4ttuor.com.br",
+    email: "(reservado, sem conta ativa)",
     papel: "manager",
     descricao: "Opera o dia a dia dos clientes, sem poder sobre contas, permissões e cobrança.",
-    rotasLiberadas: ["/admin", "/admin/clientes", "/admin/relatorios", "/", "/historico", "/regina"],
-    rotasBloqueadas: [],
+    rotasLiberadas: ["/admin", "/admin/clientes", "/admin/relatorios", "/", "/historico", "/regina", "/chamados"],
+    rotasBloqueadas: ["/suporte"],
     acoes: [
       { rotulo: "Ver painel, clientes e relatórios", permitido: true },
       { rotulo: "Convidar cliente", permitido: true },
@@ -50,18 +51,35 @@ const PERFIS: Perfil[] = [
     ],
   },
   {
+    nome: "Suporte",
+    email: "suporte@qu4ttuor.com.br",
+    papel: "support",
+    descricao: "Atende chamados. Não vê painel, clientes, relatórios, planos nem cálculos.",
+    rotasLiberadas: ["/suporte"],
+    rotasBloqueadas: ["/", "/historico", "/regina", "/admin", "/admin/clientes", "/admin/relatorios"],
+    acoes: [
+      { rotulo: "Ver todos os chamados e quem abriu", permitido: true },
+      { rotulo: "Responder, anexar e registrar nota interna", permitido: true },
+      { rotulo: "Assumir chamado, mudar situação e prioridade", permitido: true },
+      { rotulo: "Painel, clientes, relatórios e planos", permitido: false },
+      { rotulo: "Ver cálculos ou histórico de clientes", permitido: false },
+      { rotulo: "Convidar, desativar ou excluir contas", permitido: false },
+    ],
+  },
+  {
     nome: "Cliente",
     email: "enzo@zeregistra.com.br",
     papel: "client",
     descricao: "Vê apenas a própria operação. Nenhum bloco administrativo no menu.",
-    rotasLiberadas: ["/", "/historico", "/regina"],
-    rotasBloqueadas: ["/admin", "/admin/clientes", "/admin/relatorios"],
+    rotasLiberadas: ["/", "/historico", "/regina", "/chamados"],
+    rotasBloqueadas: ["/admin", "/admin/clientes", "/admin/relatorios", "/suporte"],
     acoes: [
       { rotulo: "Calculadora", permitido: true },
       { rotulo: "Histórico próprio", permitido: true },
       { rotulo: "Regina", permitido: true },
+      { rotulo: "Abrir chamado e acompanhar os próprios", permitido: true },
       { rotulo: "Painel, clientes e relatórios", permitido: false },
-      { rotulo: "Ver dados de outros clientes", permitido: false },
+      { rotulo: "Ver dados ou chamados de outros clientes", permitido: false },
     ],
   },
 ];
@@ -102,7 +120,7 @@ export default function DevPerfis() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {PERFIS.map((p) => (
             <Card key={p.papel} className="flex flex-col">
               <CardHeader>
