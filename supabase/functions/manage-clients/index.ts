@@ -52,50 +52,54 @@ Deno.serve(async (req) => {
       const { email, fullName, companyName } = body;
       if (!email || !fullName) return json({ error: "Email e nome são obrigatórios" }, 400);
 
-      // Create user with temporary password (they'll reset on first login)
-      const tempPassword = crypto.randomUUID().slice(0, 12) + "Aa1!";
-      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+      const origin = req.headers.get("origin");
+      // Convite oficial: cria a conta E envia o e-mail para o cliente definir a própria senha.
+      const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: fullName },
-      });
+        {
+          data: { full_name: fullName, company_name: companyName ?? null },
+          redirectTo: origin ? `${origin}/reset-password` : undefined,
+        },
+      );
 
-      if (createError) {
-        if (createError.message?.includes("already been registered")) {
+      if (inviteError) {
+        if (inviteError.message?.includes("already been registered")) {
           return json({ error: "Este email já está cadastrado no sistema" }, 409);
         }
-        return json({ error: createError.message }, 400);
+        console.error("invite failed:", inviteError.status ?? "", inviteError.name ?? "");
+        return json(
+          { error: "Não foi possível enviar o convite por e-mail. Verifique o endereço e tente novamente." },
+          502,
+        );
       }
 
-      // Assign the default "cliente" role
-      if (newUser.user) {
-        const { error: roleError } = await adminClient
-          .from("user_roles")
-          .upsert({ user_id: newUser.user.id, role: "client" }, { onConflict: "user_id,role" });
-
-        if (roleError) {
-          return json({ error: "Cliente criado, mas a permissão não pôde ser atribuída. Tente novamente." }, 500);
-        }
+      const invitedUser = invited?.user;
+      if (!invitedUser) {
+        return json({ error: "Não foi possível criar o cliente. Tente novamente." }, 500);
       }
 
-      // Update profile with company name
-      if (companyName && newUser.user) {
-        await adminClient
-          .from("profiles")
-          .update({ full_name: fullName, company_name: companyName })
-          .eq("user_id", newUser.user.id);
+      // Permissão de cliente (obrigatória).
+      const { error: roleError } = await adminClient
+        .from("user_roles")
+        .upsert({ user_id: invitedUser.id, role: "client" }, { onConflict: "user_id,role" });
+
+      if (roleError) {
+        return json({ error: "Cliente criado, mas a permissão não pôde ser atribuída. Tente novamente." }, 500);
       }
 
-      // Send password reset email so user can set their own password
-      await adminClient.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: { redirectTo: `${req.headers.get("origin") || supabaseUrl}/reset-password` },
-      });
+      // Nome e empresa no perfil.
+      const { error: profileError } = await adminClient
+        .from("profiles")
+        .update({ full_name: fullName, company_name: companyName ?? null })
+        .eq("user_id", invitedUser.id);
 
-      return json({ success: true, userId: newUser.user?.id });
+      if (profileError) {
+        return json({ error: "Cliente convidado, mas os dados do perfil não foram salvos. Edite e tente novamente." }, 500);
+      }
+
+      return json({ success: true, userId: invitedUser.id });
     }
+
 
     // === TOGGLE ACTIVE STATUS ===
     if (action === "toggle-active") {

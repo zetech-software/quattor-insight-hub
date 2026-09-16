@@ -13,14 +13,17 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [valid, setValid] = useState(false);
+  const [isInvite, setIsInvite] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
+    if (hash.includes("type=recovery") || hash.includes("type=invite")) {
       setValid(true);
+      setIsInvite(hash.includes("type=invite"));
     }
   }, []);
+
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +51,7 @@ const ResetPassword = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">Link de redefinição inválido ou expirado.</p>
+            <p className="text-muted-foreground">Link inválido ou expirado.</p>
             <Button className="mt-4" onClick={() => navigate("/login")}>Voltar ao login</Button>
           </CardContent>
         </Card>
@@ -61,10 +64,11 @@ const ResetPassword = () => {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <img src={logo} alt="Qu4ttuor" className="h-12 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold font-heading">Redefinir Senha</h1>
+          <h1 className="text-2xl font-bold font-heading">{isInvite ? "Definir sua senha" : "Redefinir Senha"}</h1>
         </div>
         <Card className="border-0 shadow-xl">
-          <CardHeader><CardTitle className="text-lg">Nova senha</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{isInvite ? "Crie sua senha de acesso" : "Nova senha"}</CardTitle></CardHeader>
+
           <CardContent>
             <form onSubmit={handleReset} className="space-y-4">
               <div className="space-y-2">
