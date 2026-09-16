@@ -33,7 +33,8 @@ const App = () => (
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/definir-senha" element={<ProtectedRoute allowPasswordChange><DefinirSenha /></ProtectedRoute>} />
+                <Route path="/definir-nova-senha" element={<ProtectedRoute allowPasswordChange><DefinirSenha /></ProtectedRoute>} />
+                <Route path="/definir-senha" element={<Navigate to="/definir-nova-senha" replace />} />
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
