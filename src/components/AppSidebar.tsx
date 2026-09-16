@@ -1,4 +1,4 @@
-import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot } from "lucide-react";
+import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot, LifeBuoy, Headphones } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -16,13 +16,16 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
+import { useUnreadTicketCount } from "@/hooks/useTickets";
 
 const clientItems = [
   { title: "Calculadora", url: "/", icon: Calculator },
   { title: "Histórico", url: "/historico", icon: History },
   { title: "Regina (Assistente)", url: "/regina", icon: Bot },
+  { title: "Chamados", url: "/chamados", icon: LifeBuoy },
 ];
 
 const adminItems = [
@@ -31,16 +34,23 @@ const adminItems = [
   { title: "Relatórios", url: "/admin/relatorios", icon: FileBarChart },
 ];
 
+const supportItems = [{ title: "Caixa de chamados", url: "/suporte", icon: Headphones }];
+
 interface AppSidebarProps {
   isAdmin?: boolean;
 }
 
 export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const { state } = useSidebar();
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const collapsed = state === "collapsed";
+  const isSupport = role === "support";
+  const unread = useUnreadTicketCount(isSupport ? "all" : "own");
+  const mainItems = isSupport ? supportItems : clientItems;
+  const mainLabel = isSupport ? "Suporte" : "Principal";
+  const showAdmin = isAdmin && !isSupport;
 
   const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
 
