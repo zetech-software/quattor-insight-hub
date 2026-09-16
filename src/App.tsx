@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -18,7 +19,8 @@ import AdminClientes from "./pages/AdminClientes";
 import AdminRelatorios from "./pages/AdminRelatorios";
 import Regina from "./pages/Regina";
 import NotFound from "./pages/NotFound";
-import DevPerfis from "./pages/DevPerfis";
+const DevPerfis = lazy(() => import("./pages/DevPerfis"));
+const isDev = import.meta.env.DEV;
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,16 @@ const App = () => (
                 <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "manager"]}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/clientes" element={<ProtectedRoute requiredRole={["admin", "manager"]}><AdminClientes /></ProtectedRoute>} />
                 <Route path="/admin/relatorios" element={<ProtectedRoute requiredRole={["admin", "manager"]}><AdminRelatorios /></ProtectedRoute>} />
+                {isDev && (
+                  <Route
+                    path="/dev/perfis"
+                    element={
+                      <Suspense fallback={null}>
+                        <DevPerfis />
+                      </Suspense>
+                    }
+                  />
+                )}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ReginaProvider>
