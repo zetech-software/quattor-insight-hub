@@ -239,3 +239,41 @@ export function useTicketActions() {
 
   return { createTicket, addMessage, updateTicket, getAttachmentUrl, saving, isSupport };
 }
+
+/** Contador de chamados com mensagem nova para o usuário atual. */
+export function useUnreadTicketCount(scope: "own" | "all") {
+  const { user, role } = useAuth();
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id || role === null) return;
+
+    const load = async () => {
+      let query = supabase.from("tickets").select("id, last_message_at").neq("status", "fechado");
+      if (scope === "own") query = query.eq("requester_id", user.id);
+      const [ticketsRes, readsRes] = await Promise.all([
+        query,
+        supabase.from("ticket_reads").select("ticket_id, last_read_at").eq("user_id", user.id),
+      ]);
+      if (cancelled || ticketsRes.error) return;
+      const reads: Record<string, string> = {};
+      (readsRes.data ?? []).forEach((r) => {
+        reads[r.ticket_id] = r.last_read_at;
+      });
+      const total = (ticketsRes.data ?? []).filter(
+        (t) => !reads[t.id] || new Date(t.last_message_at) > new Date(reads[t.id]),
+      ).length;
+      setCount(total);
+    };
+
+    void load();
+    const timer = window.setInterval(() => void load(), 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [scope, user?.id, role]);
+
+  return count;
+}
