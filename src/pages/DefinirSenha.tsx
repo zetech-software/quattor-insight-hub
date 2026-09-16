@@ -13,8 +13,18 @@ const DefinirSenha = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const { session, refreshProfile, signOut } = useAuth();
+  const { session, role, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
+
+  const handleExpiredSession = async () => {
+    toast({
+      title: "Sua sessão não está mais válida",
+      description: "Entre novamente para continuar.",
+      variant: "destructive",
+    });
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,15 +37,35 @@ const DefinirSenha = () => {
       return;
     }
     setLoading(true);
+
+    // Revalida a sessão viva antes de tentar atualizar a senha.
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.user) {
+      setLoading(false);
+      await handleExpiredSession();
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setLoading(false);
-      toast({ title: "Não foi possível definir a nova senha", description: error.message, variant: "destructive" });
+      console.error("[DefinirSenha] updateUser falhou:", error);
+      const expired = /session|jwt|token|401|403/i.test(error.message ?? "");
+      if (expired) {
+        await handleExpiredSession();
+        return;
+      }
+      toast({
+        title: "Não foi possível definir a nova senha",
+        description: "Verifique a senha informada e tente novamente.",
+        variant: "destructive",
+      });
       return;
     }
     const { error: flagError } = await supabase.rpc("clear_must_change_password");
     if (flagError) {
       setLoading(false);
+      console.error("[DefinirSenha] clear_must_change_password falhou:", flagError);
       toast({
         title: "Senha atualizada, mas houve uma falha ao liberar o acesso",
         description: "Tente entrar novamente em instantes.",
@@ -46,7 +76,7 @@ const DefinirSenha = () => {
     await refreshProfile();
     setLoading(false);
     toast({ title: "Senha definida com sucesso!" });
-    navigate("/", { replace: true });
+    navigate(role === "admin" ? "/admin" : "/", { replace: true });
   };
 
   const handleSignOut = async () => {
