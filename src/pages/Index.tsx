@@ -116,7 +116,7 @@ const Index = () => {
       }
     }
     return null;
-  }, [inputs]);
+  }, [inputs, volumeNFError]);
 
   const handleReset = () => {
     setRawInputs({
@@ -249,7 +249,8 @@ const Index = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Volume NF (Litros)</Label>
-                    <Input type="number" step="any" value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} />
+                    <Input type="number" step="any" min={0} max={VOLUME_NF_MAX} value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} className={volumeNFError ? "border-destructive focus-visible:ring-destructive" : ""} />
+                    {volumeNFError && <p className="text-[11px] text-destructive">{volumeNFError}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Peso Líquido (kg)</Label>
