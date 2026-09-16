@@ -2,52 +2,62 @@
 
 ## Situação atual (auditada, nada foi alterado)
 
-- O projeto **não tem nenhum remetente próprio configurado**: o envio hoje sai pelo remetente padrão da plataforma, compartilhado com outros projetos. É exatamente por isso que a entrega do convite anterior não pôde ser comprovada.
-- O convite é criado pelo fluxo administrativo oficial (área de Gestão de Clientes), que gera a conta e pede à plataforma o e-mail de definição de senha. Esse fluxo está correto e **não precisa mudar**.
-- Não existe nenhuma senha, chave ou credencial de e-mail no projeto — nada a limpar.
-- O domínio `qu4ttuor.com.br` não está registrado como domínio de envio deste projeto, portanto não há SPF/DKIM/DMARC verificados para ele aqui.
+- O projeto **não tem remetente próprio**: os convites saem hoje pelo remetente padrão da plataforma, compartilhado. É por isso que a entrega do convite anterior não pôde ser comprovada.
+- O fluxo administrativo de convite (Gestão de Clientes) está correto e **não será alterado**.
+- Não existe nenhuma senha, chave ou credencial de e-mail no projeto.
+- O domínio `qu4ttuor.com.br` não está registrado como domínio de envio deste projeto.
 
-## Recomendação
+## Escopo confirmado
 
-Usar a infraestrutura de e-mail própria da Lovable em vez de contratar e cadastrar um SMTP externo manualmente. Motivos:
+- Remetente: `noreply@qu4ttuor.com.br`, nome exibido "Qu4ttuor Consultoria".
+- Subdomínio de envio: `notify.qu4ttuor.com.br`.
+- **Nada é alterado** no DNS principal, MX, caixas existentes ou propriedade do domínio.
+- **Sem transferência** do domínio e **sem trocar os nameservers do domínio principal**.
+- A delegação fica restrita exclusivamente ao subdomínio `notify.qu4ttuor.com.br`.
 
-- Não é preciso guardar usuário e senha de SMTP em lugar nenhum.
-- SPF, DKIM e DMARC são criados e mantidos automaticamente.
-- Passa a existir registro de fila, envio, rejeição e reclamação — ou seja, dá para provar entrega, o que hoje é impossível.
+## Registros DNS que você vai adicionar
 
-**Remetente recomendado:** `noreply@qu4ttuor.com.br` para os e-mails automáticos (convite, definição e recuperação de senha), com nome exibido "Qu4ttuor Consultoria". O `suporte@` deve continuar sendo uma caixa que recebe respostas de pessoas, não o remetente dos automáticos.
+Só entram registros **no nome `notify`** — nenhuma linha existente é editada ou removida.
 
-## O que você precisa fornecer
+| Tipo | Nome / host | Finalidade |
+|---|---|---|
+| NS | `notify` (ou `notify.qu4ttuor.com.br`) | Delega apenas esse subdomínio ao serviço de envio, que passa a manter SPF, DKIM e MX de envio dentro dele |
+| NS | `notify` (segunda entrada) | Segundo servidor de nomes, exigido para redundância |
 
-Apenas **um acesso**: o painel onde o domínio `qu4ttuor.com.br` é administrado (onde o site e o e-mail da empresa foram apontados — normalmente o registrador, ex. Registro.br, ou o provedor de DNS, ex. Cloudflare). Nele será preciso colar dois registros que o sistema vai gerar para você. Nada de senha de e-mail, nada de cartão, nada de chave.
+Os valores exatos dos dois servidores de nomes são gerados na hora da configuração e serão exibidos para você conferir e copiar **antes** de qualquer alteração. Não invento nem preencho esses valores.
 
-Se o painel do domínio não permitir adicionar registros do tipo NS, existem duas saídas: transferir o domínio para a Lovable, ou passar a hospedagem de DNS para um provedor que permita. Só saberemos ao abrir o painel.
+Observações importantes:
+- O MX do `qu4ttuor.com.br` (recebimento das caixas atuais) **não é tocado**. O envio automático passa a usar `notify.qu4ttuor.com.br`, que hoje não existe e não conflita com nada.
+- SPF, DKIM e DMARC do envio ficam dentro do subdomínio delegado, mantidos automaticamente. Nenhum SPF ou DMARC do domínio raiz é modificado.
+- Se o painel do domínio não permitir criar registros do tipo NS, paramos e reavaliamos — sem transferência de domínio.
 
-## Passo a passo da implantação
+## Passo a passo
 
-1. Abrir a configuração de e-mail e informar o subdomínio de envio (sugestão: `notify.qu4ttuor.com.br`) — o endereço visível continua sendo `noreply@qu4ttuor.com.br`.
-2. Você copia os registros exibidos para o painel do domínio.
+1. Abrir a configuração de e-mail e informar `notify.qu4ttuor.com.br`.
+2. Conferir na tela os dois registros NS e copiá-los para o painel do domínio.
 3. Aguardar a verificação (normalmente minutos; pode levar até 72 h).
-4. Definir nome e endereço do remetente nos e-mails de autenticação.
-5. Enviar um convite real para um endereço seu e acompanhar o registro de envio.
-6. Confirmar recebimento, remetente exibido como Qu4ttuor e link válido.
-7. Definir a senha pelo link, entrar como cliente, confirmar acesso à calculadora/histórico e bloqueio das páginas administrativas.
-8. Apagar a conta usada no teste.
+4. Definir remetente `noreply@qu4ttuor.com.br` e nome "Qu4ttuor Consultoria" nos e-mails de autenticação (convite, definição e recuperação de senha).
+5. Enviar um convite real para um endereço seu pelo fluxo oficial.
+6. Acompanhar o registro de envio até confirmar a saída sem erro.
+7. Você confirma o recebimento, o remetente exibido e o link.
+8. Definir a senha pelo link, entrar como cliente, confirmar calculadora e histórico próprios e o bloqueio das páginas administrativas.
+9. Apagar a conta usada no teste.
 
-Só depois do item 7 o fluxo é considerado aprovado.
+O fluxo só é considerado aprovado após o item 8.
 
 ## Riscos
 
-- Enquanto o domínio não estiver verificado, os convites continuam saindo pelo remetente padrão, com a mesma chance de cair em spam. Nada piora, só não melhora ainda.
-- Se o domínio já usar algum outro serviço de envio no mesmo subdomínio, haveria conflito — por isso a sugestão de um subdomínio dedicado (`notify.`), que convive com o e-mail atual da empresa sem afetá-lo.
-- Nenhum e-mail da empresa (caixas, recebimento, MX principal) é afetado por esta configuração.
+- Enquanto o subdomínio não estiver verificado, os convites continuam saindo pelo remetente padrão. Nada piora.
+- Uma delegação de subdomínio digitada errada afeta apenas `notify.` — o site, as caixas e o recebimento seguem intactos.
+- Convites já enviados pelo remetente antigo não são reenviados automaticamente.
 
 ## Detalhes técnicos
 
-- Nenhuma alteração em `supabase/functions/manage-clients/index.ts`, contas, permissões, telas ou banco nesta etapa.
-- Após a verificação do domínio, os e-mails de autenticação (convite, `recovery`, `magiclink`) passam a ser renderizados por templates próprios do projeto e enfileirados com registro em log, substituindo o remetente padrão.
-- SMTP externo (Resend/SendGrid/SMTP do provedor atual) fica como alternativa apenas se você preferir explicitamente; nesse caso seria necessário fornecer host, porta, usuário e senha, que teriam de ser guardados como segredo do projeto.
+- Nenhuma alteração em `supabase/functions/manage-clients/index.ts`, contas, permissões, telas ou regras de cálculo.
+- Após a verificação, é criada a infraestrutura de envio do projeto (fila, log de envio, supressão e cancelamento de inscrição) e os e-mails de autenticação passam a ser renderizados por templates próprios, com registro de fila, envio, rejeição e reclamação — o que hoje não existe.
+- Os templates de convite/definição de senha manterão a identidade visual atual do sistema.
+- SMTP externo (Resend, SendGrid ou o SMTP do provedor atual) não será usado; nenhuma senha de e-mail precisa ser fornecida ou armazenada.
 
 ## Próximo passo
 
-Aprovar este plano e abrir a configuração do domínio de envio.
+Aprovar e abrir a configuração do subdomínio de envio para exibir os registros NS.
