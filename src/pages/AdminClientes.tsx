@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Users, UserPlus, Search, Mail, MoreHorizontal, Loader2, Power, PowerOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ClientRow {
   user_id: string;
@@ -25,6 +26,8 @@ interface ClientRow {
 }
 
 const AdminClientes = () => {
+  const { role } = useAuth();
+  const canManagePlans = role === "admin";
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -58,12 +61,14 @@ const AdminClientes = () => {
       .from("calculations")
       .select("user_id");
 
-    // Get roles to filter out admins
+    // Get roles to filter out staff accounts (admin/gestão)
     const { data: roles } = await supabase
       .from("user_roles")
       .select("user_id, role");
 
-    const adminIds = new Set((roles || []).filter(r => r.role === "admin").map(r => r.user_id));
+    const adminIds = new Set(
+      (roles || []).filter(r => r.role === "admin" || r.role === "manager").map(r => r.user_id)
+    );
     const subsMap = new Map((subs || []).map(s => [s.user_id, s]));
 
     // Count calculations per user
@@ -299,12 +304,16 @@ const AdminClientes = () => {
                                 <><Power className="h-4 w-4 mr-2" /> Ativar</>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
-                              Plano Básico
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
-                              Plano Premium
-                            </DropdownMenuItem>
+                            {canManagePlans && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
+                                  Plano Básico
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
+                                  Plano Premium
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

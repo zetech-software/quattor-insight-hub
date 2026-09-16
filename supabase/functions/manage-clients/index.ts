@@ -33,16 +33,29 @@ Deno.serve(async (req) => {
     const { data: { user: caller } } = await callerClient.auth.getUser();
     if (!caller) return json({ error: "Não autorizado" }, 401);
 
-    // Verify admin role
+    // Permissão do chamador: admin ou gestão (manager)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: roleData } = await adminClient
+    const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin")
-      .limit(1)
-      .single();
-    if (!roleData) return json({ error: "Acesso restrito a administradores" }, 403);
+      .eq("user_id", caller.id);
+
+    const roles = (callerRoles ?? []).map((r: { role: string }) => r.role);
+    const isAdmin = roles.includes("admin");
+    const isManager = roles.includes("manager");
+    if (!isAdmin && !isManager) {
+      return json({ error: "Acesso restrito a administradores" }, 403);
+    }
+
+    // Só o admin pode agir sobre contas administrativas (admin/gestão)
+    const isStaffAccount = async (userId: string) => {
+      const { data } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["admin", "manager"]);
+      return (data ?? []).length > 0;
+    };
 
     const body = await req.json();
     const { action } = body;
@@ -106,17 +119,28 @@ Deno.serve(async (req) => {
       const { userId, isActive } = body;
       if (!userId) return json({ error: "userId é obrigatório" }, 400);
 
+      // Gestão só pode ativar/desativar clientes.
+      if (!isAdmin && await isStaffAccount(userId)) {
+        return json({ error: "Esta ação é permitida somente ao administrador." }, 403);
+      }
+
       const { error } = await adminClient
         .from("profiles")
         .update({ is_active: isActive })
         .eq("user_id", userId);
 
-      if (error) return json({ error: error.message }, 400);
+      if (error) {
+        console.error("toggle-active failed:", error.code ?? "", error.message ?? "");
+        return json({ error: "Não foi possível alterar a situação do cliente. Tente novamente." }, 400);
+      }
       return json({ success: true });
     }
 
-    // === UPDATE SUBSCRIPTION ===
+    // === UPDATE SUBSCRIPTION (somente admin) ===
     if (action === "update-subscription") {
+      if (!isAdmin) {
+        return json({ error: "Esta ação é permitida somente ao administrador." }, 403);
+      }
       const { userId, planName, status } = body;
       if (!userId) return json({ error: "userId é obrigatório" }, 400);
 
@@ -129,7 +153,10 @@ Deno.serve(async (req) => {
         .update(updateData)
         .eq("user_id", userId);
 
-      if (error) return json({ error: error.message }, 400);
+      if (error) {
+        console.error("update-subscription failed:", error.code ?? "", error.message ?? "");
+        return json({ error: "Não foi possível atualizar o plano. Tente novamente." }, 400);
+      }
       return json({ success: true });
     }
 

@@ -209,6 +209,7 @@ export type Database = {
     }
     Functions: {
       clear_must_change_password: { Args: never; Returns: undefined }
+      has_admin_area_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -218,7 +219,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "client"
+      app_role: "admin" | "client" | "manager"
       subscription_status: "active" | "trial" | "expired" | "cancelled"
     }
     CompositeTypes: {
@@ -347,7 +348,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "client"],
+      app_role: ["admin", "client", "manager"],
       subscription_status: ["active", "trial", "expired", "cancelled"],
     },
   },

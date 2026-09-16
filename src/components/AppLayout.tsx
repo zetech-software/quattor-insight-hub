@@ -10,7 +10,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { role, profile } = useAuth();
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "manager";
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "U";

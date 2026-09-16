@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, type AppRole } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/qu4ttuor-logo.svg";
 import type { ReactNode } from "react";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: "admin" | "client";
+  /** Uma permissão ou lista de permissões aceitas. Admin sempre tem acesso. */
+  requiredRole?: AppRole | AppRole[];
   /** Tela de definição de senha: exige sessão, mas não aplica o bloqueio de senha temporária. */
   allowPasswordChange?: boolean;
 }
@@ -65,8 +66,11 @@ export function ProtectedRoute({ children, requiredRole, allowPasswordChange }: 
   }
 
 
-  if (requiredRole && role !== requiredRole && role !== "admin") {
-    return <Navigate to="/" replace />;
+  if (requiredRole) {
+    const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (role !== "admin" && !(role && allowed.includes(role))) {
+      return <Navigate to="/" replace />;
+    }
   }
 
 
