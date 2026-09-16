@@ -103,6 +103,7 @@ const Index = () => {
 
   const results: DieselResults | null = useMemo(() => {
     if (
+      !volumeNFError &&
       inputs.volumeNF > 0 &&
       inputs.pesoLiquido > 0 &&
       inputs.massaEspecifica20NF > 0 &&
