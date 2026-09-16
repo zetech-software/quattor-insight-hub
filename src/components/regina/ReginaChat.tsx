@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, RotateCcw, Loader2 } from "lucide-react";
+import { Send, RotateCcw, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
