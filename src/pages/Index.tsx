@@ -16,6 +16,17 @@ import { useAuth } from "@/hooks/useAuth";
 
 const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT", "situacaoSeta"] as const;
 
+const VOLUME_NF_MAX = 60000;
+
+function validateVolumeNF(value: string): string | null {
+  if (!value || value.trim() === "") return null;
+  const num = parseFloat(value);
+  if (isNaN(num)) return "Valor inválido";
+  if (num < 0) return "O volume não pode ser negativo";
+  if (num > VOLUME_NF_MAX) return "Volume acima do limite permitido (máximo 60.000 L)";
+  return null;
+}
+
 function validateDensity(value: string, unit: "kg/m³" | "kg/l"): string | null {
   if (!value || value.trim() === "") return null;
   const num = parseFloat(value);
@@ -72,7 +83,8 @@ const Index = () => {
 
   const massaError = useMemo(() => validateDensity(rawInputs.massaEspecifica20NF, massaUnit), [rawInputs.massaEspecifica20NF, massaUnit]);
   const daError = useMemo(() => validateDensity(rawInputs.densidadeAmostra, daUnit), [rawInputs.densidadeAmostra, daUnit]);
-  const hasValidationErrors = !!massaError || !!daError;
+  const volumeNFError = useMemo(() => validateVolumeNF(rawInputs.volumeNF), [rawInputs.volumeNF]);
+  const hasValidationErrors = !!massaError || !!daError || !!volumeNFError;
 
   const updateField = (field: string, value: string) => {
     setRawInputs((prev) => ({ ...prev, [field]: value }));
@@ -91,6 +103,7 @@ const Index = () => {
 
   const results: DieselResults | null = useMemo(() => {
     if (
+      !volumeNFError &&
       inputs.volumeNF > 0 &&
       inputs.pesoLiquido > 0 &&
       inputs.massaEspecifica20NF > 0 &&
@@ -103,7 +116,7 @@ const Index = () => {
       }
     }
     return null;
-  }, [inputs]);
+  }, [inputs, volumeNFError]);
 
   const handleReset = () => {
     setRawInputs({
@@ -236,7 +249,8 @@ const Index = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Volume NF (Litros)</Label>
-                    <Input type="number" step="any" value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} />
+                    <Input type="number" step="any" min={0} max={VOLUME_NF_MAX} value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} className={volumeNFError ? "border-destructive focus-visible:ring-destructive" : ""} />
+                    {volumeNFError && <p className="text-[11px] text-destructive">{volumeNFError}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Peso Líquido (kg)</Label>

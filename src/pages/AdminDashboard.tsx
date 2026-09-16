@@ -180,8 +180,10 @@ const AdminDashboard = () => {
                   </BarChart>
                 </ChartContainer>
               ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
-                  Sem dados de cálculos ainda
+                <div className="h-64 flex items-center justify-center text-center px-4 text-muted-foreground text-sm">
+                  {stats.totalCalcs > 0
+                    ? "Não houve cálculos nas últimas 8 semanas."
+                    : "Sem dados de cálculos ainda"}
                 </div>
               )}
             </CardContent>
