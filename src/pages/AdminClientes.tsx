@@ -64,14 +64,17 @@ const AdminClientes = () => {
       .from("calculations")
       .select("user_id");
 
-    // Get roles to filter out staff accounts (admin/gestão)
+    // Get roles to filter out staff accounts (admin/gestão/suporte)
     const { data: roles } = await supabase
       .from("user_roles")
       .select("user_id, role");
 
     const adminIds = new Set(
-      (roles || []).filter(r => r.role === "admin" || r.role === "manager").map(r => r.user_id)
+      (roles || [])
+        .filter(r => r.role === "admin" || r.role === "manager" || r.role === "support")
+        .map(r => r.user_id)
     );
+
     const subsMap = new Map((subs || []).map(s => [s.user_id, s]));
 
     // Count calculations per user
