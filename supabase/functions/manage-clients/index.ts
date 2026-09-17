@@ -121,8 +121,8 @@ Deno.serve(async (req) => {
       const { userId, isActive } = body;
       if (!userId) return json({ error: "userId é obrigatório" }, 400);
 
-      // Gestão só pode ativar/desativar clientes.
-      if (!isAdmin && await isStaffAccount(userId)) {
+      // Gestão e suporte só podem ativar/desativar contas de cliente.
+      if (!isAdmin && !(await isClientAccount(userId))) {
         return json({ error: "Esta ação é permitida somente ao administrador." }, 403);
       }
 
