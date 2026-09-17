@@ -20,23 +20,27 @@ import { AttachmentPicker } from "@/components/tickets/AttachmentPicker";
 import {
   CATEGORY_OPTIONS,
   PRIORITY_LABELS,
-  PRIORITY_ORDER,
+  REQUESTER_PRIORITIES,
+  TICKET_ERRORS,
   validateAttachments,
   type TicketPriority,
 } from "@/lib/tickets";
 
 export function NewTicketDialog({ onCreated }: { onCreated: () => void }) {
-  const { createTicket, saving } = useTicketActions();
+  const { createTicket, saving, canCreateTicket } = useTicketActions();
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
-  const [category, setCategory] = useState("geral");
+  const [category, setCategory] = useState("outro");
   const [priority, setPriority] = useState<TicketPriority>("normal");
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
 
+  // Suporte não abre chamado: nem o botão aparece.
+  if (!canCreateTicket) return null;
+
   const reset = () => {
     setSubject("");
-    setCategory("geral");
+    setCategory("outro");
     setPriority("normal");
     setBody("");
     setFiles([]);
@@ -64,7 +68,7 @@ export function NewTicketDialog({ onCreated }: { onCreated: () => void }) {
       onCreated();
     } catch (e) {
       toast({
-        title: "Não foi possível abrir o chamado",
+        title: TICKET_ERRORS.create,
         description: e instanceof Error ? e.message : "Tente novamente.",
         variant: "destructive",
       });
@@ -97,7 +101,7 @@ export function NewTicketDialog({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Assunto principal</Label>
+              <Label>Categoria</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -112,7 +116,7 @@ export function NewTicketDialog({ onCreated }: { onCreated: () => void }) {
               <Select value={priority} onValueChange={(v) => setPriority(v as TicketPriority)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {PRIORITY_ORDER.map((p) => (
+                  {REQUESTER_PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
                   ))}
                 </SelectContent>
