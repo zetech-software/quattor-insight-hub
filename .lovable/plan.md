@@ -43,6 +43,8 @@ Regras de comportamento do registro:
 - Se a resposta falhar ou for interrompida, a mesma linha passa a "falha" — nunca se cria uma segunda linha para a mesma pergunta.
 - Erro de gravação fica só em registro técnico seguro, sem nenhuma mensagem para o usuário.
 
+Proteção no próprio banco (não só na tela): depois de criada, a interação só aceita uma mudança de situação. Qualquer tentativa do usuário de alterar a pergunta, o dono da linha, a data, o assunto, a origem ou o identificador é recusada pelo banco. E a situação só pode sair de "pendente" para "respondida" ou "falha" — uma interação já finalizada não pode ser adulterada depois.
+
 ## 3. Resumo da Regina para o Dono
 
 Nova página "Regina (uso)" no grupo Administração, visível para Dono, Gestão e Suporte:
@@ -61,7 +63,8 @@ Não será implementado neste bloco. Relatório final informará: "Envio por e-m
 
 ## Detalhes técnicos
 
-- Migração `regina_interactions`: colunas `id`, `user_id`, `created_at`, `question`, `status` (`pendente` | `respondida` | `falha`, padrão `pendente`), `topic`, `origin`; `GRANT` select/insert/update para `authenticated` e `ALL` para `service_role`; RLS com insert e update em `auth.uid() = user_id`, select `auth.uid() = user_id OR has_staff_read_access(auth.uid())`; sem delete.
+- Migração `regina_interactions`: colunas `id`, `user_id`, `created_at`, `question`, `status` (enum `regina_interaction_status`: `pendente` | `respondida` | `falha`, padrão `pendente`), `topic`, `origin`; `GRANT` select/insert/update para `authenticated` e `ALL` para `service_role`; RLS com insert e update em `auth.uid() = user_id`, select `auth.uid() = user_id OR has_staff_read_access(auth.uid())`; sem delete.
+- Trigger `BEFORE UPDATE` `enforce_regina_interaction_update_rules` (SECURITY DEFINER, `search_path = public`): quando `auth.uid() = OLD.user_id` e o autor não tem acesso administrativo, força `id`, `user_id`, `created_at`, `question`, `topic` e `origin` de volta aos valores antigos, e levanta exceção se `OLD.status <> 'pendente'` ou se `NEW.status NOT IN ('respondida','falha')`. Ou seja: só a transição `pendente → respondida` e `pendente → falha` passa; linha finalizada é imutável.
 - `src/lib/reginaTopics.ts` (novo): classificação por palavras-chave e rótulos.
 - `src/hooks/useRegina.tsx`: no envio, cria uma única linha `pendente` e guarda o id; ao concluir a resposta com sucesso atualiza para `respondida`; em erro ou interrupção atualiza a mesma linha para `falha`. Toda gravação roda isolada em `try/catch` com `console.error` apenas, sem afetar o fluxo do chat, sem toast e sem repetir a linha em reenvio da mesma pergunta (o "Tentar novamente" cria uma nova interação, porque é uma nova tentativa do usuário). Prompt, avatar e integração com IA não mudam.
 - `src/components/regina/ReginaFab.tsx` e `src/pages/Regina.tsx`: apenas passam a origem da interação.
@@ -74,5 +77,6 @@ Não será implementado neste bloco. Relatório final informará: "Envio por e-m
 
 Cliente: resumo com números conferidos contra o banco, sobras/faltas/sem diferença, período, downloads PDF/Excel, tentativa de ler dados de outro cliente.
 Regina: enviar pergunta e conferir uma única linha gravada; conferir que ela vira "respondida" só ao fim da resposta; simular falha de resposta e conferir que a mesma linha vira "falha"; simular falha de gravação e conferir que a conversa segue normal e sem mensagem de erro para o usuário.
+Segurança da tabela, por chamada direta ao banco com a conta do cliente: alterar a própria pergunta → recusado; alterar o dono da linha → recusado; trocar "respondida" por "falha" depois de finalizada → recusado; alterar data, assunto, origem ou identificador → recusado; e o fluxo normal da Regina continua saindo de "pendente" para a situação final corretamente.
 Dono e Suporte: abrir resumo da Regina, conferir totais, assuntos e perguntas recentes.
 Geral: F5, URL direta, logout, 390 px, tema claro/escuro, console e rede limpos. Mais os 99 testes automatizados, verificação de tipos e build de produção.
