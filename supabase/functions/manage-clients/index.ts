@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const { data: { user: caller } } = await callerClient.auth.getUser();
     if (!caller) return json({ error: "Não autorizado" }, 401);
 
-    // Permissão do chamador: admin ou gestão (manager)
+    // Permissão do chamador: admin, gestão (manager) ou suporte
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: callerRoles } = await adminClient
       .from("user_roles")
@@ -43,18 +43,20 @@ Deno.serve(async (req) => {
     const roles = (callerRoles ?? []).map((r: { role: string }) => r.role);
     const isAdmin = roles.includes("admin");
     const isManager = roles.includes("manager");
-    if (!isAdmin && !isManager) {
+    const isSupport = roles.includes("support");
+    if (!isAdmin && !isManager && !isSupport) {
       return json({ error: "Acesso restrito a administradores" }, 403);
     }
 
-    // Só o admin pode agir sobre contas administrativas (admin/gestão)
-    const isStaffAccount = async (userId: string) => {
+    // Quem não é admin só age sobre contas de cliente (sem nenhum papel de equipe)
+    const isClientAccount = async (userId: string) => {
       const { data } = await adminClient
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .in("role", ["admin", "manager"]);
-      return (data ?? []).length > 0;
+        .eq("user_id", userId);
+      const targetRoles = (data ?? []).map((r: { role: string }) => r.role);
+      const hasStaffRole = targetRoles.some((r) => ["admin", "manager", "support"].includes(r));
+      return targetRoles.includes("client") && !hasStaffRole;
     };
 
     const body = await req.json();
@@ -119,8 +121,8 @@ Deno.serve(async (req) => {
       const { userId, isActive } = body;
       if (!userId) return json({ error: "userId é obrigatório" }, 400);
 
-      // Gestão só pode ativar/desativar clientes.
-      if (!isAdmin && await isStaffAccount(userId)) {
+      // Gestão e suporte só podem ativar/desativar contas de cliente.
+      if (!isAdmin && !(await isClientAccount(userId))) {
         return json({ error: "Esta ação é permitida somente ao administrador." }, 403);
       }
 
