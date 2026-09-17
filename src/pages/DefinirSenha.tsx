@@ -108,6 +108,7 @@ const DefinirSenha = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">{PASSWORD_RULE_TEXT}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmar-senha">Confirmar nova senha</Label>
