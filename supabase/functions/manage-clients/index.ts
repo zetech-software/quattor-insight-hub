@@ -162,6 +162,21 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // === DETALHES DO CLIENTE (leitura para admin/gestão/suporte) ===
+    if (action === "client-details") {
+      const { userId } = body;
+      if (!userId) return json({ error: "userId é obrigatório" }, 400);
+
+      const { data, error } = await adminClient.auth.admin.getUserById(userId);
+      if (error || !data?.user) {
+        return json({ error: "Não foi possível carregar os dados de acesso." }, 400);
+      }
+      return json({
+        email: data.user.email ?? null,
+        lastSignInAt: data.user.last_sign_in_at ?? null,
+      });
+    }
+
     return json({ error: "Ação não reconhecida" }, 400);
   } catch (e) {
     return json({ error: e.message }, 500);

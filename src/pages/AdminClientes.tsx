@@ -8,22 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Users, UserPlus, Search, Mail, MoreHorizontal, Loader2, Power, PowerOff } from "lucide-react";
+import { Users, UserPlus, Search, Mail, MoreHorizontal, Loader2, Power, PowerOff, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ClientDetailSheet, type ClientDetailTarget } from "@/components/admin/ClientDetailSheet";
 
-interface ClientRow {
-  user_id: string;
-  full_name: string | null;
-  company_name: string | null;
-  is_active: boolean;
-  created_at: string;
-  plan_name: string;
-  sub_status: string;
-  calc_count: number;
-  email?: string;
-}
+type ClientRow = ClientDetailTarget;
 
 const AdminClientes = () => {
   const { role } = useAuth();
@@ -39,6 +30,13 @@ const AdminClientes = () => {
   const [inviteName, setInviteName] = useState("");
   const [inviteCompany, setInviteCompany] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [detailClient, setDetailClient] = useState<ClientRow | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openDetail = (client: ClientRow) => {
+    setDetailClient(client);
+    setDetailOpen(true);
+  };
 
   const loadClients = useCallback(async () => {
     setLoading(true);
@@ -46,7 +44,7 @@ const AdminClientes = () => {
     // Get all client profiles
     const { data: profiles, error: pError } = await supabase
       .from("profiles")
-      .select("user_id, full_name, company_name, is_active, created_at");
+      .select("user_id, full_name, company_name, cnpj, municipio, uf, phone, is_active, created_at");
 
     if (pError) {
       toast({ title: "Erro ao carregar clientes", description: pError.message, variant: "destructive" });
@@ -91,15 +89,22 @@ const AdminClientes = () => {
           user_id: p.user_id,
           full_name: p.full_name,
           company_name: p.company_name,
+          cnpj: p.cnpj,
+          municipio: p.municipio,
+          uf: p.uf,
+          phone: p.phone,
           is_active: p.is_active,
           created_at: p.created_at,
-          plan_name: sub?.plan_name || "Básico",
-          sub_status: sub?.status || "trial",
+          plan_name: sub?.plan_name ?? null,
+          sub_status: sub?.status ?? null,
           calc_count: calcCounts.get(p.user_id) || 0,
         };
       });
 
     setClients(clientRows);
+    setDetailClient((current) =>
+      current ? clientRows.find((c) => c.user_id === current.user_id) ?? current : current,
+    );
     setLoading(false);
   }, []);
 
@@ -271,7 +276,11 @@ const AdminClientes = () => {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((client) => (
-                    <TableRow key={client.user_id} className={!client.is_active ? "opacity-60" : ""}>
+                    <TableRow
+                      key={client.user_id}
+                      className={`cursor-pointer ${!client.is_active ? "opacity-60" : ""}`}
+                      onClick={() => openDetail(client)}
+                    >
                       <TableCell>
                         <div>
                           <p className="font-medium">{client.full_name || "—"}</p>
@@ -291,23 +300,30 @@ const AdminClientes = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={statusColor(client.sub_status)}>
-                          {client.plan_name} ({statusLabel(client.sub_status)})
-                        </Badge>
+                        {client.plan_name && client.sub_status ? (
+                          <Badge variant="outline" className={statusColor(client.sub_status)}>
+                            {client.plan_name} ({statusLabel(client.sub_status)})
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sem assinatura registrada</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-mono">{client.calc_count}</TableCell>
                       <TableCell className="text-sm text-muted-foreground font-mono">
                         {new Date(client.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell>
-                        {canManageClients && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDetail(client)}>
+                              <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+                            </DropdownMenuItem>
+                            {canManageClients && (
                               <DropdownMenuItem onClick={() => handleToggleActive(client.user_id, client.is_active)}>
                                 {client.is_active ? (
                                   <><PowerOff className="h-4 w-4 mr-2" /> Desativar</>
@@ -315,19 +331,19 @@ const AdminClientes = () => {
                                   <><Power className="h-4 w-4 mr-2" /> Ativar</>
                                 )}
                               </DropdownMenuItem>
-                              {canManagePlans && (
-                                <>
-                                  <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
-                                    Plano Básico
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
-                                    Plano Premium
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                            )}
+                            {canManagePlans && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
+                                  Plano Básico
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
+                                  Plano Premium
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -337,6 +353,16 @@ const AdminClientes = () => {
             )}
           </CardContent>
         </Card>
+
+        <ClientDetailSheet
+          client={detailClient}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          canManageClients={canManageClients}
+          canManagePlans={canManagePlans}
+          onToggleActive={handleToggleActive}
+          onUpdatePlan={handleUpdatePlan}
+        />
       </div>
     </AppLayout>
   );

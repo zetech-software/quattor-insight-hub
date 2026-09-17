@@ -14,6 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import DefinirSenha from "./pages/DefinirSenha";
 
 import Historico from "./pages/Historico";
+import Perfil from "./pages/Perfil";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClientes from "./pages/AdminClientes";
 import AdminRelatorios from "./pages/AdminRelatorios";
@@ -42,6 +43,7 @@ const App = () => (
 
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
                 <Route path="/regina" element={<ProtectedRoute><Regina /></ProtectedRoute>} />
+                <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
                 <Route path="/pet" element={<Navigate to="/regina" replace />} />
                 <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/clientes" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminClientes /></ProtectedRoute>} />
