@@ -2,11 +2,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import { useTicketDetail, useTicketActions } from "@/hooks/useTickets";
 import { TicketThread } from "@/components/tickets/TicketThread";
 import { PriorityBadge, StatusBadge } from "@/components/tickets/TicketBadges";
-import { categoryLabel, formatDateTime } from "@/lib/tickets";
+import { TICKET_ERRORS, categoryLabel, formatDateTime, ticketCode } from "@/lib/tickets";
 import { toast } from "@/hooks/use-toast";
 
 const REOPEN_WINDOW_DAYS = 7;
@@ -52,7 +52,7 @@ const ChamadoDetalhe = () => {
           </div>
         ) : error || !detail ? (
           <div className="py-10 text-center space-y-3">
-            <p className="text-sm text-muted-foreground">{error ?? "Chamado não encontrado."}</p>
+            <p className="text-sm text-muted-foreground">{error ?? TICKET_ERRORS.notFound}</p>
             <Button variant="outline" onClick={reload} className="gap-2">
               <RefreshCw className="h-4 w-4" /> Tentar novamente
             </Button>
@@ -61,6 +61,7 @@ const ChamadoDetalhe = () => {
           <>
             <Card>
               <CardHeader>
+                <p className="text-xs font-mono text-muted-foreground">#{ticketCode(detail.ticket.id)}</p>
                 <CardTitle className="text-lg">{detail.ticket.subject}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -69,10 +70,21 @@ const ChamadoDetalhe = () => {
                   <PriorityBadge priority={detail.ticket.priority} />
                   <span className="text-sm text-muted-foreground">{categoryLabel(detail.ticket.category)}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Aberto em {formatDateTime(detail.ticket.created_at)} · última mensagem em{" "}
-                  {formatDateTime(detail.ticket.last_message_at)}
-                </p>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Responsável: {detail.ticket.assigned_name || "ainda não atribuído"}</p>
+                  <p>
+                    Aberto em {formatDateTime(detail.ticket.created_at)} · última atualização em{" "}
+                    {formatDateTime(detail.ticket.last_message_at)}
+                  </p>
+                </div>
+
+                {detail.ticket.status === "aguardando_cliente" && (
+                  <div className="flex items-start gap-2 rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+                    <Clock className="h-4 w-4 mt-0.5 text-primary" />
+                    <span>O suporte está aguardando sua resposta para seguir com o atendimento.</span>
+                  </div>
+                )}
+
                 {canReopen && (
                   <Button variant="outline" size="sm" className="gap-2" onClick={handleReopen} disabled={saving}>
                     <RotateCcw className="h-4 w-4" /> Reabrir chamado
