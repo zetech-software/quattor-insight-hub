@@ -1,4 +1,4 @@
-import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot, LifeBuoy, Headphones } from "lucide-react";
+import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -16,16 +16,13 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
-import { useUnreadTicketCount } from "@/hooks/useTickets";
 
 const clientItems = [
   { title: "Calculadora", url: "/", icon: Calculator },
   { title: "Histórico", url: "/historico", icon: History },
   { title: "Regina (Assistente)", url: "/regina", icon: Bot },
-  { title: "Chamados", url: "/chamados", icon: LifeBuoy },
 ];
 
 const adminItems = [
@@ -34,24 +31,17 @@ const adminItems = [
   { title: "Relatórios", url: "/admin/relatorios", icon: FileBarChart },
 ];
 
-const supportItems = [{ title: "Caixa de chamados", url: "/suporte", icon: Headphones }];
-
 interface AppSidebarProps {
   isAdmin?: boolean;
 }
 
 export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const { state } = useSidebar();
-  const { signOut, role } = useAuth();
+  const { signOut } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const collapsed = state === "collapsed";
-  const isSupport = role === "support";
-  const unread = useUnreadTicketCount(isSupport ? "all" : "own");
-  // Suporte não é solicitante: entra direto na caixa e não vê "Chamados".
-  const mainItems = isSupport
-    ? [...supportItems, ...clientItems.filter((i) => i.url !== "/chamados")]
-    : clientItems;
+  const mainItems = clientItems;
   const mainLabel = "Principal";
   const showAdmin = isAdmin;
 
@@ -94,9 +84,7 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
                     >
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
-                      {!collapsed && unread > 0 && (item.url === "/chamados" || item.url === "/suporte") && (
-                        <Badge variant="default" className="ml-auto">{unread}</Badge>
-                      )}
+
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
