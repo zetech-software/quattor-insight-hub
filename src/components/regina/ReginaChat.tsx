@@ -50,7 +50,7 @@ export function ReginaChat({
   const send = async (text: string) => {
     setLastPrompt(text);
     try {
-      await sendMessage(text);
+      await sendMessage(text, origin);
     } catch {
       /* mensagem de falha é exibida na conversa */
     }
