@@ -8,22 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Users, UserPlus, Search, Mail, MoreHorizontal, Loader2, Power, PowerOff } from "lucide-react";
+import { Users, UserPlus, Search, Mail, MoreHorizontal, Loader2, Power, PowerOff, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ClientDetailSheet, type ClientDetailTarget } from "@/components/admin/ClientDetailSheet";
 
-interface ClientRow {
-  user_id: string;
-  full_name: string | null;
-  company_name: string | null;
-  is_active: boolean;
-  created_at: string;
-  plan_name: string;
-  sub_status: string;
-  calc_count: number;
-  email?: string;
-}
+type ClientRow = ClientDetailTarget;
 
 const AdminClientes = () => {
   const { role } = useAuth();
