@@ -28,6 +28,9 @@ interface ClientRow {
 const AdminClientes = () => {
   const { role } = useAuth();
   const canManagePlans = role === "admin";
+  // Suporte enxerga a lista, mas não convida, não ativa/desativa e não altera planos.
+  const canManageClients = role === "admin" || role === "manager";
+
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -290,35 +293,38 @@ const AdminClientes = () => {
                         {new Date(client.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleToggleActive(client.user_id, client.is_active)}>
-                              {client.is_active ? (
-                                <><PowerOff className="h-4 w-4 mr-2" /> Desativar</>
-                              ) : (
-                                <><Power className="h-4 w-4 mr-2" /> Ativar</>
+                        {canManageClients && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleToggleActive(client.user_id, client.is_active)}>
+                                {client.is_active ? (
+                                  <><PowerOff className="h-4 w-4 mr-2" /> Desativar</>
+                                ) : (
+                                  <><Power className="h-4 w-4 mr-2" /> Ativar</>
+                                )}
+                              </DropdownMenuItem>
+                              {canManagePlans && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
+                                    Plano Básico
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
+                                    Plano Premium
+                                  </DropdownMenuItem>
+                                </>
                               )}
-                            </DropdownMenuItem>
-                            {canManagePlans && (
-                              <>
-                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Básico")}>
-                                  Plano Básico
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleUpdatePlan(client.user_id, "Premium")}>
-                                  Plano Premium
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
+
                 </TableBody>
               </Table>
             )}
