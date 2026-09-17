@@ -386,6 +386,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_staff_read_access: { Args: { _user_id: string }; Returns: boolean }
       has_support_access: { Args: { _user_id: string }; Returns: boolean }
       is_ticket_participant: {
         Args: { _ticket_id: string; _user_id: string }

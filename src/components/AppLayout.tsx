@@ -10,8 +10,8 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { role, profile } = useAuth();
-  const isAdmin = role === "admin" || role === "manager";
-  const isSupport = role === "support";
+  const isAdmin = role === "admin" || role === "manager" || role === "support";
+
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "U";
@@ -38,7 +38,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      {!isSupport && <ReginaFab />}
+      <ReginaFab />
+
     </SidebarProvider>
   );
 }

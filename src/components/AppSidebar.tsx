@@ -48,9 +48,10 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const collapsed = state === "collapsed";
   const isSupport = role === "support";
   const unread = useUnreadTicketCount(isSupport ? "all" : "own");
-  const mainItems = isSupport ? supportItems : clientItems;
-  const mainLabel = isSupport ? "Suporte" : "Principal";
-  const showAdmin = isAdmin && !isSupport;
+  const mainItems = isSupport ? [...clientItems, ...supportItems] : clientItems;
+  const mainLabel = "Principal";
+  const showAdmin = isAdmin;
+
 
   const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
 

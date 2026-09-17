@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Headphones, Loader2, RefreshCw, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Headphones, Inbox, Loader2, RefreshCw, Search, UserCheck } from "lucide-react";
 import { useTicketList } from "@/hooks/useTickets";
 import { useAuth } from "@/hooks/useAuth";
 import { PriorityBadge, StatusBadge } from "@/components/tickets/TicketBadges";
@@ -17,6 +17,7 @@ import {
   STATUS_LABELS,
   STATUS_ORDER,
   formatDateTime,
+  ticketCode,
 } from "@/lib/tickets";
 
 const SuporteCaixa = () => {
@@ -36,8 +37,8 @@ const SuporteCaixa = () => {
         if (owner === "meus" && t.assigned_to !== user?.id) return false;
         if (owner === "sem" && t.assigned_to) return false;
         if (search.trim()) {
-          const q = search.toLowerCase();
-          const hay = `${t.subject} ${t.requester_name ?? ""} ${t.requester_email ?? ""}`.toLowerCase();
+          const q = search.trim().toLowerCase();
+          const hay = `${t.subject} ${t.requester_name ?? ""} ${t.requester_email ?? ""} ${ticketCode(t.id)}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -45,30 +46,101 @@ const SuporteCaixa = () => {
     [tickets, status, priority, owner, search, user?.id],
   );
 
-  const abertos = tickets.filter((t) => t.status !== "fechado" && t.status !== "resolvido").length;
+  const counts = useMemo(() => {
+    const by = (fn: (t: typeof tickets[number]) => boolean) => tickets.filter(fn).length;
+    return {
+      abertos: by((t) => t.status === "aberto"),
+      atendimento: by((t) => t.status === "em_atendimento"),
+      aguardando: by((t) => t.status === "aguardando_cliente"),
+      resolvidos: by((t) => t.status === "resolvido" || t.status === "fechado"),
+      criticos: by((t) => (t.priority === "alta" || t.priority === "urgente") && t.status !== "fechado" && t.status !== "resolvido"),
+      novos: by((t) => isUnread(t)),
+    };
+  }, [tickets, isUnread]);
+
+  const stats = [
+    { label: "Abertos", value: counts.abertos, icon: Inbox, tone: "text-primary", filter: "aberto" },
+    { label: "Em atendimento", value: counts.atendimento, icon: UserCheck, tone: "text-primary", filter: "em_atendimento" },
+    { label: "Aguardando cliente", value: counts.aguardando, icon: Clock, tone: "text-muted-foreground", filter: "aguardando_cliente" },
+    { label: "Resolvidos", value: counts.resolvidos, icon: CheckCircle2, tone: "text-muted-foreground", filter: "resolvido" },
+    { label: "Alta / crítica", value: counts.criticos, icon: AlertTriangle, tone: "text-destructive", filter: null },
+  ];
+
+  const clearFilters = () => {
+    setStatus("todos");
+    setPriority("todas");
+    setOwner("todos");
+    setSearch("");
+  };
+
+  const hasFilters = status !== "todos" || priority !== "todas" || owner !== "todos" || search.trim() !== "";
 
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Headphones className="h-6 w-6 text-primary" />
-            Caixa de chamados
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {abertos} chamado(s) em andamento de um total de {tickets.length}.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold font-heading flex items-center gap-2">
+              <Headphones className="h-6 w-6 text-primary" />
+              Caixa de chamados
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {tickets.length} chamado(s) no total
+              {counts.novos > 0 && ` · ${counts.novos} com nova resposta`}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2" onClick={reload} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Atualizar
+          </Button>
+        </div>
+
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+          {stats.map((s) => (
+            <Card
+              key={s.label}
+              className={`cursor-pointer transition-colors hover:border-primary/40 ${
+                s.filter && status === s.filter ? "border-primary" : ""
+              }`}
+              onClick={() => {
+                if (s.filter) {
+                  setStatus(status === s.filter ? "todos" : s.filter);
+                } else {
+                  setPriority(priority === "alta" ? "todas" : "alta");
+                }
+              }}
+            >
+              <CardContent className="p-4 space-y-1">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <s.icon className={`h-4 w-4 ${s.tone}`} />
+                  <span>{s.label}</span>
+                </div>
+                <p className="text-2xl font-bold font-heading">{s.value}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <Card>
           <CardHeader className="space-y-4">
-            <CardTitle className="text-base">Chamados</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">
+                Chamados
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  {filtered.length} de {tickets.length}
+                </span>
+              </CardTitle>
+              {hasFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Buscar assunto ou pessoa"
+                  placeholder="Buscar por cliente, e-mail, assunto ou código"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -122,44 +194,84 @@ const SuporteCaixa = () => {
                 Nenhum chamado corresponde aos filtros escolhidos.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Assunto</TableHead>
-                      <TableHead>Quem abriu</TableHead>
-                      <TableHead>Situação</TableHead>
-                      <TableHead className="hidden sm:table-cell">Prioridade</TableHead>
-                      <TableHead className="hidden lg:table-cell">Responsável</TableHead>
-                      <TableHead className="hidden md:table-cell">Última mensagem</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((t) => (
-                      <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/suporte/${t.id}`)}>
-                        <TableCell className="font-medium">
-                          <span className="flex items-center gap-2">
-                            {t.subject}
-                            {isUnread(t) && <Badge variant="default">Novo</Badge>}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          <span className="block">{t.requester_name || "Sem nome"}</span>
-                          <span className="block text-xs">{t.requester_email}</span>
-                        </TableCell>
-                        <TableCell><StatusBadge status={t.status} /></TableCell>
-                        <TableCell className="hidden sm:table-cell"><PriorityBadge priority={t.priority} /></TableCell>
-                        <TableCell className="hidden lg:table-cell text-muted-foreground">
-                          {t.assigned_name || "-"}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground">
-                          {formatDateTime(t.last_message_at)}
-                        </TableCell>
+              <>
+                {/* Celular: cartões */}
+                <div className="space-y-3 md:hidden">
+                  {filtered.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => navigate(`/suporte/${t.id}`)}
+                      className={`w-full text-left rounded-lg border p-3 space-y-2 ${
+                        isUnread(t) ? "border-primary bg-primary/5" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-medium">{t.subject}</span>
+                        {isUnread(t) && <Badge>Nova resposta</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {t.requester_name || "Sem nome"} · {t.requester_email}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge status={t.status} />
+                        <PriorityBadge priority={t.priority} />
+                        <span className="text-xs text-muted-foreground">#{ticketCode(t.id)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Responsável: {t.assigned_name || "ninguém"} · {formatDateTime(t.last_message_at)}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Computador: tabela */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-24">Código</TableHead>
+                        <TableHead>Assunto</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Situação</TableHead>
+                        <TableHead>Prioridade</TableHead>
+                        <TableHead className="hidden lg:table-cell">Responsável</TableHead>
+                        <TableHead>Última atualização</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((t) => (
+                        <TableRow
+                          key={t.id}
+                          className={`cursor-pointer ${isUnread(t) ? "bg-primary/5" : ""}`}
+                          onClick={() => navigate(`/suporte/${t.id}`)}
+                        >
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            #{ticketCode(t.id)}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <span className="flex items-center gap-2">
+                              {t.subject}
+                              {isUnread(t) && <Badge>Nova resposta</Badge>}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            <span className="block text-foreground">{t.requester_name || "Sem nome"}</span>
+                            <span className="block text-xs">{t.requester_email}</span>
+                          </TableCell>
+                          <TableCell><StatusBadge status={t.status} /></TableCell>
+                          <TableCell><PriorityBadge priority={t.priority} /></TableCell>
+                          <TableCell className="hidden lg:table-cell text-muted-foreground">
+                            {t.assigned_name || "-"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {formatDateTime(t.last_message_at)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

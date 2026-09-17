@@ -16,6 +16,8 @@ import {
   STATUS_ORDER,
   categoryLabel,
   formatDateTime,
+  ticketCode,
+
   type TicketPriority,
   type TicketStatus,
 } from "@/lib/tickets";
@@ -65,8 +67,10 @@ const SuporteChamado = () => {
           <>
             <Card>
               <CardHeader>
+                <p className="text-xs font-mono text-muted-foreground">#{ticketCode(detail.ticket.id)}</p>
                 <CardTitle className="text-lg">{detail.ticket.subject}</CardTitle>
               </CardHeader>
+
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={detail.ticket.status} />

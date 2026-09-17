@@ -76,3 +76,16 @@ export function validateAttachments(files: File[]): string | null {
   }
   return null;
 }
+
+/** Código curto do chamado, usado na busca e na identificação visual. */
+export function ticketCode(id: string) {
+  return id.slice(0, 8).toUpperCase();
+}
+
+/** Tamanho de arquivo em formato legível. */
+export function formatBytes(bytes: number | null) {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
