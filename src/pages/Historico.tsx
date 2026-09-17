@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { History, Search, Download, Eye, Loader2, Trash2, FileText, Sheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +30,14 @@ import type { Tables } from "@/integrations/supabase/types";
 type Calculation = Tables<"calculations">;
 
 const Historico = () => {
-  const { session } = useAuth();
+  const { session, role } = useAuth();
+  const canDelete = role !== "support";
   const [calculations, setCalculations] = useState<Calculation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Calculation | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Calculation | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -46,14 +59,22 @@ const Historico = () => {
     setLoading(false);
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("calculations").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
-      setCalculations((prev) => prev.filter((c) => c.id !== id));
-      toast({ title: "Cálculo excluído" });
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const id = pendingDelete.id;
+    setDeleting(true);
+    const { data, error } = await supabase.from("calculations").delete().eq("id", id).select("id");
+    setDeleting(false);
+    setPendingDelete(null);
+
+    if (error || !data || data.length === 0) {
+      toast({ title: "Não foi possível excluir o cálculo.", variant: "destructive" });
+      return;
     }
+
+    setCalculations((prev) => prev.filter((c) => c.id !== id));
+    setSelected((prev) => (prev?.id === id ? null : prev));
+    toast({ title: "Cálculo excluído" });
   };
 
   const handleExportCSV = () => {
@@ -164,7 +185,7 @@ const Historico = () => {
                     const isNeg = diff < 0;
                     return (
                       <TableRow key={row.id}>
-                        <TableCell className="font-mono text-sm">{row.data}</TableCell>
+                        <TableCell className="font-mono text-sm">{formatLocalDate(row.data)}</TableCell>
                         <TableCell className="font-mono">{row.numero_nf || "—"}</TableCell>
                         <TableCell>{row.placa_ct || "—"}</TableCell>
                         <TableCell>{row.municipio_base || "—"}</TableCell>
@@ -189,9 +210,17 @@ const Historico = () => {
                             <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar Excel" onClick={() => generateSingleCalculationXLSX(row)}>
                               <Sheet className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(row.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                title="Excluir cálculo"
+                                onClick={() => setPendingDelete(row)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -227,7 +256,7 @@ const Historico = () => {
           {selected && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-2">
-                <DetailRow label="Data" value={selected.data} />
+                <DetailRow label="Data" value={formatLocalDate(selected.data)} />
                 <DetailRow label="Nº NF" value={selected.numero_nf || "—"} />
                 <DetailRow label="Placa CT" value={selected.placa_ct || "—"} />
                 <DetailRow label="Município da Base" value={selected.municipio_base || "—"} />
@@ -262,6 +291,34 @@ const Historico = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading">Excluir este cálculo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `Cálculo de ${formatLocalDate(pendingDelete.data)}${
+                    pendingDelete.numero_nf ? ` — NF ${pendingDelete.numero_nf}` : ""
+                  }. Esta ação não pode ser desfeita.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
