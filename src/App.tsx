@@ -18,6 +18,7 @@ import Perfil from "./pages/Perfil";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClientes from "./pages/AdminClientes";
 import AdminRelatorios from "./pages/AdminRelatorios";
+import AdminRegina from "./pages/AdminRegina";
 import Regina from "./pages/Regina";
 import NotFound from "./pages/NotFound";
 const DevPerfis = lazy(() => import("./pages/DevPerfis"));
@@ -48,6 +49,7 @@ const App = () => (
                 <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/clientes" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminClientes /></ProtectedRoute>} />
                 <Route path="/admin/relatorios" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminRelatorios /></ProtectedRoute>} />
+                <Route path="/admin/regina" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminRegina /></ProtectedRoute>} />
 
                 {isDev && (
                   <Route
