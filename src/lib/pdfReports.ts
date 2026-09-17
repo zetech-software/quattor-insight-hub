@@ -2,6 +2,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { LEGAL_DISCLAIMER, LEGAL_DISCLAIMER_TITLE } from "@/lib/legalDisclaimer";
+import { formatDateTime, formatLocalDate, type ExportableCalculation } from "@/lib/calculationExport";
 
 type Calculation = Tables<"calculations">;
 
@@ -37,6 +39,32 @@ function addFooter(doc: jsPDF) {
     doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width / 2, h - 8, { align: "center" });
     doc.text("Documento gerado automaticamente — Qu4ttuor Consultoria", doc.internal.pageSize.width / 2, h - 4, { align: "center" });
   }
+}
+
+/** Bloco do aviso legal, com quebra de página quando não couber. */
+function addDisclaimer(doc: jsPDF, startY: number) {
+  const marginX = 14;
+  const width = doc.internal.pageSize.width - marginX * 2;
+  doc.setFontSize(7.5);
+  const lines = doc.splitTextToSize(LEGAL_DISCLAIMER, width);
+  const blockHeight = lines.length * 3.4 + 10;
+
+  if (startY + blockHeight > doc.internal.pageSize.height - 16) {
+    doc.addPage();
+    startY = 20;
+  }
+
+  doc.setDrawColor(...BRAND_COLOR);
+  doc.setFillColor(252, 243, 232);
+  doc.rect(marginX, startY, width, blockHeight, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(120, 80, 25);
+  doc.text(LEGAL_DISCLAIMER_TITLE.toUpperCase(), marginX + 3, startY + 5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(70, 70, 70);
+  doc.text(lines, marginX + 3, startY + 10);
+  doc.setTextColor(0, 0, 0);
 }
 
 // ============ Relatório de Clientes ============
@@ -89,7 +117,7 @@ export async function generateCalculationsReport() {
     startY: 38,
     head: [["Data", "Cliente", "NF", "Placa CT", "Vol. NF (L)", "VCT (L)", "Diferença (L)", "Situação"]],
     body: (calcs ?? []).map(c => [
-      new Date(c.data).toLocaleDateString("pt-BR"),
+      formatLocalDate(c.data),
       profileMap.get(c.user_id) ?? "—",
       c.numero_nf ?? "—",
       c.placa_ct ?? "—",
@@ -139,9 +167,8 @@ export async function generateSubscriptionsReport() {
 }
 
 // ============ Relatório Individual de Cálculo ============
-export function generateSingleCalculationPDF(calc: Calculation) {
+export function generateSingleCalculationPDF(calc: ExportableCalculation) {
   const doc = new jsPDF();
-  const w = doc.internal.pageSize.width;
 
   addHeader(doc, "Relatório de Recebimento de Diesel");
 
@@ -151,11 +178,22 @@ export function generateSingleCalculationPDF(calc: Calculation) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(100, 100, 100);
-  doc.text(`NF: ${calc.numero_nf || "—"}  |  Placa CT: ${calc.placa_ct || "—"}  |  Data: ${new Date(calc.data).toLocaleDateString("pt-BR")}`, 14, y);
+  doc.text(`NF: ${calc.numero_nf || "—"}  |  Placa CT: ${calc.placa_ct || "—"}  |  Data: ${formatLocalDate(calc.data)}`, 14, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.text(
+    `Registrado em: ${formatDateTime(calc.created_at)}  |  Emitido em: ${new Date().toLocaleString("pt-BR")}`,
+    14,
+    y,
+  );
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   if (calc.municipio_base) {
     y += 6;
     doc.text(`Município da Base: ${calc.municipio_base}`, 14, y);
   }
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(0, 0, 0);
   y += 10;
 
@@ -307,6 +345,7 @@ export function generateSingleCalculationPDF(calc: Calculation) {
     },
   });
 
+  addDisclaimer(doc, lastAutoTableY(doc) + 6);
   addFooter(doc);
   const nf = calc.numero_nf || "sem-nf";
   doc.save(`relatorio-calculo-${nf}-${calc.data}.pdf`);
@@ -342,7 +381,7 @@ export async function fetchConferenceCalculations(filters: ConferenceFilters) {
 }
 
 function periodLabel(f: ConferenceFilters) {
-  const fmt = (d?: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
+  const fmt = (d?: string) => (d ? formatLocalDate(d) : "—");
   if (!f.startDate && !f.endDate) return "Todos os períodos";
   return `${fmt(f.startDate)} a ${fmt(f.endDate)}`;
 }
@@ -392,7 +431,7 @@ export async function generateConferenceReport(
       const diff = Number(r.diferenca_volume ?? 0);
       const pct = vnf ? ((diff / vnf) * 100).toFixed(2) + "%" : "—";
       return [
-        new Date(r.data).toLocaleDateString("pt-BR"),
+        formatLocalDate(r.data),
         profileMap.get(r.user_id) ?? "—",
         r.numero_nf ?? "—",
         r.placa_ct ?? "—",
@@ -418,6 +457,7 @@ export async function generateConferenceReport(
     },
   });
 
+  addDisclaimer(doc, lastAutoTableY(doc) + 6);
   addFooter(doc);
   doc.save(`relatorio-conferencias-${new Date().toISOString().slice(0, 10)}.pdf`);
 }

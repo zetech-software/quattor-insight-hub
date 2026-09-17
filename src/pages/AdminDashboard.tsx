@@ -5,6 +5,7 @@ import { Users, Calculator, TrendingUp, CreditCard, Activity, Loader2 } from "lu
 import { supabase } from "@/integrations/supabase/client";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
+import { formatLocalDate } from "@/lib/calculationExport";
 
 interface DashboardStats {
   totalClients: number;
@@ -43,17 +44,18 @@ const AdminDashboard = () => {
         .limit(8),
     ]);
 
-    const adminIds = new Set(
+    // Contas de equipe (dono, gestão e suporte) não entram nas contagens de clientes.
+    const staffIds = new Set(
       (rolesRes.data || [])
-        .filter((r) => r.role === "admin" || r.role === "manager")
+        .filter((r) => r.role === "admin" || r.role === "manager" || r.role === "support")
         .map((r) => r.user_id)
     );
 
-    const clientProfiles = (profilesRes.data || []).filter((p) => !adminIds.has(p.user_id));
+    const clientProfiles = (profilesRes.data || []).filter((p) => !staffIds.has(p.user_id));
     const activeClients = clientProfiles.filter((p) => p.is_active).length;
     const inactiveClients = clientProfiles.filter((p) => !p.is_active).length;
 
-    const subs = (subsRes.data || []).filter((s) => !adminIds.has(s.user_id));
+    const subs = (subsRes.data || []).filter((s) => !staffIds.has(s.user_id));
     const activeSubs = subs.filter((s) => s.status === "active").length;
     const trialSubs = subs.filter((s) => s.status === "trial").length;
 
@@ -209,7 +211,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm font-medium">{item.client}</p>
                         <p className="text-xs text-muted-foreground">
-                          {item.situacao || "Cálculo realizado"} — {item.data}
+                          {item.situacao || "Cálculo realizado"} — {formatLocalDate(item.data)}
                         </p>
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(item.created_at)}</span>
