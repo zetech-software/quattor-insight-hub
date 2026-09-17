@@ -28,7 +28,7 @@ interface ClientRow {
 const AdminClientes = () => {
   const { role } = useAuth();
   const canManagePlans = role === "admin";
-  // Suporte enxerga a lista, mas não convida, não ativa/desativa e não altera planos.
+  // Suporte convida e ativa/desativa cliente, mas não altera planos nem permissões.
   const canManageClients = role === "admin" || role === "manager" || role === "support";
 
   const [clients, setClients] = useState<ClientRow[]>([]);
