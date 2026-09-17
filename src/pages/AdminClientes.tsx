@@ -193,7 +193,9 @@ const AdminClientes = () => {
             </p>
           </div>
 
+          {canManageClients && (
           <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+
             <DialogTrigger asChild>
               <Button size="sm">
                 <UserPlus className="h-4 w-4 mr-1" />
@@ -227,6 +229,8 @@ const AdminClientes = () => {
               </div>
             </DialogContent>
           </Dialog>
+          )}
+
         </div>
 
         <Card>
