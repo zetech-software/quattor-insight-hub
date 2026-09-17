@@ -25,7 +25,12 @@ const QUICK_PROMPTS = [
   "Onde vejo meus cálculos anteriores?",
 ];
 
-export function ReginaChat({ className, showHeader = true, showResetButton = true }: ReginaChatProps) {
+export function ReginaChat({
+  className,
+  showHeader = true,
+  showResetButton = true,
+  origin = "chat",
+}: ReginaChatProps) {
   const { messages, sendMessage, status, errorKind, clearError, reset } = useRegina();
   const [input, setInput] = useState("");
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
