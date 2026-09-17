@@ -18,37 +18,43 @@ function lastAutoTableY(doc: jsPDF): number {
   return (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 }
 
-/** Faixa superior padrão: título, data e logo oficial da Qu4ttuor. */
-function addHeader(doc: jsPDF, title: string) {
-  const pageWidth = doc.internal.pageSize.width;
-  doc.setFillColor(...BRAND_COLOR);
-  doc.rect(0, 0, pageWidth, 32, "F");
-
-  // Logo em cartão branco, alinhada à direita, sem distorção.
-  const logoH = 13;
+/**
+ * Cabeçalho padrão de todos os PDFs: logo oficial da Qu4ttuor (PNG transparente,
+ * embutida em base64, sem caixa em volta), título e data.
+ * Retorna a posição Y livre para o conteúdo seguinte.
+ */
+function addHeader(doc: jsPDF, title: string): number {
+  const marginX = 14;
+  const logoH = 12;
   const logoW = logoH * QU4TTUOR_LOGO_ASPECT;
-  const padding = 2.5;
-  const cardW = logoW + padding * 2;
-  const cardH = logoH + padding * 2;
-  const cardX = pageWidth - 14 - cardW;
-  const cardY = (32 - cardH) / 2;
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(cardX, cardY, cardW, cardH, 1.5, 1.5, "F");
+  const logoY = 9;
   try {
-    doc.addImage(QU4TTUOR_LOGO_PNG, "PNG", cardX + padding, cardY + padding, logoW, logoH);
+    doc.addImage(QU4TTUOR_LOGO_PNG, "PNG", marginX, logoY, logoW, logoH);
   } catch {
     // Se a imagem falhar, o documento continua sendo gerado normalmente.
   }
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
+  const textX = marginX + logoW + 8;
+  doc.setTextColor(51, 51, 51);
+  doc.setFontSize(15);
   doc.setFont("helvetica", "bold");
-  doc.text(title, 14, 20, { maxWidth: cardX - 20 });
+  doc.text(title, textX, logoY + 6.5);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text(`Qu4ttuor Consultoria — ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Qu4ttuor Consultoria — ${new Date().toLocaleDateString("pt-BR")}`, textX, logoY + 11.5);
+
+  const lineY = 27;
+  doc.setDrawColor(...BRAND_COLOR);
+  doc.setLineWidth(0.8);
+  doc.line(marginX, lineY, doc.internal.pageSize.width - marginX, lineY);
+  doc.setLineWidth(0.2);
+  doc.setDrawColor(0, 0, 0);
   doc.setTextColor(0, 0, 0);
+
+  return lineY + 11;
 }
+
 
 
 function addFooter(doc: jsPDF) {
