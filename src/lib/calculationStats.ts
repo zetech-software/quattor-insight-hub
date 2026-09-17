@@ -59,8 +59,3 @@ export function computeCalculationStats(rows: CalculationStatsInput[]): Calculat
 
   return stats;
 }
-
-export function formatLocalDate(value: string | null): string {
-  if (!value) return "—";
-  return parseLocalDate(value).toLocaleDateString("pt-BR");
-}
