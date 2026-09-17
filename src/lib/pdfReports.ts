@@ -345,6 +345,7 @@ export function generateSingleCalculationPDF(calc: ExportableCalculation) {
     },
   });
 
+  addDisclaimer(doc, lastAutoTableY(doc) + 6);
   addFooter(doc);
   const nf = calc.numero_nf || "sem-nf";
   doc.save(`relatorio-calculo-${nf}-${calc.data}.pdf`);

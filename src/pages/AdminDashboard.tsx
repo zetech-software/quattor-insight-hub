@@ -43,9 +43,10 @@ const AdminDashboard = () => {
         .limit(8),
     ]);
 
-    const adminIds = new Set(
+    // Contas de equipe (dono, gestão e suporte) não entram nas contagens de clientes.
+    const staffIds = new Set(
       (rolesRes.data || [])
-        .filter((r) => r.role === "admin" || r.role === "manager")
+        .filter((r) => r.role === "admin" || r.role === "manager" || r.role === "support")
         .map((r) => r.user_id)
     );
 
