@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/qu4ttuor-logo.svg";
+import { PASSWORD_RULE_TEXT, validatePasswordPair } from "@/lib/passwordPolicy";
 
 const DefinirSenha = () => {
   const [password, setPassword] = useState("");
