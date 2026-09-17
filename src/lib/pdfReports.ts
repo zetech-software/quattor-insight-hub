@@ -41,6 +41,32 @@ function addFooter(doc: jsPDF) {
   }
 }
 
+/** Bloco do aviso legal, com quebra de página quando não couber. */
+function addDisclaimer(doc: jsPDF, startY: number) {
+  const marginX = 14;
+  const width = doc.internal.pageSize.width - marginX * 2;
+  doc.setFontSize(7.5);
+  const lines = doc.splitTextToSize(LEGAL_DISCLAIMER, width);
+  const blockHeight = lines.length * 3.4 + 10;
+
+  if (startY + blockHeight > doc.internal.pageSize.height - 16) {
+    doc.addPage();
+    startY = 20;
+  }
+
+  doc.setDrawColor(...BRAND_COLOR);
+  doc.setFillColor(252, 243, 232);
+  doc.rect(marginX, startY, width, blockHeight, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(120, 80, 25);
+  doc.text(LEGAL_DISCLAIMER_TITLE.toUpperCase(), marginX + 3, startY + 5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(70, 70, 70);
+  doc.text(lines, marginX + 3, startY + 10);
+  doc.setTextColor(0, 0, 0);
+}
+
 // ============ Relatório de Clientes ============
 export async function generateClientReport() {
   const { data: profiles } = await supabase.from("profiles").select("*");
