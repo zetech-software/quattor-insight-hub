@@ -11,6 +11,18 @@ export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 export const MAX_ATTACHMENTS = 5;
 export const ALLOWED_ATTACHMENT_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
 
+/** Mensagens amigáveis: nunca mostramos erro técnico do banco. */
+export const TICKET_ERRORS = {
+  load: "Não foi possível carregar os chamados.",
+  loadOne: "Não foi possível carregar o chamado.",
+  send: "Não foi possível enviar sua resposta.",
+  create: "Não foi possível abrir o chamado.",
+  status: "Não foi possível atualizar o status.",
+  denied: "Você não tem permissão para realizar esta ação.",
+  attachment: "Não foi possível abrir o anexo.",
+  notFound: "Chamado não encontrado.",
+} as const;
+
 export const STATUS_LABELS: Record<TicketStatus, string> = {
   aberto: "Aberto",
   em_atendimento: "Em atendimento",
@@ -29,23 +41,43 @@ export const STATUS_ORDER: TicketStatus[] = [
 
 export const PRIORITY_LABELS: Record<TicketPriority, string> = {
   baixa: "Baixa",
-  normal: "Normal",
+  normal: "Média",
   alta: "Alta",
-  urgente: "Urgente",
+  urgente: "Crítica",
 };
 
 export const PRIORITY_ORDER: TicketPriority[] = ["baixa", "normal", "alta", "urgente"];
 
+/** Prioridades que o solicitante pode escolher: Crítica é exclusiva do suporte. */
+export const REQUESTER_PRIORITIES: TicketPriority[] = ["baixa", "normal", "alta"];
+
 export const CATEGORY_OPTIONS = [
-  { value: "geral", label: "Dúvida geral" },
-  { value: "calculo", label: "Cálculo / conferência" },
-  { value: "acesso", label: "Acesso e senha" },
-  { value: "relatorio", label: "Relatórios e laudos" },
+  { value: "acesso", label: "Acesso / Login" },
+  { value: "calculadora", label: "Calculadora" },
+  { value: "historico", label: "Histórico" },
+  { value: "regina", label: "Regina" },
+  { value: "relatorios", label: "Relatórios" },
+  { value: "conta", label: "Conta / Perfil" },
   { value: "erro", label: "Erro no sistema" },
+  { value: "cobranca", label: "Cobrança / Plano" },
+  { value: "outro", label: "Outro" },
 ];
 
+/** Chaves antigas de chamados já existentes. */
+const LEGACY_CATEGORIES: Record<string, string> = {
+  geral: "Outro",
+  calculo: "Calculadora",
+  relatorio: "Relatórios",
+};
+
 export function categoryLabel(value: string | null) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value)?.label ?? "Dúvida geral";
+  if (!value) return "Outro";
+  return CATEGORY_OPTIONS.find((c) => c.value === value)?.label ?? LEGACY_CATEGORIES[value] ?? "Outro";
+}
+
+/** Rótulo do tipo de solicitante mostrado na caixa do suporte. */
+export function requesterTypeLabel(requesterRole: string | null) {
+  return requesterRole === "admin" || requesterRole === "manager" ? "Dono" : "Cliente";
 }
 
 export function statusVariant(status: TicketStatus): "default" | "secondary" | "outline" | "destructive" {

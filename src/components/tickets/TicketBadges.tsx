@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   PRIORITY_LABELS,
   STATUS_LABELS,
+  requesterTypeLabel,
   statusVariant,
   type TicketPriority,
   type TicketStatus,
@@ -21,6 +22,16 @@ export function PriorityBadge({ priority }: { priority: TicketPriority }) {
   return (
     <Badge variant="outline" className={cls}>
       {PRIORITY_LABELS[priority]}
+    </Badge>
+  );
+}
+
+/** Selo Dono / Cliente para diferenciar o solicitante. */
+export function RequesterTypeBadge({ requesterRole }: { requesterRole: string | null }) {
+  const label = requesterTypeLabel(requesterRole);
+  return (
+    <Badge variant="outline" className={label === "Dono" ? "border-primary text-primary" : "text-muted-foreground"}>
+      {label}
     </Badge>
   );
 }
