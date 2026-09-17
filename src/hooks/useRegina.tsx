@@ -3,6 +3,11 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  startReginaInteraction,
+  finishReginaInteraction,
+  type ReginaOrigin,
+} from "@/lib/reginaAnalytics";
 
 export type ReginaErrorKind = "auth" | "generic";
 
@@ -17,7 +22,7 @@ export class ReginaError extends Error {
 
 type ReginaContextValue = {
   messages: UIMessage[];
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, origin?: ReginaOrigin) => Promise<void>;
   status: "ready" | "submitted" | "streaming" | "error";
   errorKind: ReginaErrorKind | null;
   clearError: () => void;
