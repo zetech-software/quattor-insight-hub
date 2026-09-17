@@ -28,12 +28,9 @@ const DefinirSenha = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) {
-      toast({ title: "As senhas não coincidem", variant: "destructive" });
-      return;
-    }
-    if (password.length < 6) {
-      toast({ title: "A senha deve ter ao menos 6 caracteres", variant: "destructive" });
+    const invalid = validatePasswordPair(password, confirm);
+    if (invalid) {
+      toast({ title: invalid, variant: "destructive" });
       return;
     }
     setLoading(true);
