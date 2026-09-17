@@ -517,6 +517,24 @@ const Index = () => {
                   </p>
                 </div>
               )}
+
+              {results && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                    <FileText className="h-4 w-4 mr-1" />
+                    Exportar PDF
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportExcel}>
+                    <Sheet className="h-4 w-4 mr-1" />
+                    Exportar Excel
+                  </Button>
+                </div>
+              )}
+
+              <p className="text-[11px] leading-snug text-muted-foreground border-t pt-3">
+                <span className="font-semibold">Aviso legal: </span>
+                {LEGAL_DISCLAIMER}
+              </p>
             </CardContent>
           </Card>
 
