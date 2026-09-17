@@ -68,11 +68,10 @@ export function ProtectedRoute({ children, requiredRole, allowPasswordChange }: 
 
   if (requiredRole) {
     const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    // Dono e suporte navegam pelas mesmas telas; ações sensíveis seguem restritas por tela e por banco.
-    const isAllowed =
-      role === "admin" || role === "support" || (!!role && allowed.includes(role));
+    // Suporte navega pelas mesmas telas do dono, exceto as de solicitante (Chamados).
+    const isAllowed = role === "admin" || (!!role && allowed.includes(role));
     if (!isAllowed) {
-      return <Navigate to="/" replace />;
+      return <Navigate to={role === "support" ? "/suporte" : "/"} replace />;
     }
   }
 
