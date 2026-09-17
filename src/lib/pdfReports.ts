@@ -167,9 +167,8 @@ export async function generateSubscriptionsReport() {
 }
 
 // ============ Relatório Individual de Cálculo ============
-export function generateSingleCalculationPDF(calc: Calculation) {
+export function generateSingleCalculationPDF(calc: ExportableCalculation) {
   const doc = new jsPDF();
-  const w = doc.internal.pageSize.width;
 
   addHeader(doc, "Relatório de Recebimento de Diesel");
 
@@ -179,11 +178,22 @@ export function generateSingleCalculationPDF(calc: Calculation) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(100, 100, 100);
-  doc.text(`NF: ${calc.numero_nf || "—"}  |  Placa CT: ${calc.placa_ct || "—"}  |  Data: ${new Date(calc.data).toLocaleDateString("pt-BR")}`, 14, y);
+  doc.text(`NF: ${calc.numero_nf || "—"}  |  Placa CT: ${calc.placa_ct || "—"}  |  Data: ${formatLocalDate(calc.data)}`, 14, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.text(
+    `Registrado em: ${formatDateTime(calc.created_at)}  |  Emitido em: ${new Date().toLocaleString("pt-BR")}`,
+    14,
+    y,
+  );
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   if (calc.municipio_base) {
     y += 6;
     doc.text(`Município da Base: ${calc.municipio_base}`, 14, y);
   }
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(0, 0, 0);
   y += 10;
 
