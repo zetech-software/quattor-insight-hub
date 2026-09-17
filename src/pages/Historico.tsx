@@ -180,8 +180,14 @@ const Historico = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(row)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(row)} title="Ver detalhes">
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar PDF" onClick={() => generateSingleCalculationPDF(row)}>
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar Excel" onClick={() => generateSingleCalculationXLSX(row)}>
+                              <Sheet className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(row.id)}>
                               <Trash2 className="h-4 w-4" />
