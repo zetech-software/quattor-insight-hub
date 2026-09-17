@@ -102,6 +102,9 @@ const AdminClientes = () => {
       });
 
     setClients(clientRows);
+    setDetailClient((current) =>
+      current ? clientRows.find((c) => c.user_id === current.user_id) ?? current : current,
+    );
     setLoading(false);
   }, []);
 
@@ -273,7 +276,11 @@ const AdminClientes = () => {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((client) => (
-                    <TableRow key={client.user_id} className={!client.is_active ? "opacity-60" : ""}>
+                    <TableRow
+                      key={client.user_id}
+                      className={`cursor-pointer ${!client.is_active ? "opacity-60" : ""}`}
+                      onClick={() => openDetail(client)}
+                    >
                       <TableCell>
                         <div>
                           <p className="font-medium">{client.full_name || "—"}</p>
