@@ -353,6 +353,16 @@ const AdminClientes = () => {
             )}
           </CardContent>
         </Card>
+
+        <ClientDetailSheet
+          client={detailClient}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          canManageClients={canManageClients}
+          canManagePlans={canManagePlans}
+          onToggleActive={handleToggleActive}
+          onUpdatePlan={handleUpdatePlan}
+        />
       </div>
     </AppLayout>
   );
