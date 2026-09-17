@@ -23,7 +23,7 @@ export function generateSingleCalculationXLSX(calc: ExportableCalculation) {
     ["Número da NF", calc.numero_nf ?? "—", ""],
     ["Placa do veículo (CT)", calc.placa_ct ?? "—", ""],
     ["Município da base", calc.municipio_base ?? "—", ""],
-    ["Valor da NF", num(calc.valor_nf, 2), "R$"],
+    
     ["Volume NF", num(calc.volume_nf, 2), "L"],
     ["Peso líquido", num(calc.peso_liquido, 2), "kg"],
     ["Massa específica a 20 °C (NF)", num(calc.massa_especifica_20_nf, 1), "kg/m³"],

@@ -9,7 +9,7 @@ export type ExportableCalculation = Pick<
   | "numero_nf"
   | "placa_ct"
   | "municipio_base"
-  | "valor_nf"
+  
   | "volume_nf"
   | "peso_liquido"
   | "massa_especifica_20_nf"

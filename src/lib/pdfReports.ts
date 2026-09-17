@@ -208,7 +208,7 @@ export function generateSingleCalculationPDF(calc: ExportableCalculation) {
       ["Volume NF", `${fmtVol(calc.volume_nf)} L`, ""],
       ["Peso Líquido", `${fmt(calc.peso_liquido, 2)} kg`, ""],
       ["Massa Específica 20°C (NF)", `${fmt(calc.massa_especifica_20_nf, 1)} kg/m³`, `${fmt(calc.dnf20, 4)} kg/l`],
-      ["Valor NF", calc.valor_nf ? `R$ ${Number(calc.valor_nf).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—", ""],
+      
       ["FCNF", fmt(calc.fcnf, 6), ""],
       ["Temp. Estimada de Carregamento", `${fmt(calc.temperatura_estimada, 1)} °C`, ""],
     ],
