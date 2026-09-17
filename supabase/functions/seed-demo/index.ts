@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  const expected = Deno.env.get("SEED_DEMO_TOKEN");
+  const expected = Deno.env.get("SEED_DEMO_KEY");
   if (!expected || req.headers.get("x-seed-token") !== expected) {
     return json({ error: "Não autorizado" }, 401);
   }
