@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     let loadedUserId: string | null = null;
+    let dataLoadedFor: string | null = null;
 
     /**
      * O callback de mudança de sessão precisa ser SINCRONO: chamar o banco
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!userId) {
         loadedUserId = null;
+        dataLoadedFor = null;
         setRole(null);
         setProfile(null);
         setLoading(false);
@@ -73,7 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Renovação de token da mesma conta não precisa recarregar nada.
       if (loadedUserId === userId) {
-        setLoading(false);
+        // Só libera as telas quando perfil/permissão já estiverem carregados,
+        // senão as áreas protegidas redirecionam antes da permissão chegar.
+        if (dataLoadedFor === userId) setLoading(false);
         return;
       }
 
@@ -81,10 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTimeout(() => {
         if (cancelled) return;
         fetchUserData(userId).finally(() => {
-          if (!cancelled) setLoading(false);
+          if (cancelled) return;
+          dataLoadedFor = userId;
+          setLoading(false);
         });
       }, 0);
     };
+
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
