@@ -300,23 +300,30 @@ const AdminClientes = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={statusColor(client.sub_status)}>
-                          {client.plan_name} ({statusLabel(client.sub_status)})
-                        </Badge>
+                        {client.plan_name && client.sub_status ? (
+                          <Badge variant="outline" className={statusColor(client.sub_status)}>
+                            {client.plan_name} ({statusLabel(client.sub_status)})
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sem assinatura registrada</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-mono">{client.calc_count}</TableCell>
                       <TableCell className="text-sm text-muted-foreground font-mono">
                         {new Date(client.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell>
-                        {canManageClients && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDetail(client)}>
+                              <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+                            </DropdownMenuItem>
+                            {canManageClients && (
                               <DropdownMenuItem onClick={() => handleToggleActive(client.user_id, client.is_active)}>
                                 {client.is_active ? (
                                   <><PowerOff className="h-4 w-4 mr-2" /> Desativar</>
