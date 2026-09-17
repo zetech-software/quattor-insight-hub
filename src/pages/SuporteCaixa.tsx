@@ -7,16 +7,31 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, CheckCircle2, Clock, Headphones, Inbox, Loader2, RefreshCw, Search, UserCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  Clock,
+  Headphones,
+  Inbox,
+  Loader2,
+  RefreshCw,
+  Search,
+  UserCheck,
+} from "lucide-react";
 import { useTicketList } from "@/hooks/useTickets";
 import { useAuth } from "@/hooks/useAuth";
-import { PriorityBadge, StatusBadge } from "@/components/tickets/TicketBadges";
+import { PriorityBadge, RequesterTypeBadge, StatusBadge } from "@/components/tickets/TicketBadges";
 import {
+  CATEGORY_OPTIONS,
   PRIORITY_LABELS,
   PRIORITY_ORDER,
   STATUS_LABELS,
   STATUS_ORDER,
+  TICKET_ERRORS,
+  categoryLabel,
   formatDateTime,
+  requesterTypeLabel,
   ticketCode,
 } from "@/lib/tickets";
 
@@ -26,7 +41,10 @@ const SuporteCaixa = () => {
   const { tickets, loading, error, reload, isUnread } = useTicketList("all");
   const [status, setStatus] = useState<string>("todos");
   const [priority, setPriority] = useState<string>("todas");
+  const [category, setCategory] = useState<string>("todas");
   const [owner, setOwner] = useState<string>("todos");
+  const [requesterType, setRequesterType] = useState<string>("todos");
+  const [onlyUnread, setOnlyUnread] = useState(false);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(
@@ -34,16 +52,21 @@ const SuporteCaixa = () => {
       tickets.filter((t) => {
         if (status !== "todos" && t.status !== status) return false;
         if (priority !== "todas" && t.priority !== priority) return false;
+        if (category !== "todas" && t.category !== category) return false;
         if (owner === "meus" && t.assigned_to !== user?.id) return false;
         if (owner === "sem" && t.assigned_to) return false;
+        if (requesterType !== "todos" && requesterTypeLabel(t.requester_role) !== requesterType) return false;
+        if (onlyUnread && !isUnread(t)) return false;
         if (search.trim()) {
           const q = search.trim().toLowerCase();
-          const hay = `${t.subject} ${t.requester_name ?? ""} ${t.requester_email ?? ""} ${ticketCode(t.id)}`.toLowerCase();
+          const hay = `${t.subject} ${t.requester_name ?? ""} ${t.requester_email ?? ""} ${
+            t.requester_company ?? ""
+          } ${ticketCode(t.id)}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
       }),
-    [tickets, status, priority, owner, search, user?.id],
+    [tickets, status, priority, category, owner, requesterType, onlyUnread, search, user?.id, isUnread],
   );
 
   const counts = useMemo(() => {
@@ -53,27 +76,75 @@ const SuporteCaixa = () => {
       atendimento: by((t) => t.status === "em_atendimento"),
       aguardando: by((t) => t.status === "aguardando_cliente"),
       resolvidos: by((t) => t.status === "resolvido" || t.status === "fechado"),
-      criticos: by((t) => (t.priority === "alta" || t.priority === "urgente") && t.status !== "fechado" && t.status !== "resolvido"),
+      criticos: by(
+        (t) =>
+          (t.priority === "alta" || t.priority === "urgente") && t.status !== "fechado" && t.status !== "resolvido",
+      ),
       novos: by((t) => isUnread(t)),
     };
   }, [tickets, isUnread]);
 
   const stats = [
-    { label: "Abertos", value: counts.abertos, icon: Inbox, tone: "text-primary", filter: "aberto" },
-    { label: "Em atendimento", value: counts.atendimento, icon: UserCheck, tone: "text-primary", filter: "em_atendimento" },
-    { label: "Aguardando cliente", value: counts.aguardando, icon: Clock, tone: "text-muted-foreground", filter: "aguardando_cliente" },
-    { label: "Resolvidos", value: counts.resolvidos, icon: CheckCircle2, tone: "text-muted-foreground", filter: "resolvido" },
-    { label: "Alta / crítica", value: counts.criticos, icon: AlertTriangle, tone: "text-destructive", filter: null },
+    { label: "Abertos", value: counts.abertos, icon: Inbox, tone: "text-primary", action: () => toggleStatus("aberto") },
+    {
+      label: "Em atendimento",
+      value: counts.atendimento,
+      icon: UserCheck,
+      tone: "text-primary",
+      action: () => toggleStatus("em_atendimento"),
+    },
+    {
+      label: "Aguardando cliente",
+      value: counts.aguardando,
+      icon: Clock,
+      tone: "text-muted-foreground",
+      action: () => toggleStatus("aguardando_cliente"),
+    },
+    {
+      label: "Resolvidos",
+      value: counts.resolvidos,
+      icon: CheckCircle2,
+      tone: "text-muted-foreground",
+      action: () => toggleStatus("resolvido"),
+    },
+    {
+      label: "Alta / crítica",
+      value: counts.criticos,
+      icon: AlertTriangle,
+      tone: "text-destructive",
+      action: () => setPriority(priority === "alta" ? "todas" : "alta"),
+    },
+    {
+      label: "Não lidos",
+      value: counts.novos,
+      icon: Bell,
+      tone: "text-primary",
+      action: () => setOnlyUnread((v) => !v),
+    },
   ];
+
+  function toggleStatus(value: string) {
+    setStatus((current) => (current === value ? "todos" : value));
+  }
 
   const clearFilters = () => {
     setStatus("todos");
     setPriority("todas");
+    setCategory("todas");
     setOwner("todos");
+    setRequesterType("todos");
+    setOnlyUnread(false);
     setSearch("");
   };
 
-  const hasFilters = status !== "todos" || priority !== "todas" || owner !== "todos" || search.trim() !== "";
+  const hasFilters =
+    status !== "todos" ||
+    priority !== "todas" ||
+    category !== "todas" ||
+    owner !== "todos" ||
+    requesterType !== "todos" ||
+    onlyUnread ||
+    search.trim() !== "";
 
   return (
     <AppLayout>
@@ -86,7 +157,7 @@ const SuporteCaixa = () => {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {tickets.length} chamado(s) no total
-              {counts.novos > 0 && ` · ${counts.novos} com nova resposta`}
+              {counts.novos > 0 && ` · ${counts.novos} com nova mensagem`}
             </p>
           </div>
           <Button variant="outline" size="sm" className="gap-2" onClick={reload} disabled={loading}>
@@ -94,20 +165,12 @@ const SuporteCaixa = () => {
           </Button>
         </div>
 
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
           {stats.map((s) => (
             <Card
               key={s.label}
-              className={`cursor-pointer transition-colors hover:border-primary/40 ${
-                s.filter && status === s.filter ? "border-primary" : ""
-              }`}
-              onClick={() => {
-                if (s.filter) {
-                  setStatus(status === s.filter ? "todos" : s.filter);
-                } else {
-                  setPriority(priority === "alta" ? "todas" : "alta");
-                }
-              }}
+              className="cursor-pointer transition-colors hover:border-primary/40"
+              onClick={s.action}
             >
               <CardContent className="p-4 space-y-1">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -135,12 +198,12 @@ const SuporteCaixa = () => {
                 </Button>
               )}
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="relative">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="relative sm:col-span-2 lg:col-span-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Buscar por cliente, e-mail, assunto ou código"
+                  placeholder="Buscar por nome, e-mail, empresa, assunto ou código"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -163,12 +226,29 @@ const SuporteCaixa = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as categorias</SelectItem>
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={owner} onValueChange={setOwner}>
                 <SelectTrigger><SelectValue placeholder="Responsável" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os responsáveis</SelectItem>
                   <SelectItem value="meus">Meus chamados</SelectItem>
                   <SelectItem value="sem">Sem responsável</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={requesterType} onValueChange={setRequesterType}>
+                <SelectTrigger><SelectValue placeholder="Tipo de solicitante" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Dono e Cliente</SelectItem>
+                  <SelectItem value="Dono">Dono</SelectItem>
+                  <SelectItem value="Cliente">Cliente</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -180,18 +260,18 @@ const SuporteCaixa = () => {
               </div>
             ) : error ? (
               <div className="py-10 text-center space-y-3">
-                <p className="text-sm text-muted-foreground">Não foi possível carregar os chamados.</p>
+                <p className="text-sm text-muted-foreground">{TICKET_ERRORS.load}</p>
                 <Button variant="outline" onClick={reload} className="gap-2">
                   <RefreshCw className="h-4 w-4" /> Tentar novamente
                 </Button>
               </div>
             ) : tickets.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                Nenhum chamado foi aberto até agora.
+                Nenhum chamado pendente no momento.
               </div>
             ) : filtered.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                Nenhum chamado corresponde aos filtros escolhidos.
+                Nenhum chamado corresponde aos filtros selecionados.
               </div>
             ) : (
               <>
@@ -206,19 +286,26 @@ const SuporteCaixa = () => {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="font-medium">{t.subject}</span>
-                        {isUnread(t) && <Badge>Nova resposta</Badge>}
+                        <span className="font-medium break-words">{t.subject}</span>
+                        {isUnread(t) && <Badge>Nova mensagem</Badge>}
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {t.requester_name || "Sem nome"} · {t.requester_email}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <RequesterTypeBadge requesterRole={t.requester_role} />
+                        <span className="text-xs text-muted-foreground break-all">
+                          {t.requester_name || "Sem nome"} · {t.requester_email}
+                        </span>
+                      </div>
+                      {t.requester_company && (
+                        <p className="text-xs text-muted-foreground">{t.requester_company}</p>
+                      )}
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge status={t.status} />
                         <PriorityBadge priority={t.priority} />
-                        <span className="text-xs text-muted-foreground">#{ticketCode(t.id)}</span>
+                        <span className="text-xs font-mono text-muted-foreground">#{ticketCode(t.id)}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Responsável: {t.assigned_name || "ninguém"} · {formatDateTime(t.last_message_at)}
+                        {categoryLabel(t.category)} · Responsável: {t.assigned_name || "ninguém"} ·{" "}
+                        {formatDateTime(t.last_message_at)}
                       </p>
                     </button>
                   ))}
@@ -231,7 +318,8 @@ const SuporteCaixa = () => {
                       <TableRow>
                         <TableHead className="w-24">Código</TableHead>
                         <TableHead>Assunto</TableHead>
-                        <TableHead>Cliente</TableHead>
+                        <TableHead>Solicitante</TableHead>
+                        <TableHead className="hidden xl:table-cell">Categoria</TableHead>
                         <TableHead>Situação</TableHead>
                         <TableHead>Prioridade</TableHead>
                         <TableHead className="hidden lg:table-cell">Responsável</TableHead>
@@ -251,12 +339,19 @@ const SuporteCaixa = () => {
                           <TableCell className="font-medium">
                             <span className="flex items-center gap-2">
                               {t.subject}
-                              {isUnread(t) && <Badge>Nova resposta</Badge>}
+                              {isUnread(t) && <Badge>Nova mensagem</Badge>}
                             </span>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            <span className="block text-foreground">{t.requester_name || "Sem nome"}</span>
+                            <span className="flex items-center gap-2">
+                              <span className="text-foreground">{t.requester_name || "Sem nome"}</span>
+                              <RequesterTypeBadge requesterRole={t.requester_role} />
+                            </span>
                             <span className="block text-xs">{t.requester_email}</span>
+                            {t.requester_company && <span className="block text-xs">{t.requester_company}</span>}
+                          </TableCell>
+                          <TableCell className="hidden xl:table-cell text-muted-foreground">
+                            {categoryLabel(t.category)}
                           </TableCell>
                           <TableCell><StatusBadge status={t.status} /></TableCell>
                           <TableCell><PriorityBadge priority={t.priority} /></TableCell>
