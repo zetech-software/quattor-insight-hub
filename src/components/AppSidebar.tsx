@@ -1,4 +1,4 @@
-import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot } from "lucide-react";
+import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot, UserCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ const clientItems = [
   { title: "Calculadora", url: "/", icon: Calculator },
   { title: "Histórico", url: "/historico", icon: History },
   { title: "Regina (Assistente)", url: "/regina", icon: Bot },
+  { title: "Perfil", url: "/perfil", icon: UserCircle },
 ];
 
 const adminItems = [
