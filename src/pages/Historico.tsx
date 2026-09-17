@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { History, Search, Download, Eye, Loader2, Trash2, FileText, Sheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +30,14 @@ import type { Tables } from "@/integrations/supabase/types";
 type Calculation = Tables<"calculations">;
 
 const Historico = () => {
-  const { session } = useAuth();
+  const { session, role } = useAuth();
+  const canDelete = role !== "support";
   const [calculations, setCalculations] = useState<Calculation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Calculation | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Calculation | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -46,14 +59,22 @@ const Historico = () => {
     setLoading(false);
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("calculations").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
-      setCalculations((prev) => prev.filter((c) => c.id !== id));
-      toast({ title: "Cálculo excluído" });
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const id = pendingDelete.id;
+    setDeleting(true);
+    const { data, error } = await supabase.from("calculations").delete().eq("id", id).select("id");
+    setDeleting(false);
+    setPendingDelete(null);
+
+    if (error || !data || data.length === 0) {
+      toast({ title: "Não foi possível excluir o cálculo.", variant: "destructive" });
+      return;
     }
+
+    setCalculations((prev) => prev.filter((c) => c.id !== id));
+    setSelected((prev) => (prev?.id === id ? null : prev));
+    toast({ title: "Cálculo excluído" });
   };
 
   const handleExportCSV = () => {
