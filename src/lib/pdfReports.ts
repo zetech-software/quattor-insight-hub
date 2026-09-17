@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { LEGAL_DISCLAIMER, LEGAL_DISCLAIMER_TITLE } from "@/lib/legalDisclaimer";
 import { formatDateTime, formatLocalDate, type ExportableCalculation } from "@/lib/calculationExport";
+import { QU4TTUOR_LOGO_PNG, QU4TTUOR_LOGO_ASPECT } from "@/lib/pdfLogo";
+
 
 type Calculation = Tables<"calculations">;
 
@@ -16,18 +18,38 @@ function lastAutoTableY(doc: jsPDF): number {
   return (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 }
 
+/** Faixa superior padrão: título, data e logo oficial da Qu4ttuor. */
 function addHeader(doc: jsPDF, title: string) {
+  const pageWidth = doc.internal.pageSize.width;
   doc.setFillColor(...BRAND_COLOR);
-  doc.rect(0, 0, doc.internal.pageSize.width, 32, "F");
+  doc.rect(0, 0, pageWidth, 32, "F");
+
+  // Logo em cartão branco, alinhada à direita, sem distorção.
+  const logoH = 13;
+  const logoW = logoH * QU4TTUOR_LOGO_ASPECT;
+  const padding = 2.5;
+  const cardW = logoW + padding * 2;
+  const cardH = logoH + padding * 2;
+  const cardX = pageWidth - 14 - cardW;
+  const cardY = (32 - cardH) / 2;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(cardX, cardY, cardW, cardH, 1.5, 1.5, "F");
+  try {
+    doc.addImage(QU4TTUOR_LOGO_PNG, "PNG", cardX + padding, cardY + padding, logoW, logoH);
+  } catch {
+    // Se a imagem falhar, o documento continua sendo gerado normalmente.
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text(title, 14, 20);
+  doc.text(title, 14, 20, { maxWidth: cardX - 20 });
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.text(`Qu4ttuor Consultoria — ${new Date().toLocaleDateString("pt-BR")}`, 14, 28);
   doc.setTextColor(0, 0, 0);
 }
+
 
 function addFooter(doc: jsPDF) {
   const pageCount = doc.getNumberOfPages();
