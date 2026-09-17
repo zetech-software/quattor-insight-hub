@@ -9,7 +9,7 @@ import { FileText, Loader2, Lock, Send } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTicketActions, type TicketDetail } from "@/hooks/useTickets";
 import { AttachmentPicker } from "@/components/tickets/AttachmentPicker";
-import { formatDateTime, validateAttachments } from "@/lib/tickets";
+import { formatBytes, formatDateTime, validateAttachments } from "@/lib/tickets";
 
 interface Props {
   detail: TicketDetail;
@@ -74,12 +74,13 @@ export function TicketThread({ detail, supportMode = false, onChanged }: Props) 
               key={m.id}
               className={`rounded-lg border p-3 ${
                 m.is_internal
-                  ? "border-dashed bg-muted/60"
+                  ? "border-dashed border-amber-500/50 bg-amber-500/10 ml-0 sm:ml-8"
                   : m.author_is_support
-                    ? "bg-primary/5 border-primary/20"
-                    : "bg-card"
+                    ? "bg-primary/5 border-primary/20 sm:ml-8"
+                    : "bg-card sm:mr-8"
               }`}
             >
+
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">
                   {m.author_name || (m.author_is_support ? "Suporte" : "Usuário")}
@@ -94,21 +95,30 @@ export function TicketThread({ detail, supportMode = false, onChanged }: Props) 
               </div>
               <p className="mt-2 text-sm whitespace-pre-wrap break-words">{m.body}</p>
               {m.attachments.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {m.attachments.map((a) => (
-                    <Button
-                      key={a.id}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => openAttachment(a.storage_path)}
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      <span className="max-w-[160px] truncate">{a.file_name}</span>
-                    </Button>
-                  ))}
+                <div className="mt-3 space-y-1 border-t pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    {m.attachments.length} anexo{m.attachments.length > 1 ? "s" : ""}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {m.attachments.map((a) => (
+                      <Button
+                        key={a.id}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => openAttachment(a.storage_path)}
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        <span className="max-w-[160px] truncate">{a.file_name}</span>
+                        {formatBytes(a.size_bytes) && (
+                          <span className="text-xs text-muted-foreground">{formatBytes(a.size_bytes)}</span>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               )}
+
             </div>
           ))}
         </div>
