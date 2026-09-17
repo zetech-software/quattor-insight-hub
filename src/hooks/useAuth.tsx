@@ -49,28 +49,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let loadedUserId: string | null = null;
 
-    const load = async (session: Session | null) => {
+    /**
+     * O callback de mudança de sessão precisa ser SINCRONO: chamar o banco
+     * dentro dele trava a renovação do token e derruba a sessão sozinha.
+     * Por isso apenas guardamos a sessão aqui e buscamos perfil/permissão fora.
+     */
+    const apply = (session: Session | null) => {
       if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchUserData(session.user.id);
-      } else {
+
+      const userId = session?.user?.id ?? null;
+
+      if (!userId) {
+        loadedUserId = null;
         setRole(null);
         setProfile(null);
+        setLoading(false);
+        return;
       }
-      if (!cancelled) setLoading(false);
+
+      // Renovação de token da mesma conta não precisa recarregar nada.
+      if (loadedUserId === userId) {
+        setLoading(false);
+        return;
+      }
+
+      loadedUserId = userId;
+      setTimeout(() => {
+        if (cancelled) return;
+        fetchUserData(userId).finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      }, 0);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        void load(session);
+        apply(session);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      void load(session);
+      apply(session);
     });
 
     return () => {
