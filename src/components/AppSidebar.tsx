@@ -1,4 +1,4 @@
-import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot, UserCircle } from "lucide-react";
+import { Calculator, History, LayoutDashboard, Users, FileBarChart, LogOut, Sun, Moon, Bot, UserCircle, MessageCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -30,6 +30,7 @@ const adminItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Clientes", url: "/admin/clientes", icon: Users },
   { title: "Relatórios", url: "/admin/relatorios", icon: FileBarChart },
+  { title: "Regina (uso)", url: "/admin/regina", icon: MessageCircle },
 ];
 
 interface AppSidebarProps {
