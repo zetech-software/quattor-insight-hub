@@ -35,16 +35,33 @@ const Login = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
+    const target = email.trim().toLowerCase();
+    if (!target) {
       toast({ title: "Informe seu email", variant: "destructive" });
       return;
     }
     setSubmitting(true);
-    await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(target, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setSubmitting(false);
-    toast({ title: "Email enviado", description: "Verifique sua caixa de entrada para redefinir a senha." });
+
+    // Falha de rede é o único caso em que avisamos erro; qualquer outro retorno
+    // recebe a mesma mensagem neutra, para não revelar se o e-mail existe.
+    if (error && /network|fetch|timeout/i.test(error.message ?? "")) {
+      toast({
+        title: "Falha de conexão",
+        description: "Não conseguimos enviar o pedido. Verifique sua internet e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Pedido registrado",
+      description:
+        "Se o e-mail estiver cadastrado, você receberá as instruções para redefinir sua senha.",
+    });
     setForgotMode(false);
   };
 

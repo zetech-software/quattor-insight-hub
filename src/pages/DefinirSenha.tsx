@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/qu4ttuor-logo.svg";
+import { PASSWORD_RULE_TEXT, validatePasswordPair } from "@/lib/passwordPolicy";
 
 const DefinirSenha = () => {
   const [password, setPassword] = useState("");
@@ -28,12 +29,9 @@ const DefinirSenha = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) {
-      toast({ title: "As senhas não coincidem", variant: "destructive" });
-      return;
-    }
-    if (password.length < 6) {
-      toast({ title: "A senha deve ter ao menos 6 caracteres", variant: "destructive" });
+    const invalid = validatePasswordPair(password, confirm);
+    if (invalid) {
+      toast({ title: invalid, variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -110,6 +108,7 @@ const DefinirSenha = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">{PASSWORD_RULE_TEXT}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmar-senha">Confirmar nova senha</Label>
