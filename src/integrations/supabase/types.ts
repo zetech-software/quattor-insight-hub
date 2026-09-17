@@ -158,6 +158,36 @@ export type Database = {
         }
         Relationships: []
       }
+      regina_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          origin: string
+          question: string
+          status: Database["public"]["Enums"]["regina_interaction_status"]
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          origin?: string
+          question: string
+          status?: Database["public"]["Enums"]["regina_interaction_status"]
+          topic?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          origin?: string
+          question?: string
+          status?: Database["public"]["Enums"]["regina_interaction_status"]
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -405,6 +435,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "client" | "manager" | "support"
+      regina_interaction_status: "pendente" | "respondida" | "falha"
       subscription_status: "active" | "trial" | "expired" | "cancelled"
       ticket_priority: "baixa" | "normal" | "alta" | "urgente"
       ticket_status:
@@ -541,6 +572,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "client", "manager", "support"],
+      regina_interaction_status: ["pendente", "respondida", "falha"],
       subscription_status: ["active", "trial", "expired", "cancelled"],
       ticket_priority: ["baixa", "normal", "alta", "urgente"],
       ticket_status: [

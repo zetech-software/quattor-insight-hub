@@ -5,7 +5,7 @@ export default function Regina() {
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto h-[calc(100vh-8rem)] border rounded-xl overflow-hidden shadow-sm bg-card">
-        <ReginaChat showHeader showResetButton={false} />
+        <ReginaChat showHeader showResetButton={false} origin="pagina" />
       </div>
     </AppLayout>
   );

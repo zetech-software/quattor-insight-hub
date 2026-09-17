@@ -1,8 +1,13 @@
-import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  startReginaInteraction,
+  finishReginaInteraction,
+  type ReginaOrigin,
+} from "@/lib/reginaAnalytics";
 
 export type ReginaErrorKind = "auth" | "generic";
 
@@ -17,7 +22,7 @@ export class ReginaError extends Error {
 
 type ReginaContextValue = {
   messages: UIMessage[];
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, origin?: ReginaOrigin) => Promise<void>;
   status: "ready" | "submitted" | "streaming" | "error";
   errorKind: ReginaErrorKind | null;
   clearError: () => void;
@@ -57,10 +62,13 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const failedRef = useRef(false);
+
   const { messages, sendMessage, status, setMessages } = useChat({
     id: chatId,
     transport,
     onError: (error) => {
+      failedRef.current = true;
       setErrorKind(classifyError(error));
     },
   });
@@ -68,17 +76,29 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => setErrorKind(null), []);
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, origin: ReginaOrigin = "chat") => {
       setErrorKind(null);
+      failedRef.current = false;
       const { data } = await supabase.auth.getSession();
-      if (!data.session?.access_token) {
+      const userId = data.session?.user?.id;
+      if (!data.session?.access_token || !userId) {
         const err = new ReginaError("auth");
         setErrorKind("auth");
         throw err;
       }
+
+      // Registro analítico: uma única linha por mensagem, isolado do fluxo do chat.
+      const interactionId = await startReginaInteraction(userId, text, origin);
+
       try {
         await sendMessage({ text });
+        if (failedRef.current) {
+          await finishReginaInteraction(interactionId, "falha");
+          return;
+        }
+        await finishReginaInteraction(interactionId, "respondida");
       } catch (e) {
+        await finishReginaInteraction(interactionId, "falha");
         setErrorKind(classifyError(e));
         throw e;
       }

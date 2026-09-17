@@ -13,6 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { generateSingleCalculationPDF } from "@/lib/pdfReports";
 import { generateSingleCalculationXLSX } from "@/lib/excelReports";
+import { computeCalculationStats } from "@/lib/calculationStats";
+import { formatLocalDate } from "@/lib/calculationExport";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Calculation = Tables<"calculations">;
@@ -84,6 +86,8 @@ const Historico = () => {
 
   const fmt = (n: number | null, d = 2) => (n !== null && n !== undefined ? Number(n).toFixed(d) : "—");
 
+  const stats = computeCalculationStats(calculations);
+
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-6">
@@ -100,6 +104,25 @@ const Historico = () => {
             Exportar CSV
           </Button>
         </div>
+
+        {!loading && calculations.length > 0 && (
+          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <SummaryCard label="Total de cálculos" value={String(stats.total)} />
+            <SummaryCard label="Sobras" value={String(stats.sobras)} accent="text-green-600" />
+            <SummaryCard label="Faltas" value={String(stats.faltas)} accent="text-destructive" />
+            <SummaryCard label="Sem diferença" value={String(stats.semDiferenca)} />
+            <SummaryCard
+              label="Volume total conferido"
+              value={`${stats.volumeTotal.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} L`}
+            />
+            <SummaryCard
+              label="Período"
+              value={`${formatLocalDate(stats.primeiraData)} — ${formatLocalDate(stats.ultimaData)}`}
+              small
+            />
+            <SummaryCard label="Último cálculo" value={formatLocalDate(stats.ultimaData)} small />
+          </div>
+        )}
 
         <Card>
           <CardHeader className="pb-3">
@@ -157,8 +180,14 @@ const Historico = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(row)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelected(row)} title="Ver detalhes">
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar PDF" onClick={() => generateSingleCalculationPDF(row)}>
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar Excel" onClick={() => generateSingleCalculationXLSX(row)}>
+                              <Sheet className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(row.id)}>
                               <Trash2 className="h-4 w-4" />
@@ -236,6 +265,29 @@ const Historico = () => {
     </AppLayout>
   );
 };
+
+function SummaryCard({
+  label,
+  value,
+  accent,
+  small,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+  small?: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={`font-heading font-semibold ${small ? "text-sm" : "text-xl"} ${accent ?? ""}`}>
+          {value}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (

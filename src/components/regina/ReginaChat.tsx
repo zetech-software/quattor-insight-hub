@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useRegina } from "@/hooks/useRegina";
+import type { ReginaOrigin } from "@/lib/reginaAnalytics";
 import reginaAvatarAsset from "@/assets/regina-avatar.png.asset.json";
 
 const reginaAvatar = reginaAvatarAsset.url;
@@ -14,6 +15,7 @@ interface ReginaChatProps {
   className?: string;
   showHeader?: boolean;
   showResetButton?: boolean;
+  origin?: ReginaOrigin;
 }
 
 const QUICK_PROMPTS = [
@@ -23,7 +25,12 @@ const QUICK_PROMPTS = [
   "Onde vejo meus cálculos anteriores?",
 ];
 
-export function ReginaChat({ className, showHeader = true, showResetButton = true }: ReginaChatProps) {
+export function ReginaChat({
+  className,
+  showHeader = true,
+  showResetButton = true,
+  origin = "chat",
+}: ReginaChatProps) {
   const { messages, sendMessage, status, errorKind, clearError, reset } = useRegina();
   const [input, setInput] = useState("");
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
@@ -43,7 +50,7 @@ export function ReginaChat({ className, showHeader = true, showResetButton = tru
   const send = async (text: string) => {
     setLastPrompt(text);
     try {
-      await sendMessage(text);
+      await sendMessage(text, origin);
     } catch {
       /* mensagem de falha é exibida na conversa */
     }
