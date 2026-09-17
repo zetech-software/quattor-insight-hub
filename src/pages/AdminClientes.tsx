@@ -30,6 +30,13 @@ const AdminClientes = () => {
   const [inviteName, setInviteName] = useState("");
   const [inviteCompany, setInviteCompany] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [detailClient, setDetailClient] = useState<ClientRow | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openDetail = (client: ClientRow) => {
+    setDetailClient(client);
+    setDetailOpen(true);
+  };
 
   const loadClients = useCallback(async () => {
     setLoading(true);
@@ -37,7 +44,7 @@ const AdminClientes = () => {
     // Get all client profiles
     const { data: profiles, error: pError } = await supabase
       .from("profiles")
-      .select("user_id, full_name, company_name, is_active, created_at");
+      .select("user_id, full_name, company_name, cnpj, municipio, uf, phone, is_active, created_at");
 
     if (pError) {
       toast({ title: "Erro ao carregar clientes", description: pError.message, variant: "destructive" });
@@ -82,10 +89,14 @@ const AdminClientes = () => {
           user_id: p.user_id,
           full_name: p.full_name,
           company_name: p.company_name,
+          cnpj: p.cnpj,
+          municipio: p.municipio,
+          uf: p.uf,
+          phone: p.phone,
           is_active: p.is_active,
           created_at: p.created_at,
-          plan_name: sub?.plan_name || "Básico",
-          sub_status: sub?.status || "trial",
+          plan_name: sub?.plan_name ?? null,
+          sub_status: sub?.status ?? null,
           calc_count: calcCounts.get(p.user_id) || 0,
         };
       });
