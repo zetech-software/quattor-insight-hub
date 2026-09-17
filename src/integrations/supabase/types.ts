@@ -310,9 +310,11 @@ export type Database = {
           id: string
           last_message_at: string
           priority: Database["public"]["Enums"]["ticket_priority"]
+          requester_company: string | null
           requester_email: string | null
           requester_id: string
           requester_name: string | null
+          requester_role: string | null
           status: Database["public"]["Enums"]["ticket_status"]
           subject: string
           updated_at: string
@@ -326,9 +328,11 @@ export type Database = {
           id?: string
           last_message_at?: string
           priority?: Database["public"]["Enums"]["ticket_priority"]
+          requester_company?: string | null
           requester_email?: string | null
           requester_id: string
           requester_name?: string | null
+          requester_role?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           subject: string
           updated_at?: string
@@ -342,9 +346,11 @@ export type Database = {
           id?: string
           last_message_at?: string
           priority?: Database["public"]["Enums"]["ticket_priority"]
+          requester_company?: string | null
           requester_email?: string | null
           requester_id?: string
           requester_name?: string | null
+          requester_role?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           subject?: string
           updated_at?: string
