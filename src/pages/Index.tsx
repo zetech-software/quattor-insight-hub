@@ -8,11 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info } from "lucide-react";
+import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info, FileText, Sheet } from "lucide-react";
 import { calculateDiesel, avaliarQualidade, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { generateSingleCalculationPDF } from "@/lib/pdfReports";
+import { generateSingleCalculationXLSX } from "@/lib/excelReports";
+import type { ExportableCalculation } from "@/lib/calculationExport";
+import { LEGAL_DISCLAIMER } from "@/lib/legalDisclaimer";
 
 const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT", "situacaoSeta"] as const;
 
@@ -186,6 +190,51 @@ const Index = () => {
 
   const isNegative = results && results.diferencaVolume < 0;
   const isZero = results && results.diferencaVolume === 0;
+
+  /** Monta o cálculo atual (ainda não salvo) no formato das exportações. */
+  const buildExportable = (): ExportableCalculation | null => {
+    if (!results) return null;
+    return {
+      data: inputs.data,
+      numero_nf: inputs.numeroNF || null,
+      placa_ct: inputs.placaCT || null,
+      municipio_base: rawInputs.municipioBase || null,
+      valor_nf: parseFloat(rawInputs.valorNF) || null,
+      volume_nf: inputs.volumeNF,
+      peso_liquido: inputs.pesoLiquido,
+      massa_especifica_20_nf: inputs.massaEspecifica20NF,
+      temperatura_amostra: inputs.temperaturaAmostra,
+      densidade_amostra: inputs.densidadeAmostra,
+      temperatura_ct: inputs.temperaturaCT,
+      situacao_seta: inputs.situacaoSeta,
+      dnf20: results.dnf20,
+      fcnf: results.fcnf,
+      temperatura_estimada: results.temperaturaEstimada,
+      dac20: results.dac20,
+      qualidade_diff: results.qualidadeDiff,
+      vct_min: results.vctMin,
+      vct: results.vct,
+      vct_max: results.vctMax,
+      fcct: results.fcct,
+      v20: results.v20,
+      volume_recebido: results.volumeRecebido,
+      volume_atestado: results.volumeAtestado,
+      diferenca_volume: results.diferencaVolume,
+      situacao: results.situacao,
+      created_at: new Date().toISOString(),
+    };
+  };
+
+  const handleExportPDF = () => {
+    const calc = buildExportable();
+    if (calc) generateSingleCalculationPDF(calc);
+  };
+
+  const handleExportExcel = () => {
+    const calc = buildExportable();
+    if (calc) generateSingleCalculationXLSX(calc);
+  };
+
 
   return (
     <AppLayout>
