@@ -2,6 +2,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { LEGAL_DISCLAIMER, LEGAL_DISCLAIMER_TITLE } from "@/lib/legalDisclaimer";
+import { formatDateTime, formatLocalDate, type ExportableCalculation } from "@/lib/calculationExport";
 
 type Calculation = Tables<"calculations">;
 
