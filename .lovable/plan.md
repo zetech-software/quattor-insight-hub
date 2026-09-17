@@ -33,7 +33,15 @@ Nova tabela `regina_interactions`, com o mínimo necessário:
 
 Nada de token, chave, segredo, resposta do modelo ou log técnico.
 
-Regras de acesso: o cliente grava e lê **apenas as próprias** interações; Dono/Gestão/Suporte leem tudo (mesma regra de monitoramento já usada em cadastros e cálculos); ninguém edita nem exclui pelo aplicativo.
+Regras de acesso: o cliente grava e lê **apenas as próprias** interações; Dono/Gestão/Suporte leem tudo (mesma regra de monitoramento já usada em cadastros e cálculos); o cliente não edita nem exclui, e a atualização da situação da resposta é feita apenas na própria linha.
+
+Regras de comportamento do registro:
+
+- Falha ao registrar nunca interrompe nem invalida a conversa: a Regina continua respondendo normalmente.
+- Cada mensagem enviada pelo usuário gera **no máximo um registro**.
+- A situação só passa a "respondida" quando a resposta da Regina termina de verdade com sucesso.
+- Se a resposta falhar ou for interrompida, a mesma linha passa a "falha" — nunca se cria uma segunda linha para a mesma pergunta.
+- Erro de gravação fica só em registro técnico seguro, sem nenhuma mensagem para o usuário.
 
 ## 3. Resumo da Regina para o Dono
 
