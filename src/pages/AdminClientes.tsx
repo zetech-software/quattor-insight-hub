@@ -29,7 +29,7 @@ const AdminClientes = () => {
   const { role } = useAuth();
   const canManagePlans = role === "admin";
   // Suporte enxerga a lista, mas não convida, não ativa/desativa e não altera planos.
-  const canManageClients = role === "admin" || role === "manager";
+  const canManageClients = role === "admin" || role === "manager" || role === "support";
 
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
