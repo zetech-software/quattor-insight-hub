@@ -185,7 +185,7 @@ const Historico = () => {
                     const isNeg = diff < 0;
                     return (
                       <TableRow key={row.id}>
-                        <TableCell className="font-mono text-sm">{row.data}</TableCell>
+                        <TableCell className="font-mono text-sm">{formatLocalDate(row.data)}</TableCell>
                         <TableCell className="font-mono">{row.numero_nf || "—"}</TableCell>
                         <TableCell>{row.placa_ct || "—"}</TableCell>
                         <TableCell>{row.municipio_base || "—"}</TableCell>
@@ -210,9 +210,17 @@ const Historico = () => {
                             <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar Excel" onClick={() => generateSingleCalculationXLSX(row)}>
                               <Sheet className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(row.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                title="Excluir cálculo"
+                                onClick={() => setPendingDelete(row)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -248,7 +256,7 @@ const Historico = () => {
           {selected && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-2">
-                <DetailRow label="Data" value={selected.data} />
+                <DetailRow label="Data" value={formatLocalDate(selected.data)} />
                 <DetailRow label="Nº NF" value={selected.numero_nf || "—"} />
                 <DetailRow label="Placa CT" value={selected.placa_ct || "—"} />
                 <DetailRow label="Município da Base" value={selected.municipio_base || "—"} />
