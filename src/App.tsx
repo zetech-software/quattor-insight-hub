@@ -47,8 +47,8 @@ const App = () => (
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
                 <Route path="/regina" element={<ProtectedRoute><Regina /></ProtectedRoute>} />
                 <Route path="/pet" element={<Navigate to="/regina" replace />} />
-                <Route path="/chamados" element={<ProtectedRoute requiredRole={["admin", "manager", "client", "support"]}><Chamados /></ProtectedRoute>} />
-                <Route path="/chamados/:id" element={<ProtectedRoute requiredRole={["admin", "manager", "client", "support"]}><ChamadoDetalhe /></ProtectedRoute>} />
+                <Route path="/chamados" element={<ProtectedRoute requiredRole={["admin", "manager", "client"]}><Chamados /></ProtectedRoute>} />
+                <Route path="/chamados/:id" element={<ProtectedRoute requiredRole={["admin", "manager", "client"]}><ChamadoDetalhe /></ProtectedRoute>} />
                 <Route path="/suporte" element={<ProtectedRoute requiredRole={["support", "admin"]}><SuporteCaixa /></ProtectedRoute>} />
                 <Route path="/suporte/:id" element={<ProtectedRoute requiredRole={["support", "admin"]}><SuporteChamado /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminDashboard /></ProtectedRoute>} />

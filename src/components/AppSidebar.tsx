@@ -48,7 +48,10 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const collapsed = state === "collapsed";
   const isSupport = role === "support";
   const unread = useUnreadTicketCount(isSupport ? "all" : "own");
-  const mainItems = isSupport ? [...clientItems, ...supportItems] : clientItems;
+  // Suporte não é solicitante: entra direto na caixa e não vê "Chamados".
+  const mainItems = isSupport
+    ? [...supportItems, ...clientItems.filter((i) => i.url !== "/chamados")]
+    : clientItems;
   const mainLabel = "Principal";
   const showAdmin = isAdmin;
 

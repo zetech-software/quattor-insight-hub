@@ -4,20 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, RefreshCw, UserCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Loader2, Lock, RefreshCw, RotateCcw, UserCheck } from "lucide-react";
 import { useTicketActions, useTicketDetail } from "@/hooks/useTickets";
 import { useAuth } from "@/hooks/useAuth";
 import { TicketThread } from "@/components/tickets/TicketThread";
-import { PriorityBadge, StatusBadge } from "@/components/tickets/TicketBadges";
+import { PriorityBadge, RequesterTypeBadge, StatusBadge } from "@/components/tickets/TicketBadges";
 import {
   PRIORITY_LABELS,
   PRIORITY_ORDER,
   STATUS_LABELS,
   STATUS_ORDER,
+  TICKET_ERRORS,
   categoryLabel,
   formatDateTime,
   ticketCode,
-
   type TicketPriority,
   type TicketStatus,
 } from "@/lib/tickets";
@@ -38,7 +38,7 @@ const SuporteChamado = () => {
       reload();
     } catch (e) {
       toast({
-        title: "Não foi possível salvar",
+        title: TICKET_ERRORS.status,
         description: e instanceof Error ? e.message : "Tente novamente.",
         variant: "destructive",
       });
@@ -58,7 +58,7 @@ const SuporteChamado = () => {
           </div>
         ) : error || !detail ? (
           <div className="py-10 text-center space-y-3">
-            <p className="text-sm text-muted-foreground">{error ?? "Chamado não encontrado."}</p>
+            <p className="text-sm text-muted-foreground">{error ?? TICKET_ERRORS.notFound}</p>
             <Button variant="outline" onClick={reload} className="gap-2">
               <RefreshCw className="h-4 w-4" /> Tentar novamente
             </Button>
@@ -77,16 +77,25 @@ const SuporteChamado = () => {
                   <PriorityBadge priority={detail.ticket.priority} />
                   <span className="text-sm text-muted-foreground">{categoryLabel(detail.ticket.category)}</span>
                 </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>
-                    Aberto por <span className="text-foreground font-medium">{detail.ticket.requester_name || "Sem nome"}</span>{" "}
-                    ({detail.ticket.requester_email || "sem e-mail"})
+
+                <div className="rounded-lg border p-3 text-sm space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{detail.ticket.requester_name || "Sem nome"}</span>
+                    <RequesterTypeBadge requesterRole={detail.ticket.requester_role} />
+                  </div>
+                  <p className="text-muted-foreground break-all">
+                    {detail.ticket.requester_email || "sem e-mail"}
                   </p>
-                  <p>
+                  <p className="text-muted-foreground">
+                    Empresa: {detail.ticket.requester_company || "não informada"}
+                  </p>
+                  <p className="text-muted-foreground">
                     Aberto em {formatDateTime(detail.ticket.created_at)} · última mensagem em{" "}
                     {formatDateTime(detail.ticket.last_message_at)}
                   </p>
-                  <p>Responsável: {detail.ticket.assigned_name || "ninguém ainda"}</p>
+                  <p className="text-muted-foreground">
+                    Responsável: {detail.ticket.assigned_name || "ninguém ainda"}
+                  </p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -130,33 +139,84 @@ const SuporteChamado = () => {
                   </div>
                 </div>
 
-                {detail.ticket.assigned_to !== user?.id ? (
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    disabled={saving}
-                    onClick={() =>
-                      apply(
-                        {
-                          assigned_to: user?.id ?? null,
-                          assigned_name: profile?.full_name ?? user?.email ?? null,
-                        },
-                        "Chamado atribuído a você",
-                      )
-                    }
-                  >
-                    <UserCheck className="h-4 w-4" /> Assumir chamado
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="gap-2"
-                    disabled={saving}
-                    onClick={() => apply({ assigned_to: null, assigned_name: null }, "Chamado liberado")}
-                  >
-                    Liberar chamado
-                  </Button>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {detail.ticket.assigned_to !== user?.id ? (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      disabled={saving}
+                      onClick={() =>
+                        apply(
+                          {
+                            assigned_to: user?.id ?? null,
+                            assigned_name: profile?.full_name ?? user?.email ?? null,
+                          },
+                          "Chamado atribuído a você",
+                        )
+                      }
+                    >
+                      <UserCheck className="h-4 w-4" /> Assumir chamado
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      className="gap-2"
+                      disabled={saving}
+                      onClick={() => apply({ assigned_to: null, assigned_name: null }, "Chamado liberado")}
+                    >
+                      Liberar chamado
+                    </Button>
+                  )}
+
+                  {detail.ticket.status !== "aguardando_cliente" && (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      disabled={saving}
+                      onClick={() =>
+                        apply(
+                          { status: "aguardando_cliente", closed_at: null },
+                          "Aguardando resposta do solicitante",
+                        )
+                      }
+                    >
+                      <Clock className="h-4 w-4" /> Solicitar informação
+                    </Button>
+                  )}
+
+                  {detail.ticket.status !== "resolvido" && detail.ticket.status !== "fechado" && (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      disabled={saving}
+                      onClick={() => apply({ status: "resolvido", closed_at: null }, "Chamado marcado como resolvido")}
+                    >
+                      <CheckCircle2 className="h-4 w-4" /> Marcar resolvido
+                    </Button>
+                  )}
+
+                  {detail.ticket.status !== "fechado" ? (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      disabled={saving}
+                      onClick={() =>
+                        apply({ status: "fechado", closed_at: new Date().toISOString() }, "Chamado fechado")
+                      }
+                    >
+                      <Lock className="h-4 w-4" /> Fechar chamado
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      disabled={saving}
+                      onClick={() => apply({ status: "em_atendimento", closed_at: null }, "Chamado reaberto")}
+                    >
+                      <RotateCcw className="h-4 w-4" /> Reabrir chamado
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   TICKET_BUCKET,
+  TICKET_ERRORS,
   type Ticket,
   type TicketAttachment,
   type TicketMessage,
@@ -10,7 +11,17 @@ import {
   type TicketStatus,
 } from "@/lib/tickets";
 
-const GENERIC_ERROR = "Não foi possível concluir. Tente novamente.";
+/** Traduz qualquer falha do banco para linguagem do usuário. */
+function friendly(message: string | undefined, fallback: string) {
+  const raw = (message ?? "").toLowerCase();
+  if (raw.includes("row-level security") || raw.includes("permission") || raw.includes("policy")) {
+    return TICKET_ERRORS.denied;
+  }
+  if (raw.includes("failed to fetch") || raw.includes("network")) {
+    return "Sem conexão no momento. Tente novamente.";
+  }
+  return fallback;
+}
 
 /** Lista de chamados. Sem filtro = escopo definido pelas regras de acesso do banco. */
 export function useTicketList(scope: "own" | "all") {
@@ -31,7 +42,7 @@ export function useTicketList(scope: "own" | "all") {
       supabase.from("ticket_reads").select("ticket_id, last_read_at").eq("user_id", user.id),
     ]);
     if (ticketsRes.error) {
-      setError(ticketsRes.error.message || GENERIC_ERROR);
+      setError(friendly(ticketsRes.error.message, TICKET_ERRORS.load));
       setTickets([]);
     } else {
       setTickets(ticketsRes.data ?? []);
@@ -80,10 +91,10 @@ export function useTicketDetail(ticketId: string | undefined) {
       supabase.from("ticket_attachments").select("*").eq("ticket_id", ticketId),
     ]);
     if (ticketRes.error || messagesRes.error) {
-      setError(ticketRes.error?.message || messagesRes.error?.message || GENERIC_ERROR);
+      setError(friendly(ticketRes.error?.message || messagesRes.error?.message, TICKET_ERRORS.loadOne));
       setDetail(null);
     } else if (!ticketRes.data) {
-      setError("Chamado não encontrado ou sem permissão de acesso.");
+      setError(TICKET_ERRORS.notFound);
       setDetail(null);
     } else {
       const attachments = attachmentsRes.data ?? [];
@@ -121,6 +132,8 @@ interface CreateTicketInput {
 export function useTicketActions() {
   const { user, profile, role } = useAuth();
   const isSupport = role === "support" || role === "admin";
+  /** Suporte não é solicitante: não abre chamado (bloqueado também no banco). */
+  const canCreateTicket = role !== "support";
   const [saving, setSaving] = useState(false);
 
   const uploadAttachments = async (ticketId: string, messageId: string, files: File[]) => {
@@ -148,6 +161,7 @@ export function useTicketActions() {
 
   const createTicket = async (input: CreateTicketInput) => {
     if (!user?.id) throw new Error("Sessão expirada. Entre novamente.");
+    if (!canCreateTicket) throw new Error(TICKET_ERRORS.denied);
     setSaving(true);
     try {
       const { data: ticket, error } = await supabase
@@ -156,13 +170,15 @@ export function useTicketActions() {
           requester_id: user.id,
           requester_name: profile?.full_name ?? null,
           requester_email: user.email ?? null,
+          requester_company: profile?.company_name ?? null,
+          requester_role: role ?? "client",
           subject: input.subject.trim(),
           category: input.category,
           priority: input.priority,
         })
         .select("*")
         .single();
-      if (error || !ticket) throw new Error(error?.message || GENERIC_ERROR);
+      if (error || !ticket) throw new Error(friendly(error?.message, TICKET_ERRORS.create));
 
       const { data: message, error: msgError } = await supabase
         .from("ticket_messages")
@@ -175,7 +191,7 @@ export function useTicketActions() {
         })
         .select("id")
         .single();
-      if (msgError || !message) throw new Error(msgError?.message || GENERIC_ERROR);
+      if (msgError || !message) throw new Error(friendly(msgError?.message, TICKET_ERRORS.create));
 
       await uploadAttachments(ticket.id, message.id, input.files);
       return ticket;
@@ -205,7 +221,7 @@ export function useTicketActions() {
         })
         .select("id")
         .single();
-      if (error || !message) throw new Error(error?.message || GENERIC_ERROR);
+      if (error || !message) throw new Error(friendly(error?.message, TICKET_ERRORS.send));
       await uploadAttachments(ticketId, message.id, files);
     } finally {
       setSaving(false);
@@ -225,7 +241,7 @@ export function useTicketActions() {
     setSaving(true);
     try {
       const { error } = await supabase.from("tickets").update(patch).eq("id", ticketId);
-      if (error) throw new Error(error.message || GENERIC_ERROR);
+      if (error) throw new Error(friendly(error.message, TICKET_ERRORS.status));
     } finally {
       setSaving(false);
     }
@@ -233,11 +249,11 @@ export function useTicketActions() {
 
   const getAttachmentUrl = async (path: string) => {
     const { data, error } = await supabase.storage.from(TICKET_BUCKET).createSignedUrl(path, 60);
-    if (error || !data?.signedUrl) throw new Error("Não foi possível abrir o anexo.");
+    if (error || !data?.signedUrl) throw new Error(TICKET_ERRORS.attachment);
     return data.signedUrl;
   };
 
-  return { createTicket, addMessage, updateTicket, getAttachmentUrl, saving, isSupport };
+  return { createTicket, addMessage, updateTicket, getAttachmentUrl, saving, isSupport, canCreateTicket };
 }
 
 /** Contador de chamados com mensagem nova para o usuário atual. */
