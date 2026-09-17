@@ -15,6 +15,13 @@
       "when": 1789666456283,
       "tag": "0001_retire_tickets_module",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789671047029,
+      "tag": "0002_profile_company_fields_and_self_update_guard",
+      "breakpoints": true
     }
   ]
 }
