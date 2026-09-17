@@ -117,7 +117,7 @@ export async function generateCalculationsReport() {
     startY: 38,
     head: [["Data", "Cliente", "NF", "Placa CT", "Vol. NF (L)", "VCT (L)", "Diferença (L)", "Situação"]],
     body: (calcs ?? []).map(c => [
-      new Date(c.data).toLocaleDateString("pt-BR"),
+      formatLocalDate(c.data),
       profileMap.get(c.user_id) ?? "—",
       c.numero_nf ?? "—",
       c.placa_ct ?? "—",
@@ -370,7 +370,7 @@ export async function fetchConferenceCalculations(filters: ConferenceFilters) {
 }
 
 function periodLabel(f: ConferenceFilters) {
-  const fmt = (d?: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
+  const fmt = (d?: string) => (d ? formatLocalDate(d) : "—");
   if (!f.startDate && !f.endDate) return "Todos os períodos";
   return `${fmt(f.startDate)} a ${fmt(f.endDate)}`;
 }
@@ -420,7 +420,7 @@ export async function generateConferenceReport(
       const diff = Number(r.diferenca_volume ?? 0);
       const pct = vnf ? ((diff / vnf) * 100).toFixed(2) + "%" : "—";
       return [
-        new Date(r.data).toLocaleDateString("pt-BR"),
+        formatLocalDate(r.data),
         profileMap.get(r.user_id) ?? "—",
         r.numero_nf ?? "—",
         r.placa_ct ?? "—",
@@ -446,6 +446,7 @@ export async function generateConferenceReport(
     },
   });
 
+  addDisclaimer(doc, lastAutoTableY(doc) + 6);
   addFooter(doc);
   doc.save(`relatorio-conferencias-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
