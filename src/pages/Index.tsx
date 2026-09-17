@@ -56,7 +56,6 @@ const Index = () => {
     numeroNF: "",
     placaCT: "",
     municipioBase: "",
-    valorNF: "",
     volumeNF: "",
     pesoLiquido: "",
     massaEspecifica20NF: "",
@@ -128,7 +127,7 @@ const Index = () => {
       numeroNF: "",
       placaCT: "",
       municipioBase: "",
-      valorNF: "",
+      
       volumeNF: "",
       pesoLiquido: "",
       massaEspecifica20NF: "",
@@ -152,7 +151,6 @@ const Index = () => {
       numero_nf: inputs.numeroNF || null,
       placa_ct: inputs.placaCT || null,
       municipio_base: rawInputs.municipioBase || null,
-      valor_nf: parseFloat(rawInputs.valorNF) || null,
       volume_nf: inputs.volumeNF,
       peso_liquido: inputs.pesoLiquido,
       massa_especifica_20_nf: inputs.massaEspecifica20NF,
@@ -199,7 +197,7 @@ const Index = () => {
       numero_nf: inputs.numeroNF || null,
       placa_ct: inputs.placaCT || null,
       municipio_base: rawInputs.municipioBase || null,
-      valor_nf: parseFloat(rawInputs.valorNF) || null,
+      
       volume_nf: inputs.volumeNF,
       peso_liquido: inputs.pesoLiquido,
       massa_especifica_20_nf: inputs.massaEspecifica20NF,
@@ -291,10 +289,6 @@ const Index = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs">Município da Base</Label>
                     <Input placeholder="Ex: Paulínia" value={rawInputs.municipioBase} onChange={(e) => updateField("municipioBase", e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Valor da NF (R$)</Label>
-                    <Input type="number" step="any" value={rawInputs.valorNF} onChange={(e) => updateField("valorNF", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Volume NF (Litros)</Label>
