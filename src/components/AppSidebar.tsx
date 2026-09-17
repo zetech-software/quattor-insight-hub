@@ -84,9 +84,7 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
                     >
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
-                      {!collapsed && unread > 0 && (item.url === "/chamados" || item.url === "/suporte") && (
-                        <Badge variant="default" className="ml-auto">{unread}</Badge>
-                      )}
+
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
