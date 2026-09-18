@@ -86,6 +86,13 @@ const ResetPassword = () => {
       return;
     }
 
+    // O usuário acabou de definir a própria senha: a obrigação de trocar cai aqui,
+    // senão o primeiro login cairia de novo na tela "Definir nova senha".
+    const { error: flagError } = await supabase.rpc("clear_must_change_password");
+    if (flagError) {
+      console.error("[ResetPassword] clear_must_change_password falhou:", flagError);
+    }
+
     // Encerra a sessão temporária do link e devolve o usuário ao login.
     await supabase.auth.signOut();
     setLoading(false);
