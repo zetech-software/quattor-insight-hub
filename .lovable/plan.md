@@ -1,75 +1,64 @@
-# Auditoria da página Perfil e edição de dados do cliente pelo Dono
+# Primeiro acesso do cliente: auditoria e proposta mínima
 
-## 1. Como está hoje
+Nada foi alterado. Abaixo, como o sistema funciona hoje e o mínimo necessário para chegar ao fluxo descrito.
 
-**Página Perfil (`/perfil`) — é a mesma para todos os perfis.** Aparece no menu de Cliente, Suporte e Dono, com o mesmo conteúdo:
+## Como está hoje
 
-- Bloco "Dados da empresa": Nome da empresa, CNPJ, Município, Estado (UF) — editáveis.
-- Bloco "Dados do operador": Nome (obrigatório), Telefone — editáveis; E-mail apenas leitura.
-- Bloco "Informações da conta" (somente leitura): situação ativa/inativa, perfil de acesso, plano/assinatura, data de cadastro.
+**Quem cria a conta do cliente**
+Na tela Clientes, o botão "Convidar Cliente" aparece para Dono, Gestão e Suporte. O serviço que executa também aceita esses três perfis. Cadastro público é fechado: ninguém se cadastra sozinho.
 
-Ou seja: **sim, Dono e Suporte veem hoje campos de empresa (CNPJ, município, UF) que só fazem sentido para cliente.** Eles salvam esses dados na própria linha, sem nenhum efeito prático no sistema.
+**Como a conta nasce**
+1. O sistema usa o convite oficial do serviço de autenticação, informando e-mail, nome e empresa.
+2. A permissão `client` é gravada em seguida (obrigatória — se falhar, o Dono/Suporte vê erro).
+3. Nome e empresa são salvos no perfil, criado automaticamente na criação da conta.
+4. O perfil nasce com "precisa trocar a senha" **desligado**.
 
-**Tela Clientes (`/admin/clientes`) — hoje é só leitura de cadastro.**
+**Senha inicial**
+Não existe senha temporária. A conta nasce sem senha: o cliente define a dele pelo link do convite, que aponta para a tela de redefinição do sistema.
 
-- Apenas visualiza: nome do responsável, empresa, CNPJ, município/UF, telefone, e-mail, data de cadastro, último acesso, total de cálculos, últimos 5 cálculos, plano.
-- Consegue alterar: situação ativa/inativa (Dono e Suporte) e plano Básico/Premium (só Dono).
-- **Não existe nenhuma interface** para preencher ou corrigir empresa, CNPJ, município, UF, responsável ou telefone do cliente. O único momento em que o Dono informa dados do cliente é no convite (nome e empresa).
+**"Precisa trocar a senha" existe?**
+Sim, é uma marcação no perfil. Quando ligada, qualquer página protegida joga o usuário na tela "Definir nova senha", e só depois de salvar a nova senha o acesso é liberado. Hoje ela só está ligada para as contas internas; clientes convidados nascem com ela desligada.
 
-**Regras de banco hoje**
+**Como o cliente recebe o primeiro acesso**
+Pelo e-mail de convite do serviço de autenticação, com o remetente padrão atual (sem domínio próprio configurado). O envio não foi validado na prática; se ele falhar, o administrador recebe uma mensagem explícita e nenhum link aparece na tela.
 
-- Leitura de `profiles`: a própria linha, ou qualquer linha para equipe (Dono, Gestão, Suporte).
-- Gravação de `profiles`: a própria linha, ou qualquer linha para Dono/Gestão. **Suporte não pode gravar em perfil de cliente pelo banco.**
-- Trigger de proteção: quando o próprio usuário grava a sua linha e não é Dono/Gestão, campos sensíveis (ativa/inativa, troca obrigatória de senha, identificadores, data de criação) são ignorados.
-- Papel, plano e assinatura continuam fora do alcance do cliente.
-- Não existe tabela de auditoria de alterações.
+**Cadastro empresarial**
+CNPJ, município, UF e telefone não são pedidos em nenhum momento e não bloqueiam nada. O cliente pode preenchê-los em Perfil; o Dono já pode preencher/corrigir pela tela Clientes; o Suporte só visualiza.
 
-## 2. O que está incoerente
+## O que falta para o fluxo pedido
 
-1. Dono e Suporte editam "Dados da empresa" (CNPJ/município/UF) que nunca são usados para eles — parece cadastro de empresa cliente.
-2. O Dono tem permissão no banco para corrigir o cadastro do cliente, mas não tem tela para isso: dado errado no convite só se corrige pedindo ao cliente.
-3. O nome "Perfil" sugere perfil de empresa; para contas internas o correto é "Minha conta".
-4. Suporte enxerga tudo do cliente e não pode corrigir nada de cadastro — hoje isso é coerente com a regra de segurança, mas precisa de decisão explícita.
+| Regra desejada | Situação |
+| --- | --- |
+| Suporte/Admin cria a conta | já funciona |
+| Conta nasce como `client` | já funciona |
+| Login vinculado ao e-mail do cliente | já funciona |
+| Primeiro acesso seguro | existe via convite, formato final ainda indefinido |
+| Trocar a senha no primeiro login | mecanismo existe, mas não é exigido do cliente |
+| Concluir cadastro empresarial antes de usar | não existe |
+| Dono preenche/corrige cadastro | já funciona |
+| Suporte sem plano/permissões | já funciona |
 
-## 3. Alteração mínima e mais segura (proposta)
+## Implementação mínima proposta
 
-**A. Perfil por tipo de conta (só apresentação)**
+**1. Exigir a troca de senha no primeiro acesso do cliente**
+A conta do cliente passa a nascer com a marcação "precisa definir a senha" ligada. Assim, qualquer caminho de entrega (link ou senha entregue pela equipe) cai na mesma tela de definição de senha antes de qualquer uso. Quando o cliente define a senha, a marcação cai.
 
-- Cliente: continua igual, com "Dados da empresa" e "Dados do operador".
-- Dono e Suporte: a mesma página passa a se chamar **"Minha conta"** (menu e título) e mostra apenas Nome, Telefone, E-mail (leitura) e Informações da conta. O bloco de empresa deixa de aparecer e esses campos não são enviados ao salvar.
-- Nenhuma mudança de permissão, banco ou rota. A rota `/perfil` continua a mesma.
+**2. Nova etapa "Concluir cadastro"**
+Depois da senha definida, se faltar responsável, empresa, CNPJ, município, UF ou telefone, o cliente é levado a uma tela única com esses seis campos e não sai dela (só pode sair da conta). Validações iguais às já usadas: CNPJ com 14 números, UF com 2 letras, telefone com DDD. Ao salvar completo, o ambiente normal é liberado. Vale só para cliente — contas internas não passam por isso.
 
-**B. "Editar dados do cliente" na tela Clientes (somente Dono)**
+**3. Ordem de liberação**
+Senha definida → cadastro completo → calculadora, histórico, Regina e o resto.
 
-- Novo botão dentro do painel lateral do cliente, abrindo um formulário com: Empresa, CNPJ, Município, UF, Responsável, Telefone.
-- E-mail permanece somente leitura (continua vinculado ao acesso).
-- Plano, papel, situação e permissões **ficam fora** do formulário, seguindo as ações administrativas atuais.
-- Validações iguais às do Perfil do cliente (nome obrigatório, CNPJ com 14 números, UF com 2 letras, telefone com DDD).
-- Suporte: **apenas visualiza** (sem o botão). Motivo: é a regra já vigente no banco; dar edição ao Suporte exigiria afrouxar a gravação de perfil e criar exceções — decisão que fica para você.
+**4. Fora desta etapa (como você pediu)**
+Domínio de e-mail, remetente, SMTP e o formato final de entrega do primeiro acesso não são decididos nem implementados agora. O fluxo fica pronto para receber qualquer uma das duas formas depois: link de definição de senha ou senha temporária entregue pela equipe.
 
-**C. Onde a gravação acontece**
+**5. Nada muda em:** plano, permissões, papéis, fórmulas, histórico, relatórios, Regina, Stripe, e os limites do Suporte permanecem os atuais.
 
-A gravação usa a permissão que o Dono já tem no banco, sem nova função de servidor e sem chave de serviço. Se você quiser registro de auditoria ("quem alterou o quê e quando"), isso é um item separado — hoje não existe essa tabela.
+## Detalhes técnicos
 
-## 4. Impactos verificados
-
-- **Regras de leitura/gravação (RLS):** nenhuma mudança necessária. O Dono já pode gravar; o Suporte já não pode.
-- **Trigger de proteção:** nenhuma mudança. Ele só age quando é o próprio usuário editando a própria linha.
-- **Convites:** sem alteração; a correção de dados errados passa a ser feita na tela Clientes.
-- **Perfil:** muda apenas o que é exibido conforme o perfil de acesso.
-- **Auditoria:** hoje inexistente; permanece inexistente nesta alteração mínima.
-- **Cálculos, fórmulas, Histórico, relatórios, Regina, Stripe:** nada é tocado.
-
-## 5. Arquivos que seriam afetados
-
-- `src/pages/Perfil.tsx` — título/menu "Minha conta" e ocultação do bloco de empresa para Dono/Suporte.
-- `src/components/AppSidebar.tsx` — rótulo do item conforme o perfil.
-- `src/components/admin/ClientDetailSheet.tsx` — botão e formulário "Editar dados do cliente" (só Dono).
-- `src/pages/AdminClientes.tsx` — recarregar a lista após salvar.
-- Sem migração de banco, sem alteração em `supabase/functions/manage-clients/index.ts`.
-
-## 6. Decisões que preciso de você
-
-1. Suporte apenas visualiza o cadastro (recomendado) ou também edita?
-2. Quer registro de auditoria das alterações feitas pelo Dono?
-3. O nome "Minha conta" está bom para Dono e Suporte?
+- `manage-clients` (ação `invite`): gravar `must_change_password = true` no perfil do cliente criado.
+- `ProtectedRoute`: após a checagem de `must_change_password`, nova checagem `needsProfileCompletion` (só quando `role === "client"`) redirecionando para `/completar-cadastro`; a própria rota isenta via prop, como `allowPasswordChange`.
+- `useAuth`: `AppProfile` passa a expor `cnpj`, `municipio`, `uf`, `phone` (já existem na tabela) para calcular a pendência.
+- Nova página `src/pages/CompletarCadastro.tsx` + rota em `App.tsx`, reaproveitando as validações de `ClientDetailSheet`/`Perfil` (extrair para `src/lib/clientProfileValidation.ts` para uso nos três lugares).
+- Gravação pelo próprio cliente na própria linha: a política `profiles_update` já permite; sem migração de banco, sem mudança de RLS ou trigger.
+- Testes: suíte automatizada, tipagem, build e verificação no navegador nos três perfis.
