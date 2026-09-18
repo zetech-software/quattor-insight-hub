@@ -26,6 +26,9 @@ const clientItems = [
   { title: "Perfil", url: "/perfil", icon: UserCircle },
 ];
 
+/** Admin/Dono não usa a Regina como assistente — só acompanha o uso em /admin/regina. */
+const REGINA_ASSISTANT_URL = "/regina";
+
 const adminItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Clientes", url: "/admin/clientes", icon: Users },
@@ -39,11 +42,12 @@ interface AppSidebarProps {
 
 export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const { state } = useSidebar();
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const collapsed = state === "collapsed";
-  const mainItems = clientItems;
+  const mainItems =
+    role === "admin" ? clientItems.filter((i) => i.url !== REGINA_ASSISTANT_URL) : clientItems;
   const mainLabel = "Principal";
   const showAdmin = isAdmin;
 
