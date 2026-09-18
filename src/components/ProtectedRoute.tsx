@@ -14,9 +14,17 @@ interface ProtectedRouteProps {
   blockedRoles?: AppRole[];
   /** Tela de definição de senha: exige sessão, mas não aplica o bloqueio de senha temporária. */
   allowPasswordChange?: boolean;
+  /** Tela de conclusão de cadastro: exige sessão, mas não aplica o bloqueio de cadastro incompleto. */
+  allowProfileCompletion?: boolean;
 }
 
-export function ProtectedRoute({ children, requiredRole, blockedRoles, allowPasswordChange }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+  blockedRoles,
+  allowPasswordChange,
+  allowProfileCompletion,
+}: ProtectedRouteProps) {
   const { session, role, profile, loading, signOut } = useAuth();
 
   const isBlocked = !!session && profile !== null && profile.is_active === false;
