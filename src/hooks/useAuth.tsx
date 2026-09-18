@@ -7,6 +7,10 @@ export type AppRole = "admin" | "manager" | "client" | "support";
 interface AppProfile {
   full_name: string | null;
   company_name: string | null;
+  cnpj: string | null;
+  municipio: string | null;
+  uf: string | null;
+  phone: string | null;
   is_active: boolean;
   must_change_password: boolean;
 }
@@ -34,7 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = async (userId: string) => {
     const [rolesRes, profileRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId).limit(1).single(),
-      supabase.from("profiles").select("full_name, company_name, is_active, must_change_password").eq("user_id", userId).limit(1).single(),
+      supabase
+        .from("profiles")
+        .select("full_name, company_name, cnpj, municipio, uf, phone, is_active, must_change_password")
+        .eq("user_id", userId)
+        .limit(1)
+        .single(),
     ]);
     if (rolesRes.data) setRole(rolesRes.data.role as AppRole);
     if (profileRes.data) setProfile(profileRes.data as AppProfile);
