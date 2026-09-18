@@ -167,10 +167,12 @@ const Perfil = () => {
         <div>
           <h1 className="text-2xl font-bold font-heading flex items-center gap-2">
             <UserCircle className="h-6 w-6 text-primary" />
-            Perfil
+            {pageTitle}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Consulte e atualize os dados da sua empresa e do operador responsável.
+            {isStaff
+              ? "Consulte e atualize os dados da sua conta de acesso."
+              : "Consulte e atualize os dados da sua empresa e do operador responsável."}
           </p>
         </div>
 
