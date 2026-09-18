@@ -78,6 +78,21 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } = await authClient.auth.getUser(token);
     if (userError || !userData?.user) return unauthorized();
 
+    // Admin/Dono não usa a Regina como assistente (só acompanha o uso no painel).
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: roleRows } = await userClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    if ((roleRows ?? []).some((r: { role: string }) => r.role === "admin")) {
+      return new Response(
+        JSON.stringify({ error: "A Regina não está disponível para o perfil administrador." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const key = Deno.env.get("LOVABLE_API_KEY");
     if (!key) {
       return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {

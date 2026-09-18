@@ -9,11 +9,13 @@ interface ProtectedRouteProps {
   children: ReactNode;
   /** Uma permissão ou lista de permissões aceitas. Admin sempre tem acesso. */
   requiredRole?: AppRole | AppRole[];
+  /** Permissões explicitamente bloqueadas nesta rota (vale até para admin). */
+  blockedRoles?: AppRole[];
   /** Tela de definição de senha: exige sessão, mas não aplica o bloqueio de senha temporária. */
   allowPasswordChange?: boolean;
 }
 
-export function ProtectedRoute({ children, requiredRole, allowPasswordChange }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredRole, blockedRoles, allowPasswordChange }: ProtectedRouteProps) {
   const { session, role, profile, loading, signOut } = useAuth();
 
   const isBlocked = !!session && profile !== null && profile.is_active === false;
@@ -65,6 +67,10 @@ export function ProtectedRoute({ children, requiredRole, allowPasswordChange }: 
     }
   }
 
+
+  if (blockedRoles && role && blockedRoles.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
 
   if (requiredRole) {
     const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
