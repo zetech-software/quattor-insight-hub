@@ -38,7 +38,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      <ReginaFab />
+      {role !== "admin" && <ReginaFab />}
 
     </SidebarProvider>
   );
