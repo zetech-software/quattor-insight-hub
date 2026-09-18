@@ -47,6 +47,9 @@ const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 const Perfil = () => {
   const { user, role, refreshProfile } = useAuth();
+  // Contas internas (Dono, Gestão, Suporte) veem apenas a própria conta, sem dados de empresa cliente.
+  const isStaff = role === "admin" || role === "manager" || role === "support";
+  const pageTitle = isStaff ? "Minha conta" : "Perfil";
   const [form, setForm] = useState<FormState>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -127,16 +130,20 @@ const Perfil = () => {
     if (!validate()) return;
 
     setSaving(true);
+    const payload: Record<string, string | null> = {
+      full_name: form.full_name.trim(),
+      phone: form.phone.trim() || null,
+    };
+    if (!isStaff) {
+      payload.company_name = form.company_name.trim() || null;
+      payload.cnpj = form.cnpj.trim() ? onlyDigits(form.cnpj) : null;
+      payload.municipio = form.municipio.trim() || null;
+      payload.uf = form.uf.trim() ? form.uf.trim().toUpperCase() : null;
+    }
+
     const { error } = await supabase
       .from("profiles")
-      .update({
-        company_name: form.company_name.trim() || null,
-        cnpj: form.cnpj.trim() ? onlyDigits(form.cnpj) : null,
-        municipio: form.municipio.trim() || null,
-        uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
-        full_name: form.full_name.trim(),
-        phone: form.phone.trim() || null,
-      })
+      .update(payload)
       .eq("user_id", user.id);
     setSaving(false);
 
