@@ -102,10 +102,14 @@ Deno.serve(async (req) => {
         return json({ error: "Cliente criado, mas a permissão não pôde ser atribuída. Tente novamente." }, 500);
       }
 
-      // Nome e empresa no perfil.
+      // Nome e empresa no perfil. O cliente define a própria senha no primeiro acesso.
       const { error: profileError } = await adminClient
         .from("profiles")
-        .update({ full_name: fullName, company_name: companyName ?? null })
+        .update({
+          full_name: fullName,
+          company_name: companyName ?? null,
+          must_change_password: true,
+        })
         .eq("user_id", invitedUser.id);
 
       if (profileError) {

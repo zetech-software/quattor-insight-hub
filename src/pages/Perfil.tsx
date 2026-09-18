@@ -132,16 +132,18 @@ const Perfil = () => {
     if (!validate()) return;
 
     setSaving(true);
-    const payload: Record<string, string | null> = {
+    const payload = {
       full_name: form.full_name.trim(),
       phone: form.phone.trim() || null,
+      ...(isStaff
+        ? {}
+        : {
+            company_name: form.company_name.trim() || null,
+            cnpj: form.cnpj.trim() ? onlyDigits(form.cnpj) : null,
+            municipio: form.municipio.trim() || null,
+            uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
+          }),
     };
-    if (!isStaff) {
-      payload.company_name = form.company_name.trim() || null;
-      payload.cnpj = form.cnpj.trim() ? onlyDigits(form.cnpj) : null;
-      payload.municipio = form.municipio.trim() || null;
-      payload.uf = form.uf.trim() ? form.uf.trim().toUpperCase() : null;
-    }
 
     const { error } = await supabase
       .from("profiles")
