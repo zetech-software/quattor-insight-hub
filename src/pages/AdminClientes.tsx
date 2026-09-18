@@ -360,8 +360,10 @@ const AdminClientes = () => {
           onOpenChange={setDetailOpen}
           canManageClients={canManageClients}
           canManagePlans={canManagePlans}
+          canEditClient={role === "admin"}
           onToggleActive={handleToggleActive}
           onUpdatePlan={handleUpdatePlan}
+          onClientSaved={loadClients}
         />
       </div>
     </AppLayout>

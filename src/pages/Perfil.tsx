@@ -47,6 +47,9 @@ const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 const Perfil = () => {
   const { user, role, refreshProfile } = useAuth();
+  // Contas internas (Dono, Gestão, Suporte) veem apenas a própria conta, sem dados de empresa cliente.
+  const isStaff = role === "admin" || role === "manager" || role === "support";
+  const pageTitle = isStaff ? "Minha conta" : "Perfil";
   const [form, setForm] = useState<FormState>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -108,11 +111,13 @@ const Perfil = () => {
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
     if (!form.full_name.trim()) next.full_name = "Informe o nome do responsável.";
-    if (form.cnpj.trim() && onlyDigits(form.cnpj).length !== 14) {
-      next.cnpj = "O CNPJ deve ter 14 números.";
-    }
-    if (form.uf.trim() && !/^[A-Za-z]{2}$/.test(form.uf.trim())) {
-      next.uf = "Use a sigla do estado, com 2 letras (ex.: SP).";
+    if (!isStaff) {
+      if (form.cnpj.trim() && onlyDigits(form.cnpj).length !== 14) {
+        next.cnpj = "O CNPJ deve ter 14 números.";
+      }
+      if (form.uf.trim() && !/^[A-Za-z]{2}$/.test(form.uf.trim())) {
+        next.uf = "Use a sigla do estado, com 2 letras (ex.: SP).";
+      }
     }
     const phoneDigits = onlyDigits(form.phone);
     if (form.phone.trim() && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
@@ -127,16 +132,20 @@ const Perfil = () => {
     if (!validate()) return;
 
     setSaving(true);
+    const payload: Record<string, string | null> = {
+      full_name: form.full_name.trim(),
+      phone: form.phone.trim() || null,
+    };
+    if (!isStaff) {
+      payload.company_name = form.company_name.trim() || null;
+      payload.cnpj = form.cnpj.trim() ? onlyDigits(form.cnpj) : null;
+      payload.municipio = form.municipio.trim() || null;
+      payload.uf = form.uf.trim() ? form.uf.trim().toUpperCase() : null;
+    }
+
     const { error } = await supabase
       .from("profiles")
-      .update({
-        company_name: form.company_name.trim() || null,
-        cnpj: form.cnpj.trim() ? onlyDigits(form.cnpj) : null,
-        municipio: form.municipio.trim() || null,
-        uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
-        full_name: form.full_name.trim(),
-        phone: form.phone.trim() || null,
-      })
+      .update(payload)
       .eq("user_id", user.id);
     setSaving(false);
 
@@ -160,10 +169,12 @@ const Perfil = () => {
         <div>
           <h1 className="text-2xl font-bold font-heading flex items-center gap-2">
             <UserCircle className="h-6 w-6 text-primary" />
-            Perfil
+            {pageTitle}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Consulte e atualize os dados da sua empresa e do operador responsável.
+            {isStaff
+              ? "Consulte e atualize os dados da sua conta de acesso."
+              : "Consulte e atualize os dados da sua empresa e do operador responsável."}
           </p>
         </div>
 
@@ -173,6 +184,7 @@ const Perfil = () => {
           </div>
         ) : (
           <>
+            {!isStaff && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
@@ -223,6 +235,7 @@ const Perfil = () => {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             <Card>
               <CardHeader className="pb-3">
