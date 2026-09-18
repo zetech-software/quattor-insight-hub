@@ -111,11 +111,13 @@ const Perfil = () => {
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
     if (!form.full_name.trim()) next.full_name = "Informe o nome do responsável.";
-    if (form.cnpj.trim() && onlyDigits(form.cnpj).length !== 14) {
-      next.cnpj = "O CNPJ deve ter 14 números.";
-    }
-    if (form.uf.trim() && !/^[A-Za-z]{2}$/.test(form.uf.trim())) {
-      next.uf = "Use a sigla do estado, com 2 letras (ex.: SP).";
+    if (!isStaff) {
+      if (form.cnpj.trim() && onlyDigits(form.cnpj).length !== 14) {
+        next.cnpj = "O CNPJ deve ter 14 números.";
+      }
+      if (form.uf.trim() && !/^[A-Za-z]{2}$/.test(form.uf.trim())) {
+        next.uf = "Use a sigla do estado, com 2 letras (ex.: SP).";
+      }
     }
     const phoneDigits = onlyDigits(form.phone);
     if (form.phone.trim() && (phoneDigits.length < 10 || phoneDigits.length > 11)) {

@@ -46,8 +46,10 @@ export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const collapsed = state === "collapsed";
-  const mainItems =
-    role === "admin" ? clientItems.filter((i) => i.url !== REGINA_ASSISTANT_URL) : clientItems;
+  const isStaff = role === "admin" || role === "manager" || role === "support";
+  const mainItems = (role === "admin" ? clientItems.filter((i) => i.url !== REGINA_ASSISTANT_URL) : clientItems)
+    // Contas internas veem "Minha conta" no lugar de "Perfil".
+    .map((i) => (i.url === "/perfil" && isStaff ? { ...i, title: "Minha conta" } : i));
   const mainLabel = "Principal";
   const showAdmin = isAdmin;
 
