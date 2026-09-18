@@ -43,7 +43,7 @@ const App = () => (
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
-                <Route path="/regina" element={<ProtectedRoute><Regina /></ProtectedRoute>} />
+                <Route path="/regina" element={<ProtectedRoute blockedRoles={["admin"]}><Regina /></ProtectedRoute>} />
                 <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
                 <Route path="/pet" element={<Navigate to="/regina" replace />} />
                 <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminDashboard /></ProtectedRoute>} />
