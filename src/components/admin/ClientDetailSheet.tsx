@@ -195,6 +195,7 @@ export function ClientDetailSheet({
 
   useEffect(() => {
     if (open && client) void load(client.user_id);
+    if (!open) setEditing(false);
   }, [open, client, load]);
 
   if (!client) return null;
