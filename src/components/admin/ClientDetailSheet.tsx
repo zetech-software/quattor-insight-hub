@@ -218,17 +218,104 @@ export function ClientDetailSheet({
             <Badge variant="outline">Cliente</Badge>
           </div>
 
-          <div>
-            <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Dados principais</p>
-            <div className="grid grid-cols-2 gap-3">
-              <Row label="E-mail" value={loading && !email ? "Carregando…" : email || "—"} />
-              <Row label="Telefone" value={client.phone || "—"} />
-              <Row label="CNPJ" value={formatCnpj(client.cnpj)} />
-              <Row label="Município / UF" value={[client.municipio, client.uf].filter(Boolean).join(" / ") || "—"} />
-              <Row label="Cadastro" value={formatDateTime(client.created_at)} />
-              <Row label="Último acesso" value={lastSignIn ? formatDateTime(lastSignIn) : "Nunca acessou"} />
+          {editing ? (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">Editar dados cadastrais</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_company">Nome da empresa</Label>
+                <Input
+                  id="edit_company"
+                  value={form.company_name}
+                  onChange={(e) => setField("company_name", e.target.value)}
+                  placeholder="Ex.: Transportadora Ribeiro"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit_cnpj">CNPJ</Label>
+                  <Input
+                    id="edit_cnpj"
+                    value={form.cnpj}
+                    inputMode="numeric"
+                    onChange={(e) => setField("cnpj", e.target.value)}
+                    placeholder="00000000000000"
+                  />
+                  {errors.cnpj && <p className="text-xs text-destructive">{errors.cnpj}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit_uf">Estado (UF)</Label>
+                  <Input
+                    id="edit_uf"
+                    value={form.uf}
+                    maxLength={2}
+                    onChange={(e) => setField("uf", e.target.value.toUpperCase())}
+                    placeholder="SP"
+                  />
+                  {errors.uf && <p className="text-xs text-destructive">{errors.uf}</p>}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_municipio">Município</Label>
+                <Input
+                  id="edit_municipio"
+                  value={form.municipio}
+                  onChange={(e) => setField("municipio", e.target.value)}
+                  placeholder="Ex.: Campinas"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_name">Responsável *</Label>
+                <Input
+                  id="edit_name"
+                  value={form.full_name}
+                  onChange={(e) => setField("full_name", e.target.value)}
+                  placeholder="Nome do responsável"
+                />
+                {errors.full_name && <p className="text-xs text-destructive">{errors.full_name}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_phone">Telefone</Label>
+                <Input
+                  id="edit_phone"
+                  value={form.phone}
+                  onChange={(e) => setField("phone", e.target.value)}
+                  placeholder="(19) 99999-0000"
+                />
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_email">E-mail de acesso</Label>
+                <Input id="edit_email" value={email ?? ""} readOnly disabled />
+                <p className="text-xs text-muted-foreground">O e-mail de acesso não pode ser alterado por aqui.</p>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" className="flex-1" onClick={handleSaveClient} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  Salvar
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+                  <X className="h-4 w-4 mr-1" /> Cancelar
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Dados principais</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Row label="E-mail" value={loading && !email ? "Carregando…" : email || "—"} />
+                <Row label="Telefone" value={client.phone || "—"} />
+                <Row label="CNPJ" value={formatCnpj(client.cnpj)} />
+                <Row label="Município / UF" value={[client.municipio, client.uf].filter(Boolean).join(" / ") || "—"} />
+                <Row label="Cadastro" value={formatDateTime(client.created_at)} />
+                <Row label="Último acesso" value={lastSignIn ? formatDateTime(lastSignIn) : "Nunca acessou"} />
+              </div>
+              {canEditClient && (
+                <Button variant="outline" size="sm" className="mt-3 w-full justify-start" onClick={startEditing}>
+                  <Pencil className="h-4 w-4 mr-2" /> Editar dados do cliente
+                </Button>
+              )}
+            </div>
+          )}
 
           <Separator />
 
