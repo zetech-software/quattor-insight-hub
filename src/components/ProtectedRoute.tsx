@@ -76,6 +76,30 @@ export function ProtectedRoute({
     }
   }
 
+  // Cliente só usa o sistema com o cadastro empresarial completo.
+  const needsProfileCompletion =
+    role === "client" && !!profile && !isClientProfileComplete(profile);
+
+  if (needsProfileCompletion && !allowProfileCompletion && !allowPasswordChange) {
+    return <Navigate to="/completar-cadastro" replace />;
+  }
+
+  if (allowProfileCompletion) {
+    if (!profile || !role) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-3">
+            <img src={logo} alt="Qu4ttuor" className="h-10 animate-pulse" />
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          </div>
+        </div>
+      );
+    }
+    if (!needsProfileCompletion) {
+      return <Navigate to="/" replace />;
+    }
+  }
+
 
   if (blockedRoles && role && blockedRoles.includes(role)) {
     return <Navigate to="/" replace />;
