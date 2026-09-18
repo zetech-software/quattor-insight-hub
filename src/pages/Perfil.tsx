@@ -182,6 +182,7 @@ const Perfil = () => {
           </div>
         ) : (
           <>
+            {!isStaff && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
@@ -232,6 +233,7 @@ const Perfil = () => {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             <Card>
               <CardHeader className="pb-3">
