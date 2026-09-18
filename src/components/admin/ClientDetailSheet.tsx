@@ -85,13 +85,88 @@ export function ClientDetailSheet({
   onOpenChange,
   canManageClients,
   canManagePlans,
+  canEditClient = false,
   onToggleActive,
   onUpdatePlan,
+  onClientSaved,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [lastSignIn, setLastSignIn] = useState<string | null>(null);
   const [calcs, setCalcs] = useState<RecentCalc[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<EditForm>({
+    company_name: "",
+    cnpj: "",
+    municipio: "",
+    uf: "",
+    full_name: "",
+    phone: "",
+  });
+  const [errors, setErrors] = useState<Partial<Record<keyof EditForm, string>>>({});
+
+  const startEditing = () => {
+    if (!client) return;
+    setForm({
+      company_name: client.company_name ?? "",
+      cnpj: client.cnpj ?? "",
+      municipio: client.municipio ?? "",
+      uf: client.uf ?? "",
+      full_name: client.full_name ?? "",
+      phone: client.phone ?? "",
+    });
+    setErrors({});
+    setEditing(true);
+  };
+
+  const setField = (key: keyof EditForm, value: string) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: undefined }));
+  };
+
+  const handleSaveClient = async () => {
+    if (!client) return;
+    const next: Partial<Record<keyof EditForm, string>> = {};
+    if (!form.full_name.trim()) next.full_name = "Informe o nome do responsável.";
+    if (form.cnpj.trim() && onlyDigits(form.cnpj).length !== 14) next.cnpj = "O CNPJ deve ter 14 números.";
+    if (form.uf.trim() && !/^[A-Za-z]{2}$/.test(form.uf.trim())) {
+      next.uf = "Use a sigla do estado, com 2 letras (ex.: SP).";
+    }
+    const phoneDigits = onlyDigits(form.phone);
+    if (form.phone.trim() && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
+      next.phone = "Informe o telefone com DDD (10 ou 11 números).";
+    }
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        company_name: form.company_name.trim() || null,
+        cnpj: form.cnpj.trim() ? onlyDigits(form.cnpj) : null,
+        municipio: form.municipio.trim() || null,
+        uf: form.uf.trim() ? form.uf.trim().toUpperCase() : null,
+        full_name: form.full_name.trim(),
+        phone: form.phone.trim() || null,
+      })
+      .eq("user_id", client.user_id);
+    setSaving(false);
+
+    if (error) {
+      toast({
+        title: "Não foi possível salvar",
+        description: "Confira os dados e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Cadastro atualizado!", description: "Os dados do cliente foram salvos." });
+    setEditing(false);
+    onClientSaved?.();
+  };
 
   const load = useCallback(async (userId: string) => {
     setLoading(true);
