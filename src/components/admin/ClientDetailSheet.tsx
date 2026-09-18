@@ -28,9 +28,23 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   canManageClients: boolean;
   canManagePlans: boolean;
+  /** Somente o Dono edita os dados cadastrais do cliente. */
+  canEditClient?: boolean;
   onToggleActive: (userId: string, currentActive: boolean) => void;
   onUpdatePlan: (userId: string, planName: string) => void;
+  onClientSaved?: () => void;
 }
+
+interface EditForm {
+  company_name: string;
+  cnpj: string;
+  municipio: string;
+  uf: string;
+  full_name: string;
+  phone: string;
+}
+
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 const statusLabels: Record<string, string> = {
   active: "Ativa",
