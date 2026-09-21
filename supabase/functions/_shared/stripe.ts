@@ -94,10 +94,18 @@ export async function verifyWebhook(
 }
 
 /**
- * Chave comercial de liberação. Enquanto o segredo BILLING_ENABLED não estiver
- * ligado ("true"), nenhuma cobrança ou provisionamento automático acontece.
+ * Trava de homologação comercial. Enquanto false, a cobrança permanece
+ * desligada mesmo que o segredo BILLING_ENABLED esteja ligado.
+ * Nenhuma configuração ou segredo é removido.
+ */
+const BILLING_HOMOLOGATED = false;
+
+/**
+ * Chave comercial de liberação. Exige a homologação comercial acima E o
+ * segredo BILLING_ENABLED ligado ("true").
  */
 export function isBillingEnabled(): boolean {
+  if (!BILLING_HOMOLOGATED) return false;
   return (Deno.env.get("BILLING_ENABLED") ?? "").toLowerCase() === "true";
 }
 
