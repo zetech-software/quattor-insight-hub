@@ -43,6 +43,13 @@
       "when": 1790000568678,
       "tag": "0005_subscription_plans_catalog_and_payment_events",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790000971420,
+      "tag": "0006_payment_events_status_and_error",
+      "breakpoints": true
     }
   ]
 }

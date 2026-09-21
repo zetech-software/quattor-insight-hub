@@ -112,31 +112,43 @@ export type Database = {
       }
       payment_events: {
         Row: {
+          attempts: number
           created_at: string
           environment: string
+          error: string | null
           event_id: string
           event_type: string
           id: string
           payload: Json | null
           processed_at: string | null
+          received_at: string
+          status: string
         }
         Insert: {
+          attempts?: number
           created_at?: string
           environment: string
+          error?: string | null
           event_id: string
           event_type: string
           id?: string
           payload?: Json | null
           processed_at?: string | null
+          received_at?: string
+          status?: string
         }
         Update: {
+          attempts?: number
           created_at?: string
           environment?: string
+          error?: string | null
           event_id?: string
           event_type?: string
           id?: string
           payload?: Json | null
           processed_at?: string | null
+          received_at?: string
+          status?: string
         }
         Relationships: []
       }
