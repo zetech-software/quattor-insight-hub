@@ -292,14 +292,17 @@ const Perfil = () => {
                   <p className="text-muted-foreground text-xs">Perfil de acesso</p>
                   <p className="font-medium">{role ? roleLabels[role] ?? role : "—"}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">Plano / assinatura</p>
-                  <p className="font-medium">
-                    {subscription
-                      ? `${subscription.plan_name} (${statusLabels[subscription.status] ?? subscription.status})`
-                      : "Sem assinatura registrada"}
-                  </p>
-                </div>
+                {!isStaff && (
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">Plano / assinatura</p>
+                    <p className="font-medium">
+                      {subscription
+                        ? `${subscription.plan_name} (${statusLabels[subscription.status] ?? subscription.status})`
+                        : "Sem assinatura registrada"}
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-xs">Cadastro</p>
                   <p className="font-medium font-mono">{formatDateTime(createdAt)}</p>
