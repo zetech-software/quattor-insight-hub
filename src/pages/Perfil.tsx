@@ -70,10 +70,11 @@ const Perfil = () => {
         .maybeSingle(),
       supabase
         .from("subscriptions")
-        .select("plan_name, status, expires_at")
+        .select("plan_name, plan_code, status, expires_at")
         .eq("user_id", user.id)
         .maybeSingle(),
     ]);
+
 
     if (profileRes.error) {
       toast({
