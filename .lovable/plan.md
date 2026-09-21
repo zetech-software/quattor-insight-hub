@@ -34,9 +34,22 @@ descrição, periodicidade, identificadores do provedor de pagamento, ambiente
 (teste/produção) e ativo/inativo. Nasce vazia: nenhum plano, nenhum preço.
 O sistema passa a ler preço e nome sempre do catálogo, nunca do código.
 
-**Página pública de assinatura** — estrutura criada e acessível só por rota direta, sem
-link no site nem no menu. Ela lista o que estiver no catálogo; com o catálogo vazio,
-exibe apenas o aviso "planos em definição". Nenhum valor fictício aparece em tela.
+**Página pública de assinatura** — nova página em `/assinatura`, fora da área logada,
+sem link no menu do sistema. Estrutura pronta para cards de plano com nome, descrição,
+recursos, escolha mensal/anual, preço vindo do catálogo, botão "Assinar" e destaque de
+plano recomendado. Hoje, com o catálogo vazio, ela mostra só a apresentação da
+plataforma e o aviso "Planos em definição — estamos preparando as opções de assinatura
+da Qu4ttuor. Os planos e condições comerciais serão disponibilizados em breve.", sem
+nenhum botão de pagamento ativo. Nenhum preço no código.
+
+Os planos são carregados por uma função pública de leitura que devolve apenas planos
+ativos do ambiente atual e somente os campos comerciais (código, nome, descrição,
+recursos, periodicidade, preço e moeda). Ela nunca devolve identificadores do provedor,
+segredos, dados de cliente ou informação administrativa; a tabela de planos em si não
+fica aberta para visitante. Quando os planos forem aprovados, o botão "Assinar" passa a
+chamar a função de checkout com o código do plano, e o resto do fluxo (pagamento
+confirmado, criação da conta, primeiro acesso, cadastro obrigatório) já estará pronto.
+
 
 **Função de checkout (preparada, desligada)** — recebe só o identificador interno do
 plano, busca preço e ambiente no catálogo no servidor, recusa plano inativo ou de outro
