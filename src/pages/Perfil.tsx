@@ -70,10 +70,11 @@ const Perfil = () => {
         .maybeSingle(),
       supabase
         .from("subscriptions")
-        .select("plan_name, status, expires_at")
+        .select("plan_name, plan_code, status, expires_at")
         .eq("user_id", user.id)
         .maybeSingle(),
     ]);
+
 
     if (profileRes.error) {
       toast({
@@ -95,8 +96,24 @@ const Perfil = () => {
       setCreatedAt(p.created_at);
     }
 
-    setSubscription(subRes.data ?? null);
+    // O nome comercial do plano vem do catálogo quando a assinatura tiver código.
+    const sub = subRes.data;
+    if (sub?.plan_code) {
+      const { data: plan } = await supabase
+        .from("subscription_plans")
+        .select("name")
+        .eq("code", sub.plan_code)
+        .maybeSingle();
+      setSubscription({
+        plan_name: plan?.name ?? sub.plan_name,
+        status: sub.status,
+        expires_at: sub.expires_at,
+      });
+    } else {
+      setSubscription(sub ?? null);
+    }
     setLoading(false);
+
   }, [user]);
 
   useEffect(() => {

@@ -110,6 +110,36 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_events: {
+        Row: {
+          created_at: string
+          environment: string
+          event_id: string
+          event_type: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          event_id: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          event_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -188,34 +218,124 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          amount_cents: number | null
+          billing_period: string
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          environment: string
+          features: string[]
+          id: string
+          is_active: boolean
+          is_recommended: boolean
+          name: string
+          sort_order: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          billing_period?: string
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          environment?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          is_recommended?: boolean
+          name: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number | null
+          billing_period?: string
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          environment?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          is_recommended?: boolean
+          name?: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
+          billing_period: string | null
+          cancel_at_period_end: boolean
+          cancelled_at: string | null
           created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string | null
           expires_at: string | null
           id: string
+          plan_code: string | null
           plan_name: string
           starts_at: string
           status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_period?: string | null
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string | null
           expires_at?: string | null
           id?: string
+          plan_code?: string | null
           plan_name?: string
           starts_at?: string
           status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_period?: string | null
+          cancel_at_period_end?: boolean
+          cancelled_at?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string | null
           expires_at?: string | null
           id?: string
+          plan_code?: string | null
           plan_name?: string
           starts_at?: string
           status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id?: string
         }
