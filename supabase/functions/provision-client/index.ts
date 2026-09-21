@@ -59,7 +59,15 @@ Deno.serve(async (req) => {
 
     return json({ success: true, ...result });
   } catch (e) {
-    console.error("provision-client error:", (e as Error).message);
+    const err = e as Error & { code?: string };
+    console.error("provision-client error:", err.code ?? "", err.message);
+    if (err.code === "INTERNAL_ACCOUNT") {
+      return json(
+        { error: "Este e-mail pertence a uma conta interna da Qu4ttuor e não pode virar cliente.", reason: "internal_account" },
+        409,
+      );
+    }
     return json({ error: "Não foi possível provisionar o cliente." }, 500);
   }
+
 });

@@ -35,9 +35,37 @@ async function findUserIdByEmail(supabase: SupabaseClient, email: string): Promi
   return null;
 }
 
+/** Papéis internos da Qu4ttuor: nunca podem ser provisionados por pagamento. */
+export const INTERNAL_ROLES = ["admin", "support", "manager"] as const;
+
+export function internalRolesOf(roles: Array<{ role?: string | null }> | null | undefined): string[] {
+  return (roles ?? [])
+    .map((r) => (r.role ?? "").toString())
+    .filter((role) => (INTERNAL_ROLES as readonly string[]).includes(role));
+}
+
+export class InternalAccountError extends Error {
+  code = "INTERNAL_ACCOUNT";
+  constructor(public roles: string[]) {
+    super(`Provisionamento recusado: conta interna (${roles.join(", ")})`);
+  }
+}
+
+/**
+ * Recusa o provisionamento quando o e-mail já pertence a uma conta interna.
+ * Nenhum papel existente é alterado por causa de pagamento.
+ */
+export async function assertNotInternalAccount(supabase: SupabaseClient, userId: string): Promise<void> {
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error) throw new Error(`role check failed: ${error.message}`);
+  const internal = internalRolesOf(data as Array<{ role?: string | null }>);
+  if (internal.length > 0) throw new InternalAccountError(internal);
+}
+
 /**
  * Provisionamento de cliente a partir de um pagamento confirmado.
  * - nunca duplica conta: e-mail já existente apenas recebe/atualiza a assinatura
+ * - conta interna (admin/support/manager) é recusada e registrada
  * - permissão SEMPRE fixa em 'client'; nada vindo do checkout define papel
  * - não define senha nem envia e-mail: a entrega da credencial é decidida depois
  */
@@ -49,7 +77,10 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
   let userId = await findUserIdByEmail(supabase, email);
   let created = false;
 
-  if (!userId) {
+  if (userId) {
+    // Conta já existente: só segue se for conta de cliente.
+    await assertNotInternalAccount(supabase, userId);
+  } else {
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       email_confirm: false,
@@ -62,6 +93,7 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
     userId = data.user.id;
     created = true;
   }
+
 
   // Permissão exclusiva de cliente.
   const { error: roleError } = await supabase
