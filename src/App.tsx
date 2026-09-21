@@ -10,6 +10,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ReginaProvider } from "@/hooks/useRegina";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import Assinatura from "./pages/Assinatura";
+
 import ResetPassword from "./pages/ResetPassword";
 import DefinirSenha from "./pages/DefinirSenha";
 import CompletarCadastro from "./pages/CompletarCadastro";
@@ -38,7 +40,9 @@ const App = () => (
             <ReginaProvider>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/assinatura" element={<Assinatura />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+
                 <Route path="/definir-nova-senha" element={<ProtectedRoute allowPasswordChange><DefinirSenha /></ProtectedRoute>} />
                 <Route path="/definir-senha" element={<Navigate to="/definir-nova-senha" replace />} />
                 <Route path="/completar-cadastro" element={<ProtectedRoute allowProfileCompletion><CompletarCadastro /></ProtectedRoute>} />
