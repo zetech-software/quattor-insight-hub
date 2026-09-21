@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isBillingEnabled } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +44,7 @@ Deno.serve(async (req) => {
       return json({ error: "Não foi possível carregar os planos." }, 500);
     }
 
-    const billingReady = (Deno.env.get("BILLING_ENABLED") ?? "").toLowerCase() === "true";
+    const billingReady = isBillingEnabled();
 
     return json({ plans: data ?? [], billingReady, environment });
   } catch (e) {
