@@ -36,6 +36,13 @@
       "when": 1789998921143,
       "tag": "0004_allow_secure_password_change_flag_clear",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790000568678,
+      "tag": "0005_subscription_plans_catalog_and_payment_events",
+      "breakpoints": true
     }
   ]
 }
