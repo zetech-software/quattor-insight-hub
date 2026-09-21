@@ -281,7 +281,9 @@ const Perfil = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-heading">Informações da conta</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <CardContent
+                className={`grid grid-cols-1 gap-4 text-sm ${isStaff ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}
+              >
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-xs">Situação da conta</p>
                   <Badge variant={isActive ? "default" : "secondary"} className={isActive ? "bg-green-600" : ""}>
@@ -292,14 +294,17 @@ const Perfil = () => {
                   <p className="text-muted-foreground text-xs">Perfil de acesso</p>
                   <p className="font-medium">{role ? roleLabels[role] ?? role : "—"}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs">Plano / assinatura</p>
-                  <p className="font-medium">
-                    {subscription
-                      ? `${subscription.plan_name} (${statusLabels[subscription.status] ?? subscription.status})`
-                      : "Sem assinatura registrada"}
-                  </p>
-                </div>
+                {!isStaff && (
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">Plano / assinatura</p>
+                    <p className="font-medium">
+                      {subscription
+                        ? `${subscription.plan_name} (${statusLabels[subscription.status] ?? subscription.status})`
+                        : "Sem assinatura registrada"}
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-xs">Cadastro</p>
                   <p className="font-medium font-mono">{formatDateTime(createdAt)}</p>
