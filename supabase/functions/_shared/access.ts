@@ -31,5 +31,8 @@ export async function requireOperationalUser(req: Request, allowedRoles?: string
   if (allowedRoles && !roleNames.some((r: string) => allowedRoles.includes(r))) {
     throw new AccessError(403, "Acesso não permitido.");
   }
+  const access = await admin.rpc("has_subscription_access", { _user_id: user.id });
+  if (access.error) throw new AccessError(503, "Não foi possível verificar a assinatura.");
+  if (!access.data) throw new AccessError(403, "Sua assinatura está vencida ou cancelada. Fale com a equipe.");
   return { user, roles: roleNames, admin };
 }

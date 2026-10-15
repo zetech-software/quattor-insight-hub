@@ -1,3 +1,5 @@
+import {findUserIdByEmail,assertNotInternalAccount} from "../_shared/provisionClient.ts";
+import {appOrigin} from "../_shared/appOrigin.ts";
 import { AccessError, requireOperationalUser } from "../_shared/access.ts";
 
 const corsHeaders = {
@@ -37,30 +39,30 @@ Deno.serve(async (req) => {
     // === INVITE CLIENT ===
     if (action === "invite") {
       const { email, fullName, companyName } = body;
-      if (!email || !fullName) return json({ error: "Email e nome são obrigatórios" }, 400);
+      if (typeof email!=="string"||email.length>254||!/^\S+@\S+\.\S+$/.test(email)||typeof fullName!=="string"||!fullName.trim()||fullName.length>200) return json({ error: "Email e nome válidos são obrigatórios" }, 400);
 
-      const origin = req.headers.get("origin");
+      const origin = appOrigin();
       // Convite oficial: cria a conta E envia o e-mail para o cliente definir a própria senha.
       const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
         {
           data: { full_name: fullName, company_name: companyName ?? null },
-          redirectTo: origin ? `${origin}/reset-password` : undefined,
+          redirectTo: `${origin}/reset-password`,
         },
       );
 
-      if (inviteError) {
-        if (inviteError.message?.includes("already been registered")) {
-          return json({ error: "Este email já está cadastrado no sistema" }, 409);
-        }
-        console.error("invite failed:", inviteError.status ?? "", inviteError.name ?? "");
-        return json(
-          { error: "Não foi possível enviar o convite por e-mail. Verifique o endereço e tente novamente." },
-          502,
-        );
+      let invitedUser=invited?.user;
+      if(inviteError) {
+        // Repair only an unfinished invitation; never repurpose an established account.
+        const existingId=await findUserIdByEmail(adminClient,email);
+        if(existingId) {
+          await assertNotInternalAccount(adminClient,existingId);
+          const existing=await adminClient.auth.admin.getUserById(existingId);
+          if(existing.error) return json({error:"Não foi possível conferir o convite."},503);
+          if(existing.data.user?.email_confirmed_at||existing.data.user?.last_sign_in_at) return json({error:"Este email já está cadastrado."},409);
+          invitedUser=existing.data.user;
+        } else return json({error:"Não foi possível enviar o convite. Tente novamente."},502);
       }
-
-      const invitedUser = invited?.user;
       if (!invitedUser) {
         return json({ error: "Não foi possível criar o cliente. Tente novamente." }, 500);
       }
@@ -95,7 +97,7 @@ Deno.serve(async (req) => {
     // === TOGGLE ACTIVE STATUS ===
     if (action === "toggle-active") {
       const { userId, isActive } = body;
-      if (!userId) return json({ error: "userId é obrigatório" }, 400);
+      if (typeof userId!=="string"||typeof isActive!=="boolean") return json({error:"Dados inválidos."},400);
 
       // Gestão e suporte só podem ativar/desativar contas de cliente.
       if (!isAdmin && !(await isClientAccount(userId))) {
@@ -126,10 +128,11 @@ Deno.serve(async (req) => {
       if (planName) updateData.plan_name = planName;
       if (status) updateData.status = status;
 
-      const { error } = await adminClient
-        .from("subscriptions")
-        .update(updateData)
-        .eq("user_id", userId);
+      if(!["active","trial","expired","cancelled"].includes(status??"active")) return json({error:"Situação inválida."},400);
+      if(!(await isClientAccount(userId))) return json({error:"Assinatura permitida apenas para clientes."},403);
+      const {error}=await adminClient.from("subscriptions").upsert({
+        user_id:userId,...updateData,status:status??"active",
+      },{onConflict:"user_id"});
 
       if (error) {
         console.error("update-subscription failed:", error.code ?? "", error.message ?? "");

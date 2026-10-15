@@ -1,3 +1,4 @@
+import {appOrigin} from "../_shared/appOrigin.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   type StripeEnv,
@@ -31,9 +32,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const planCode = typeof body.planCode === "string" ? body.planCode : "";
-    const rawEnv = body.environment === "live" ? "live" : "sandbox";
-    const environment: StripeEnv = rawEnv;
-    const returnUrl = typeof body.returnUrl === "string" ? body.returnUrl : "";
+    const environment: StripeEnv = Deno.env.get("PAYMENTS_ENVIRONMENT")==="live"?"live":"sandbox";
 
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(planCode)) {
       return json({ error: "Plano inválido." }, 400);
@@ -74,21 +73,19 @@ Deno.serve(async (req) => {
     if (!plan.stripe_price_id) {
       return json({ error: "Plano sem preço configurado." }, 409);
     }
-    if (!/^https?:\/\//.test(returnUrl)) {
-      return json({ error: "Endereço de retorno inválido." }, 400);
-    }
+    const origin=appOrigin();
 
     const stripe = createStripeClient(environment);
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
       mode: "subscription",
-      ui_mode: "embedded_page",
-      return_url: returnUrl,
+      success_url: origin+"/assinatura?checkout=success",
+      cancel_url: origin+"/assinatura?checkout=cancelled",
       subscription_data: { metadata: { planCode: plan.code } },
       metadata: { planCode: plan.code },
     });
 
-    return json({ clientSecret: session.client_secret });
+    return json({ url: session.url });
   } catch (e) {
     console.error("create-checkout error:", (e as Error).message);
     return json({ error: "Não foi possível iniciar o pagamento." }, 500);

@@ -1,3 +1,5 @@
+import {readTable} from "@/lib/dataAccess";
+import {readAllPages} from "@/lib/pagination";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,11 +99,9 @@ function addDisclaimer(doc: jsPDF, startY: number) {
 
 // ============ Relatório de Clientes ============
 export async function generateClientReport() {
-  const { data: profiles } = await supabase.from("profiles").select("*");
-  const { data: roles } = await supabase.from("user_roles").select("*");
-  const { data: subs } = await supabase.from("subscriptions").select("*");
+  const [profiles,roles,subs]=await Promise.all([readTable("profiles"),readTable("user_roles"),readTable("subscriptions")]);
 
-  const adminIds = new Set((roles ?? []).filter(r => r.role === "admin").map(r => r.user_id));
+  const adminIds = new Set((roles ?? []).filter(r => ["admin","manager","support"].includes(r.role)).map(r => r.user_id));
   const clients = (profiles ?? []).filter(p => !adminIds.has(p.user_id));
 
   const doc = new jsPDF();
@@ -133,8 +133,8 @@ export async function generateClientReport() {
 
 // ============ Relatório de Cálculos ============
 export async function generateCalculationsReport() {
-  const { data: calcs } = await supabase.from("calculations").select("*").order("created_at", { ascending: false });
-  const { data: profiles } = await supabase.from("profiles").select("user_id, company_name, full_name");
+  const calcs=(await readTable("calculations")).sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const profiles=await readTable("profiles");
 
   const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p.company_name || p.full_name || "—"]));
 
@@ -166,8 +166,8 @@ export async function generateCalculationsReport() {
 
 // ============ Relatório de Assinaturas ============
 export async function generateSubscriptionsReport() {
-  const { data: subs } = await supabase.from("subscriptions").select("*");
-  const { data: profiles } = await supabase.from("profiles").select("user_id, company_name, full_name");
+  const subs=await readTable("subscriptions");
+  const profiles=await readTable("profiles");
 
   const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p.company_name || p.full_name || "—"]));
 
@@ -389,14 +389,17 @@ export type ConferenceFilters = {
 };
 
 export async function fetchConferenceCalculations(filters: ConferenceFilters) {
-  let q = supabase.from("calculations").select("*").order("data", { ascending: false });
-  if (filters.startDate) q = q.gte("data", filters.startDate);
-  if (filters.endDate) q = q.lte("data", filters.endDate);
-  if (filters.userId) q = q.eq("user_id", filters.userId);
-  if (filters.placaCT && filters.placaCT.trim()) q = q.ilike("placa_ct", `%${filters.placaCT.trim()}%`);
-  const { data, error } = await q;
-  if (error) throw error;
-  let rows = data ?? [];
+  const snapshot=new Date().toISOString();
+  let rows=await readAllPages<Calculation>(async(after)=>{
+    let q=supabase.from("calculations").select("*").lte("created_at",snapshot).order("id").limit(500);
+    if(after) q=q.gt("id",after);
+    if(filters.startDate) q=q.gte("data",filters.startDate);
+    if(filters.endDate) q=q.lte("data",filters.endDate);
+    if(filters.userId) q=q.eq("user_id",filters.userId);
+    if(filters.placaCT?.trim()) q=q.ilike("placa_ct","%"+filters.placaCT.trim()+"%");
+    return await q;
+  });
+  rows.sort((a,b)=>b.data.localeCompare(a.data)||b.id.localeCompare(a.id));
   if (filters.situacao && filters.situacao !== "todas") {
     rows = rows.filter((r) => {
       const d = r.diferenca_volume ?? 0;
@@ -419,7 +422,7 @@ export async function generateConferenceReport(
   clientName?: string,
 ) {
   const rows = await fetchConferenceCalculations(filters);
-  const { data: profiles } = await supabase.from("profiles").select("user_id, company_name, full_name");
+  const profiles=await readTable("profiles");
   const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p.company_name || p.full_name || "—"]));
 
   const doc = new jsPDF({ orientation: "landscape" });

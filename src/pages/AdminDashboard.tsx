@@ -26,81 +26,17 @@ interface DashboardStats {
 const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError,setLoadError]=useState(false);
 
   useEffect(() => {
     loadStats();
   }, []);
 
   const loadStats = async () => {
-    const [profilesRes, calcsRes, subsRes, rolesRes, recentRes] = await Promise.all([
-      supabase.from("profiles").select("user_id, is_active, full_name, company_name"),
-      supabase.from("calculations").select("user_id, created_at"),
-      supabase.from("subscriptions").select("user_id, status"),
-      supabase.from("user_roles").select("user_id, role"),
-      supabase
-        .from("calculations")
-        .select("user_id, data, situacao, created_at")
-        .order("created_at", { ascending: false })
-        .limit(8),
-    ]);
-
-    // Contas de equipe (dono, gestão e suporte) não entram nas contagens de clientes.
-    const staffIds = new Set(
-      (rolesRes.data || [])
-        .filter((r) => r.role === "admin" || r.role === "manager" || r.role === "support")
-        .map((r) => r.user_id)
-    );
-
-    const clientProfiles = (profilesRes.data || []).filter((p) => !staffIds.has(p.user_id));
-    const activeClients = clientProfiles.filter((p) => p.is_active).length;
-    const inactiveClients = clientProfiles.filter((p) => !p.is_active).length;
-
-    const subs = (subsRes.data || []).filter((s) => !staffIds.has(s.user_id));
-    const activeSubs = subs.filter((s) => s.status === "active").length;
-    const trialSubs = subs.filter((s) => s.status === "trial").length;
-
-    const allCalcs = calcsRes.data || [];
-
-    // Build weekly data for last 8 weeks
-    const weeklyData: { week: string; count: number }[] = [];
-    const now = new Date();
-    for (let i = 7; i >= 0; i--) {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - i * 7);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 7);
-
-      const count = allCalcs.filter((c) => {
-        const d = new Date(c.created_at);
-        return d >= weekStart && d < weekEnd;
-      }).length;
-
-      const label = `${weekStart.getDate().toString().padStart(2, "0")}/${(weekStart.getMonth() + 1).toString().padStart(2, "0")}`;
-      weeklyData.push({ week: label, count });
-    }
-
-    // Map user_ids to names for recent activity
-    const profileMap = new Map(
-      (profilesRes.data || []).map((p) => [p.user_id, p.company_name || p.full_name || "—"])
-    );
-
-    const recentCalcs = (recentRes.data || []).map((c) => ({
-      client: profileMap.get(c.user_id) || "—",
-      data: c.data,
-      situacao: c.situacao,
-      created_at: c.created_at,
-    }));
-
-    setStats({
-      totalClients: clientProfiles.length,
-      activeClients,
-      inactiveClients,
-      totalCalcs: allCalcs.length,
-      activeSubs,
-      trialSubs,
-      recentCalcs,
-      weeklyData,
-    });
+    setLoading(true);setLoadError(false);
+    const {data,error}=await supabase.rpc("get_admin_dashboard");
+    if(error||!data) {setLoadError(true);setLoading(false);return;}
+    setStats(data as unknown as DashboardStats);
     setLoading(false);
   };
 
@@ -125,6 +61,9 @@ const AdminDashboard = () => {
     );
   }
 
+  if (loadError) return <AppLayout><div role="alert" className="p-8">
+    <p>Não foi possível carregar os indicadores.</p><button type="button" onClick={()=>void loadStats()}>Tentar novamente</button>
+  </div></AppLayout>;
   if (!stats) return null;
 
   const statCards = [

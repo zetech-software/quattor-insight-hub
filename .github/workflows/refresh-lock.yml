@@ -1,0 +1,34 @@
+name: Refresh npm lock
+on:
+  push:
+    branches: [fix/audit-access-calculation-integrity]
+    paths: ['package.json', '.github/workflows/refresh-lock.yml']
+permissions:
+  contents: read
+jobs:
+  lock:
+    if: github.ref == 'refs/heads/fix/audit-access-calculation-integrity'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/audit-access-calculation-integrity
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Check dependency advisories
+        run: |
+          npm audit --json > /tmp/quattor-audit.json || true
+          node -e "const a=require('/tmp/quattor-audit.json'); console.log(JSON.stringify({counts:a.metadata?.vulnerabilities,packages:a.vulnerabilities},null,2))"
+      - name: Commit generated lock only
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "Refresh npm lock for reproducible installation"
+            git push origin HEAD:fix/audit-access-calculation-integrity
+          fi

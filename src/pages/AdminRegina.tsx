@@ -1,3 +1,4 @@
+import {readTable} from "@/lib/dataAccess";
 import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,35 +34,17 @@ const AdminRegina = () => {
 
   const load = async () => {
     setLoading(true);
-    let query = supabase
-      .from("regina_interactions")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(500);
-
-    if (days > 0) {
-      const from = new Date();
-      from.setDate(from.getDate() - days);
-      query = query.gte("created_at", from.toISOString());
+    let interactionsRes:Interaction[],profilesRes;
+    try {
+      [interactionsRes,profilesRes]=await Promise.all([readTable("regina_interactions"),readTable("profiles")]);
+      const cutoff=days>0?Date.now()-days*86400000:0;
+      setRows(interactionsRes.filter(r=>new Date(r.created_at).getTime()>=cutoff).sort((a,b)=>b.created_at.localeCompare(a.created_at)));
+    } catch {
+      toast({title:"Erro ao carregar interações",description:"Tente novamente.",variant:"destructive"});
+      setLoading(false);return;
     }
-
-    const [interactionsRes, profilesRes] = await Promise.all([
-      query,
-      supabase.from("profiles").select("user_id, full_name, company_name"),
-    ]);
-
-    if (interactionsRes.error) {
-      toast({
-        title: "Erro ao carregar interações",
-        description: interactionsRes.error.message,
-        variant: "destructive",
-      });
-    } else {
-      setRows(interactionsRes.data || []);
-    }
-
     const map: Record<string, string> = {};
-    for (const p of profilesRes.data || []) {
+    for (const p of profilesRes || []) {
       map[p.user_id] = p.full_name || p.company_name || "Cliente";
     }
     setNames(map);

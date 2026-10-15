@@ -554,6 +554,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_operational_access: { Args: never; Returns: boolean }
+      get_admin_dashboard: { Args: never; Returns: Json }
+
       clear_must_change_password: { Args: never; Returns: undefined }
       has_admin_area_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {

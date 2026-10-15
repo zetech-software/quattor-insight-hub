@@ -3,11 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  startReginaInteraction,
-  finishReginaInteraction,
-  type ReginaOrigin,
-} from "@/lib/reginaAnalytics";
+type ReginaOrigin = "chat" | "pagina";
 
 export type ReginaErrorKind = "auth" | "generic";
 
@@ -87,18 +83,15 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
         throw err;
       }
 
-      // Registro analítico: uma única linha por mensagem, isolado do fluxo do chat.
-      const interactionId = await startReginaInteraction(userId, text, origin);
+      // Trusted analytics is recorded by the server, including direct API calls.
+      void origin;
 
       try {
         await sendMessage({ text });
         if (failedRef.current) {
-          await finishReginaInteraction(interactionId, "falha");
           return;
         }
-        await finishReginaInteraction(interactionId, "respondida");
       } catch (e) {
-        await finishReginaInteraction(interactionId, "falha");
         setErrorKind(classifyError(e));
         throw e;
       }
