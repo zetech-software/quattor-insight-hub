@@ -1,6 +1,6 @@
 import { classifyReginaQuestion } from "../_shared/reginaTopics.ts";
 import { AccessError, requireOperationalUser } from "../_shared/access.ts";
-import { convertToModelMessages, streamText, type UIMessage } from "npm:ai";
+import { convertToModelMessages, streamText, type UIMessage } from "npm:ai@6.0.308";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {

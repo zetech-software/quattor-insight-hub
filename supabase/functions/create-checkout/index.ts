@@ -1,5 +1,5 @@
 import {appOrigin} from "../_shared/appOrigin.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import {
   type StripeEnv,
   catalogEnvironment,

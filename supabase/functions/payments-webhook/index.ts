@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import {type StripeEnv,catalogEnvironment,createStripeClient,isBillingEnabled,verifyWebhook} from "../_shared/stripe.ts";
 import {provisionClient} from "../_shared/provisionClient.ts";
 import {asObject,objectId,subscriptionState} from "../_shared/paymentState.ts";

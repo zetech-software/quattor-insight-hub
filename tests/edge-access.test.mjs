@@ -58,11 +58,11 @@ async function edge(entry, options = {}) {
       }
       if(specifier.startsWith("https://deno.land/")) return new vm.SyntheticModule(["encode"],function(){this.setExport("encode",(x)=>x);},{context});
       if(specifier.startsWith("https://esm.sh/stripe")) return new vm.SyntheticModule(["default"],function(){this.setExport("default",class Stripe {});},{context});
-      if(specifier==="npm:ai") return new vm.SyntheticModule(["convertToModelMessages","streamText"],function(){
+      if(specifier.startsWith("npm:ai")) return new vm.SyntheticModule(["convertToModelMessages","streamText"],function(){
         this.setExport("convertToModelMessages",async (m)=>m);
         this.setExport("streamText",()=>({toUIMessageStreamResponse:()=>new Response("stream")}));
       },{context});
-      if(specifier==="npm:@ai-sdk/openai-compatible") return new vm.SyntheticModule(["createOpenAICompatible"],function(){
+      if(specifier.startsWith("npm:@ai-sdk/openai-compatible")) return new vm.SyntheticModule(["createOpenAICompatible"],function(){
         this.setExport("createOpenAICompatible",()=>()=>({}));
       },{context});
       return load(path.resolve(path.dirname(ref.identifier),specifier));

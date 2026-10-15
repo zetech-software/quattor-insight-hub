@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
       const { email, fullName, companyName } = body;
       if (typeof email!=="string"||email.length>254||!/^\S+@\S+\.\S+$/.test(email)||typeof fullName!=="string"||!fullName.trim()||fullName.length>200) return json({ error: "Email e nome válidos são obrigatórios" }, 400);
 
+      if(companyName!=null&&(typeof companyName!=="string"||companyName.length>200)) return json({error:"Empresa inválida."},400);
       const origin = appOrigin();
       // Convite oficial: cria a conta E envia o e-mail para o cliente definir a própria senha.
       const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
       const { error } = await adminClient
         .from("profiles")
         .update({ is_active: isActive })
-        .eq("user_id", userId);
+        .eq("user_id", userId).select("user_id").single();
 
       if (error) {
         console.error("toggle-active failed:", error.code ?? "", error.message ?? "");
@@ -130,8 +131,10 @@ Deno.serve(async (req) => {
 
       if(!["active","trial","expired","cancelled"].includes(status??"active")) return json({error:"Situação inválida."},400);
       if(!(await isClientAccount(userId))) return json({error:"Assinatura permitida apenas para clientes."},403);
+      const current=await adminClient.from("subscriptions").select("status").eq("user_id",userId).maybeSingle();
+      if(current.error) return json({error:"Não foi possível conferir a assinatura."},503);
       const {error}=await adminClient.from("subscriptions").upsert({
-        user_id:userId,...updateData,status:status??"active",
+        user_id:userId,...updateData,status:status??current.data?.status??"active",
       },{onConflict:"user_id"});
 
       if (error) {
@@ -146,6 +149,7 @@ Deno.serve(async (req) => {
       const { userId } = body;
       if (!userId) return json({ error: "userId é obrigatório" }, 400);
 
+      if(!isAdmin&&!(await isClientAccount(userId))) return json({error:"Acesso permitido apenas a clientes."},403);
       const { data, error } = await adminClient.auth.admin.getUserById(userId);
       if (error || !data?.user) {
         return json({ error: "Não foi possível carregar os dados de acesso." }, 400);

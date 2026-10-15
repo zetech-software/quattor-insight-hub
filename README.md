@@ -1,26 +1,49 @@
-# Quattor Insights Platform
+# Quattor Insight Hub
+Sistema de conferência do recebimento de diesel, histórico, relatórios e assistente Regina.
+React/Vite/TypeScript, Supabase Auth/Postgres/Edge Functions e Stripe.
 
-Olá, tudo bem? Precisamos desenvolver um sistema integrado à consultoria da Quattor. Eu vou te mandar o design system do site deles com as logos anexas, mas é fundamental que esse sistema seja possível de rodar a planilha base, então de uma forma mais user friendly, né, pensando em user experience e pensando também num design atrativo, a planilha que eu vou anexar aqui. O sistema deve reproduzir na íntegra todas as funcionalidades da planilha de Excel e não pode ter nada quebrado, nenhuma linha que não funcione ou algo do tipo. Ele tem que necessariamente respeitar todas as formulações da planilha, ok? Outro ponto importantíssimo: é, haverá dois tipos de dashboards diferentes. Um dashboard do cliente da Quattor pra ele rodar essa planilha e um outro cliente da Quatto-- e um outro dashboard dos integrantes da Quattor enquanto sócios pra que eles consigam ter um acesso amplo de quantos clientes estão usando as planilhas, né, estão rodando as pesquisas, clientes ativos e tudo mais, porque eles vão vender isso como um SaaS, tá certo? É, se você precisar de mais alguma informação adicional, me solicite por aqui e eu já vou anexar todos os arquivos correspondentes. O site para usar como design system é https://qu4ttuorconsultoria.com.br/
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://quattor-insight-hub.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/4696ebd9-d768-4516-9bd2-72bd001fdf17).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
+## Desenvolvimento
+Node 22.12+ (CI usa 24). npm é o gerenciador único.
+Copie .env.example para .env.local com o projeto de homologação.
+Após a atualização do lock, use:
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm ci
 npm run dev
+npm run check
+npm run test:ui
 ```
+As variáveis VITE_* são públicas. Nunca coloque service_role, senhas, chaves privadas ou tokens administrativos no frontend.
+A configuração pública já presente em .env aponta para o ambiente original; use .env.local para sobrepor em desenvolvimento.
+
+## Banco e migrações
+Supabase possui a base histórica. Drizzle possui alterações posteriores.
+Em projeto novo, aplicar primeiro todos os arquivos supabase/migrations em ordem cronológica e depois drizzle/migrations 0000..0008.
+Em projeto existente, conferir o histórico antes de aplicar apenas as migrações pendentes.
+Não executar drizzle-kit push contra o banco: drizzle/schema.ts vazio não representa o esquema completo.
+CI recria toda a sequência em PostgreSQL descartável e testa as políticas.
+tests/sql/bootstrap.sql é exclusivo de CI, nunca de produção.
+
+## Funções
+Publicar save-calculation, change-password, manage-clients, provision-client, pet-chat, public-plans, create-checkout e payments-webhook.
+Configurar APP_ORIGIN com a origem HTTPS aprovada, sem caminho, e os segredos indicados em .env.example.
+As funções operacionais verificam o usuário no Auth e a elegibilidade no banco.
+Mudança de senha deve usar change-password; atualização direta pelo SDK Auth não dispensa o primeiro acesso.
+
+## Assinaturas e cobrança
+Política aprovada: cliente sem assinatura cadastrada tem acesso manual; assinatura vencida/cancelada ou com prazo encerrado bloqueia o uso.
+Equipe interna é isenta de assinatura, mas não de atividade ou senha pendente.
+Assinatura Stripe de teste não concede acesso em produção.
+O checkout usa apenas o código do plano; ambiente, preço e URLs são determinados no servidor.
+A cobrança continua com a trava BILLING_HOMOLOGATED=false. Não liberar sem planos/preços aprovados, configuração do provedor e homologação de compra/renovação/cancelamento/primeiro acesso.
+Eventos são assinados, reservados com lease e reconciliados com o estado atual do provedor. Falhas ficam recuperáveis com reenvio do webhook depois da correção; eventos em processamento voltam a ser elegíveis após cinco minutos.
+
+## Regina e dados
+O servidor registra pergunta, tópico, situação e tokens. Clientes não podem fabricar telemetria.
+Limites iniciais: 10 solicitações por minuto e 100 por dia UTC por usuário, 2.000 tokens de saída e 60 segundos por requisição.
+Não usar respostas da IA como aprovação autônoma de descarga; o motor determinístico e a validação do responsável técnico continuam sendo a referência.
+Históricos e relatórios percorrem páginas pela chave primária para não truncar dados no limite da API; relatórios usam um instante de corte de criação.
+
+## Operação e liberação
+Ver docs/SECURITY-ROLLOUT.md e docs/RELEASE-CHECKLIST.md.
+A branch/PR por si só não aplica SQL nem publica funções no Supabase/Lovable.
+A liberação exige backup, teste de restauração, validação dos fluxos reais e publicação coordenada do banco, funções e frontend.

@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 export class AccessError extends Error {
   constructor(public status: number, message: string) { super(message); }
