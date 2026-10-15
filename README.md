@@ -19,7 +19,7 @@ A configuração pública já presente em .env aponta para o ambiente original; 
 Supabase possui a base histórica. Drizzle possui alterações posteriores.
 Em projeto novo, aplicar primeiro todos os arquivos supabase/migrations em ordem cronológica e depois drizzle/migrations 0000..0008.
 Em projeto existente, conferir o histórico antes de aplicar apenas as migrações pendentes.
-Não executar drizzle-kit push contra o banco: drizzle/schema.ts vazio não representa o esquema completo.
+Não usar geração automática de esquema: as migrações SQL versionadas são a fonte de verdade; os pacotes e o schema vazio de geração foram removidos.
 CI recria toda a sequência em PostgreSQL descartável e testa as políticas.
 tests/sql/bootstrap.sql é exclusivo de CI, nunca de produção.
 

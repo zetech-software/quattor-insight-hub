@@ -109,3 +109,15 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.get_admin_dashboard() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.get_admin_dashboard() TO authenticated;
+
+-- Explicit maintenance operation: cutoff is supplied by the operator's approved retention policy.
+CREATE FUNCTION public.purge_operational_payloads(_before timestamptz)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF _before IS NULL OR _before>now()-interval '1 day' THEN RAISE EXCEPTION 'Invalid retention cutoff'; END IF;
+ DELETE FROM public.regina_interactions WHERE created_at<_before;
+ UPDATE public.payment_events SET payload=NULL
+ WHERE processed_at<_before AND status IN ('processado','recusado','ignorado');
+END $$;
+REVOKE ALL ON FUNCTION public.purge_operational_payloads(timestamptz) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.purge_operational_payloads(timestamptz) TO service_role;

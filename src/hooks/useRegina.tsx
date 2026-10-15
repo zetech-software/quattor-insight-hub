@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode, useMemo, useCallback, useRef } from "react";
+import {useAuth} from "@/hooks/useAuth";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
@@ -40,7 +41,13 @@ function classifyError(error: unknown): ReginaErrorKind {
   return "generic";
 }
 
-export function ReginaProvider({ children }: { children: ReactNode }) {
+export function ReginaProvider({children}:{children:ReactNode}) {
+  const {user}=useAuth();
+  return <ReginaSession key={user?.id??"anonymous"}>{children}</ReginaSession>;
+}
+function ReginaSession({ children }: { children: ReactNode }) {
+  const alive=useRef(true);
+  useEffect(()=>{alive.current=true;return ()=>{alive.current=false;};},[]);
   const [isOpen, setIsOpen] = useState(false);
   const [chatId, setChatId] = useState(() => crypto.randomUUID());
   const [errorKind, setErrorKind] = useState<ReginaErrorKind | null>(null);
@@ -77,6 +84,7 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
       failedRef.current = false;
       const { data } = await supabase.auth.getSession();
       const userId = data.session?.user?.id;
+      if(!alive.current) throw new ReginaError("auth");
       if (!data.session?.access_token || !userId) {
         const err = new ReginaError("auth");
         setErrorKind("auth");

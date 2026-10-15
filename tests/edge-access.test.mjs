@@ -1,3 +1,4 @@
+import {webcrypto,createHmac} from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
@@ -36,12 +37,12 @@ async function edge(entry, options = {}) {
     createClient:() => ({
       auth:{getUser:async () => ({data:{user:state.valid?{id:userId}:null},error:null})},
       from:(table) => new Query(table),
-      rpc:async(name)=>({data:name==="reserve_regina_interaction"?"reservation":state.subscriptionAllowed!==false,error:null}),
+      rpc:async(name)=>({data:name==="claim_payment_event"?{token:"lease",status:"pendente"}:name==="reserve_regina_interaction"?"reservation":state.subscriptionAllowed!==false,error:name==="claim_payment_event"&&state.claimError?{code:"FAIL"}:null}),
     }),
   };
-  const env = {SUPABASE_URL:"https://example.invalid",SUPABASE_ANON_KEY:"public",SUPABASE_SERVICE_ROLE_KEY:"server",LOVABLE_API_KEY:"fake"};
+  const env = {SUPABASE_URL:"https://example.invalid",SUPABASE_ANON_KEY:"public",SUPABASE_SERVICE_ROLE_KEY:"server",LOVABLE_API_KEY:"fake",PAYMENTS_SANDBOX_WEBHOOK_SECRET:"test-webhook-secret"};
   const context = vm.createContext({
-    Request,Response,Headers,TextEncoder,TextDecoder,Uint8Array,AbortSignal,console,
+    Request,Response,Headers,URL,TextEncoder,TextDecoder,Uint8Array,AbortSignal,console,crypto:webcrypto,
     Deno:{env:{get:(k)=>env[k]},serve:(fn)=>{handler=fn;}},
     fetch:async () => new Response(JSON.stringify(state.authOk ? {id:userId} : {error:"rejected"}),{status:state.authOk?200:400}),
   });
@@ -56,7 +57,7 @@ async function edge(entry, options = {}) {
         const stub=new vm.SyntheticModule(["createClient"],function(){this.setExport("createClient",sdk.createClient);},{context});
         return stub;
       }
-      if(specifier.startsWith("https://deno.land/")) return new vm.SyntheticModule(["encode"],function(){this.setExport("encode",(x)=>x);},{context});
+      if(specifier.startsWith("https://deno.land/")) return new vm.SyntheticModule(["encode"],function(){this.setExport("encode",(x)=>new TextEncoder().encode(Buffer.from(x).toString("hex")));},{context});
       if(specifier.startsWith("https://esm.sh/stripe")) return new vm.SyntheticModule(["default"],function(){this.setExport("default",class Stripe {});},{context});
       if(specifier.startsWith("npm:ai")) return new vm.SyntheticModule(["convertToModelMessages","streamText"],function(){
         this.setExport("convertToModelMessages",async (m)=>m);
@@ -71,8 +72,8 @@ async function edge(entry, options = {}) {
   }
   const mod=await load(path.join(root,"supabase/functions",entry,"index.ts"));
   await mod.evaluate();
-  return {state,call:(payload={},method="POST")=>handler(new Request("https://example.invalid/functions/v1/"+entry,{
-    method,headers:{Authorization:"Bearer valid","Content-Type":"application/json"},
+  return {state,call:(payload={},method="POST",extraHeaders={})=>handler(new Request("https://example.invalid/functions/v1/"+entry+(state.query??""),{
+    method,headers:{Authorization:"Bearer valid","Content-Type":"application/json",...extraHeaders},
     ...(method==="POST"?{body:JSON.stringify(payload)}:{}),
   }))};
 }
@@ -111,4 +112,27 @@ test("expired subscription cannot call the save endpoint",async()=>{
  const e=await edge("save-calculation",{subscriptionAllowed:false});
  assert.equal((await e.call({})).status,403);
  assert.equal(e.state.writes.length,0);
+});
+
+function signed(event) {
+ const timestamp=Math.floor(Date.now()/1000);
+ const digest=createHmac("sha256","test-webhook-secret").update(timestamp+"."+JSON.stringify(event)).digest("hex");
+ return {"stripe-signature":"t="+timestamp+",v1="+digest};
+}
+const event={id:"evt_test",type:"checkout.session.completed",livemode:false,data:{object:{}}};
+test("webhook rejects invalid signatures without database effects",async()=>{
+ const e=await edge("payments-webhook",{query:"?env=sandbox"});
+ assert.equal((await e.call(event,"POST",{"stripe-signature":"invalid"})).status,400);
+ assert.equal(e.state.writes.length,0);
+});
+test("signed webhook records an ignored event while billing is disabled",async()=>{
+ const e=await edge("payments-webhook",{query:"?env=sandbox"});
+ assert.equal((await e.call(event,"POST",signed(event))).status,200);
+ assert.equal(e.state.writes.length,1);
+ assert.equal(e.state.writes[0].table,"payment_events");
+ assert.equal(e.state.writes[0].data.status,"ignorado");
+});
+test("webhook reservation database failure is retried, never acknowledged as success",async()=>{
+ const e=await edge("payments-webhook",{query:"?env=sandbox",claimError:true});
+ assert.equal((await e.call(event,"POST",signed(event))).status,500);
 });
