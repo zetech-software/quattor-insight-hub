@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { AccessError, requireOperationalUser } from "../_shared/access.ts";
 import { isBillingEnabled } from "../_shared/stripe.ts";
 import { provisionClient } from "../_shared/provisionClient.ts";
 
@@ -23,21 +23,7 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Não autorizado" }, 401);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) return json({ error: "Não autorizado" }, 401);
-
-    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", caller.id);
-    const isAdmin = (roles ?? []).some((r: { role: string }) => r.role === "admin");
-    if (!isAdmin) return json({ error: "Esta ação é permitida somente ao administrador." }, 403);
+    await requireOperationalUser(req, ["admin"]);
 
     if (!isBillingEnabled()) {
       return json({ error: "Cobrança ainda não homologada.", reason: "billing_disabled" }, 503);
@@ -59,6 +45,7 @@ Deno.serve(async (req) => {
 
     return json({ success: true, ...result });
   } catch (e) {
+    if (e instanceof AccessError) return json({ error: e.message }, e.status);
     const err = e as Error & { code?: string };
     console.error("provision-client error:", err.code ?? "", err.message);
     if (err.code === "INTERNAL_ACCOUNT") {

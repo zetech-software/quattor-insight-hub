@@ -78,7 +78,7 @@ const ResetPassword = () => {
       return;
     }
 
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.functions.invoke("change-password", { body: { password } });
     if (error) {
       setLoading(false);
       const description = friendlyPasswordError(error.message);

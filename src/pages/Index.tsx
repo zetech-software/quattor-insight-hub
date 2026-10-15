@@ -75,13 +75,13 @@ const Index = () => {
       const v = parseFloat(rawInputs.massaEspecifica20NF) || 0;
       return massaUnit === "kg/l" ? v * 1000 : v;
     })(),
-    temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
+    temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra),
     densidadeAmostra: (() => {
       const v = parseFloat(rawInputs.densidadeAmostra) || 0;
       return daUnit === "kg/m³" ? v / 1000 : v;
     })(),
-    temperaturaCT: parseFloat(rawInputs.temperaturaCT || rawInputs.temperaturaAmostra) || 0,
-    situacaoSeta: parseFloat(rawInputs.situacaoSeta) || 0,
+    temperaturaCT: parseFloat(rawInputs.temperaturaCT),
+    situacaoSeta: parseFloat(rawInputs.situacaoSeta),
   }), [rawInputs, massaUnit, daUnit]);
 
   const massaError = useMemo(() => validateDensity(rawInputs.massaEspecifica20NF, massaUnit), [rawInputs.massaEspecifica20NF, massaUnit]);
@@ -140,38 +140,13 @@ const Index = () => {
 
   const handleSave = async () => {
     if (!results || !session?.user?.id) {
-      toast({ title: "Erro", description: "Preencha todos os campos para salvar.", variant: "destructive" });
+      toast({ title: "Erro", description: "Preencha todos os campos, incluindo as temperaturas e a situação da seta.", variant: "destructive" });
       return;
     }
 
     setSaving(true);
-    const { error } = await supabase.from("calculations").insert({
-      user_id: session.user.id,
-      data: inputs.data,
-      numero_nf: inputs.numeroNF || null,
-      placa_ct: inputs.placaCT || null,
-      municipio_base: rawInputs.municipioBase || null,
-      volume_nf: inputs.volumeNF,
-      peso_liquido: inputs.pesoLiquido,
-      massa_especifica_20_nf: inputs.massaEspecifica20NF,
-      temperatura_amostra: inputs.temperaturaAmostra,
-      densidade_amostra: inputs.densidadeAmostra,
-      temperatura_ct: inputs.temperaturaCT,
-      situacao_seta: inputs.situacaoSeta,
-      dnf20: results.dnf20,
-      fcnf: results.fcnf,
-      temperatura_estimada: results.temperaturaEstimada,
-      dac20: results.dac20,
-      qualidade_diff: results.qualidadeDiff,
-      vct_min: results.vctMin,
-      vct: results.vct,
-      vct_max: results.vctMax,
-      fcct: results.fcct,
-      v20: results.v20,
-      volume_recebido: results.volumeRecebido,
-      volume_atestado: results.volumeAtestado,
-      diferenca_volume: results.diferencaVolume,
-      situacao: results.situacao,
+    const { error } = await supabase.functions.invoke("save-calculation", {
+      body: { inputs: { ...inputs, municipioBase: rawInputs.municipioBase } },
     });
     setSaving(false);
 
@@ -342,6 +317,12 @@ const Index = () => {
               </CardContent>
             </Card>
 
+            {!results && inputs.volumeNF > 0 && (
+              <p role="status" className="text-sm text-muted-foreground">
+                Preencha as duas temperaturas, a situação da seta (use 0 quando na seta) e os demais dados válidos para calcular.
+                Dados fora da faixa de estimativa não geram resultado.
+              </p>
+            )}
             {/* Seção 2 - Dados de Campo */}
             <Card>
               <CardHeader className="pb-3">

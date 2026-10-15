@@ -50,6 +50,13 @@
       "when": 1790000971420,
       "tag": "0006_payment_events_status_and_error",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792089900000,
+      "tag": "0007_access_and_calculation_integrity",
+      "breakpoints": true
     }
   ]
 }

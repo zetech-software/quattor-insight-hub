@@ -1,5 +1,5 @@
+import { AccessError, requireOperationalUser } from "../_shared/access.ts";
 import { convertToModelMessages, streamText, type UIMessage } from "npm:ai";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
@@ -58,39 +58,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Exige sessão autenticada válida (validação no servidor)
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-    const unauthorized = () =>
-      new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-    if (!token) return unauthorized();
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
-    if (!supabaseUrl || !anonKey) return unauthorized();
-    if (token === anonKey) return unauthorized();
-
-    const authClient = createClient(supabaseUrl, anonKey);
-    const { data: userData, error: userError } = await authClient.auth.getUser(token);
-    if (userError || !userData?.user) return unauthorized();
-
-    // Admin/Dono não usa a Regina como assistente (só acompanha o uso no painel).
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: roleRows } = await userClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userData.user.id);
-    if ((roleRows ?? []).some((r: { role: string }) => r.role === "admin")) {
-      return new Response(
-        JSON.stringify({ error: "A Regina não está disponível para o perfil administrador." }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const { roles } = await requireOperationalUser(req);
+    if (roles.includes("admin")) {
+      throw new AccessError(403, "A Regina não está disponível para o perfil administrador.");
     }
 
     const key = Deno.env.get("LOVABLE_API_KEY");
@@ -106,7 +76,7 @@ Deno.serve(async (req) => {
       context?: string;
     };
 
-    if (!Array.isArray(messages)) {
+    if (!Array.isArray(messages) || messages.length > 50 || JSON.stringify(messages).length > 40000 || (context !== undefined && (typeof context !== "string" || context.length > 8000))) {
       return new Response(JSON.stringify({ error: "messages required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -124,10 +94,15 @@ Deno.serve(async (req) => {
       model,
       system,
       messages: await convertToModelMessages(messages),
+      maxOutputTokens: 2000,
+      abortSignal: AbortSignal.timeout(60000),
     });
 
     return result.toUIMessageStreamResponse({ headers: corsHeaders });
   } catch (e) {
+    if (e instanceof AccessError) {
+      return new Response(JSON.stringify({ error: e.message }), { status: e.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const msg = e instanceof Error ? e.message : String(e);
     console.error("regina-chat error:", msg);
     return new Response(JSON.stringify({ error: msg }), {

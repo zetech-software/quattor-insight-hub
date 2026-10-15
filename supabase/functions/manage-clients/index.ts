@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { AccessError, requireOperationalUser } from "../_shared/access.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,36 +17,8 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Não autorizado" }, 401);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey =
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
-      Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    // Verify caller identity
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) return json({ error: "Não autorizado" }, 401);
-
-    // Permissão do chamador: admin, gestão (manager) ou suporte
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: callerRoles } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id);
-
-    const roles = (callerRoles ?? []).map((r: { role: string }) => r.role);
+    const { roles, admin: adminClient } = await requireOperationalUser(req, ["admin", "manager", "support"]);
     const isAdmin = roles.includes("admin");
-    const isManager = roles.includes("manager");
-    const isSupport = roles.includes("support");
-    if (!isAdmin && !isManager && !isSupport) {
-      return json({ error: "Acesso restrito a administradores" }, 403);
-    }
 
     // Quem não é admin só age sobre contas de cliente (sem nenhum papel de equipe)
     const isClientAccount = async (userId: string) => {
@@ -183,6 +155,8 @@ Deno.serve(async (req) => {
 
     return json({ error: "Ação não reconhecida" }, 400);
   } catch (e) {
-    return json({ error: e.message }, 500);
+    if (e instanceof AccessError) return json({ error: e.message }, e.status);
+    console.error("manage-clients failed", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });
