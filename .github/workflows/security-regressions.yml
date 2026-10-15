@@ -50,7 +50,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=low
       - run: npx tsc -p tsconfig.app.json --noEmit
       - run: npm test
       - run: npm run build
@@ -61,7 +62,12 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check --node-modules-dir=auto supabase/functions/{save-calculation,change-password,pet-chat,manage-clients,payments-webhook,public-plans,create-checkout}/index.ts
+      - name: Check isolated Edge runtime
+        run: |
+          runtime_dir="$(mktemp -d)"
+          cp -R supabase/functions/. "$runtime_dir/"
+          cd "$runtime_dir"
+          deno check --node-modules-dir=auto {save-calculation,change-password,pet-chat,manage-clients,payments-webhook,public-plans,create-checkout}/index.ts
 
   browser-ui:
     runs-on: ubuntu-latest
@@ -70,6 +76,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui

@@ -1,38 +1,33 @@
-# Primeira etapa da auditoria — acesso e integridade
-Branch: fix/audit-access-calculation-integrity.
+# Auditoria — implantação coordenada
 
-## O que muda
-- RLS exige conta ativa, papel cadastrado e senha já definida nas operações de cálculos, assinaturas e Regina.
-- Conta bloqueada ainda lê seu próprio perfil/papel para sair da interface ou recuperar acesso.
-- Manager não altera perfis de equipe. Em clientes, pode apenas alterar atividade, preservando demais campos.
-- RPC clear_must_change_password apenas confirma conclusão; não limpa a flag.
-- change-password valida sessão, atualiza senha pelo endpoint do próprio usuário no Auth e só então libera a flag por service role.
-- save-calculation valida entradas e recalcula resultados. INSERT/UPDATE diretos de cálculos por authenticated são revogados.
-- Prévia e persistência importam o mesmo motor. Temperaturas/seta vazias não viram zero. Ruído IEEE-754 no limite de 0,003 é absorvido sem ampliar a tolerância de engenharia.
-- Faixas CNP usam o maior limite inferior, sem lacunas. Estimativa fora da curva falha em vez de saturar em 0/100 °C.
-- Regina tem limites de mensagens/contexto/saída e timeout; cotas persistentes ainda são etapa futura.
+Branch: fix/audit-access-calculation-integrity. PR #1.
 
-## Validação
-Local: node --experimental-vm-modules --test tests/*.test.mjs.
-Os testes de funções usam os módulos reais com fronteiras Auth/SDK/HTTP simuladas; não substituem homologação com Supabase.
-CI: fixtures/cálculos, funções, PostgreSQL 16 descartável com os dois históricos de migrações, build e tipos.
-Bootstrap em tests/sql é EXCLUSIVO do banco descartável. Nunca aplicá-lo a Supabase real.
+## Correções implementadas
+- Acesso operacional validado no banco e nas funções: conta ativa, papel, senha definida e elegibilidade. Clientes sem assinatura mantêm acesso manual; assinatura explicitamente encerrada ou vencida bloqueia operações. Equipe independe de assinatura.
+- RLS restringe alterações de perfis; cálculos só são persistidos pelo servidor, com entradas validadas e resultados recalculados pelo mesmo motor usado na prévia.
+- Primeiro acesso atualiza a senha no Auth antes de liberar a flag. Falhas não liberam acesso.
+- Regina tem cotas persistentes, telemetria no servidor, timeout, limite de saída e isolamento de sessão entre contas.
+- Webhooks verificam assinatura e usam reserva com lease para repetição/recuperação; estado de assinatura é reconciliado com o provedor. Cobrança permanece desligada até homologação.
+- Histórico e relatórios paginam consultas; CSV neutraliza fórmulas; painel agrega no banco. Sessões e falhas de carregamento fecham acesso.
+- Dependências atualizadas e lock npm regenerado. CI instala com npm ci e bloqueia advisories npm de qualquer severidade.
 
-## Implantação em homologação
-1. Fazer backup verificável e confirmar todas as migrações anteriores aplicadas: supabase/migrations cronologicamente e drizzle 0000..0006. A 0007 depende das duas árvores.
-2. Executar os checks da branch; investigar qualquer falha. Não confundir execução de testes com aprovação do ambiente publicado.
-3. Publicar save-calculation e change-password e as versões novas de manage-clients, provision-client e pet-chat em homologação. service_role permanece apenas nas variáveis do servidor.
-4. Em janela controlada, aplicar drizzle/migrations/0007_access_and_calculation_integrity.sql pelo mecanismo de migração existente e publicar o frontend correspondente. A aplicação deve ficar indisponível durante a troca se clientes antigos ainda estiverem ativos: o modelo antigo de gravação de cálculos será negado após a migração.
-5. Testar visitante, cliente A/B, manager, support e admin. Verificar sessão já emitida de conta desativada, senha pendente, convite e recovery. Confirmar que falha de Auth nunca libera a flag.
-6. Salvar cálculo, comparar banco/UI/PDF e tentar enviar derivados adulterados. Validar regras de precisão/faixas com responsável técnico e planilha original.
-7. Só promover após evidências dos testes reais. Esta branch não faz deploy ou migração automática.
+## Evidências e limites
+CI executa fixtures de cálculo, testes das funções com Auth/SDK/HTTP simulados, PostgreSQL 16 descartável com os dois históricos de migrações e testes RLS/cotas/leases, TypeScript, Vitest, build e Chromium.
+O teste de navegador usa APIs simuladas: não comprova SMTP, Auth real, Stripe ou provedor de IA.
+A auditoria npm retornou zero advisories em 15/10/2026; isso não é garantia de ausência de falhas.
+Bootstrap em tests/sql é EXCLUSIVO do banco descartável. Nunca aplicá-lo ao banco real.
+Histórico não foi recalculado. PDF/CSV continuam exportações, sem assinatura digital.
+A rotina de retenção exige política e execução deliberadas; não apaga dados automaticamente.
 
-A atualização direta de senha pelo SDK Auth não libera mais o primeiro acesso: o frontend precisa usar change-password. O endpoint não ignora exigências de senha/reauthentication configuradas no Auth. Falha de liberação após sucesso de Auth retorna 503 e informa que a credencial já foi atualizada; investigar e repetir com sessão válida.
-
-## Limites desta etapa
-Cobrança permanece desligada. Elegibilidade por assinatura, cotas persistentes da IA, fluxo comercial/webhooks, paginação, CSV, estado de sessão e dependências continuam no plano da auditoria.
-Registros históricos não são recalculados nem alterados automaticamente. A geração local de arquivos continua sendo uma exportação, não uma assinatura digital ou atestado inviolável.
-O lock npm original não é reproduzível; o job de aplicação usa npm install e a atualização do lock deve ser revisada na etapa de dependências.
+## Homologação e publicação
+1. Backup verificável e inventário das migrações existentes. Confirmar supabase/migrations em ordem e drizzle 0000..0006 antes de aplicar 0007 e 0008.
+2. Configurar segredos exclusivamente no servidor, APP_ORIGIN e ambientes de pagamento; conferir .env.example e RELEASE-CHECKLIST.md.
+3. Em homologação, publicar todas as funções alteradas e aplicar drizzle/migrations/0007_access_and_calculation_integrity.sql e 0008 (nome completo no diretório). Publicar o frontend correspondente na mesma janela.
+4. Testar visitante, clientes A/B, manager, support e admin; bloqueio de sessão já emitida, senha pendente, convite/recovery por e-mail, acesso manual e assinatura encerrada.
+5. Conferir cálculo no banco/UI/PDF contra planilha aprovada pelo responsável técnico, incluindo limites de temperatura e densidade.
+6. Homologar streaming/telemetria/cotas da IA, convite e repetição/ordem/falhas de webhooks no ambiente de testes. Habilitar cobrança somente após aprovação comercial e técnica.
+7. Promover após evidências reais. Manter manutenção durante a troca caso o frontend antigo ainda esteja ativo: a escrita direta de cálculos será negada.
+Esta branch não aplica SQL, publica funções ou faz deploy automaticamente. Não mesclar apenas para disparar a sincronização do frontend antes da atualização coordenada do backend.
 
 ## Reversão
-Não reabrir escrita direta nem restaurar a RPC que dispensava a senha como solução de incidente. Em falha, manter o sistema em manutenção e corrigir/voltar a versão coordenada de frontend/funções/esquema em homologação primeiro. Preservar histórico e backup.
+Preservar backup e histórico. Em incidente, manter manutenção e corrigir ou reverter versões coordenadas de frontend/funções/esquema. Não reabrir escrita direta de cálculos nem restaurar a RPC que dispensava definição de senha.
