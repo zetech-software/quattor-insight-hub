@@ -62,4 +62,4 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check supabase/functions/save-calculation/index.ts supabase/functions/change-password/index.ts
+      - run: deno check --node-modules-dir=auto supabase/functions/save-calculation/index.ts supabase/functions/change-password/index.ts
