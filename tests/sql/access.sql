@@ -62,7 +62,7 @@ SELECT set_config('request.jwt.claim.sub','',true);
 UPDATE public.profiles SET must_change_password=true WHERE user_id='00000000-0000-0000-0000-000000000003';
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',true);
-DO $ BEGIN
+DO $$ BEGIN
  BEGIN
   PERFORM public.clear_must_change_password();
   RAISE EXCEPTION 'FAILED: password flag cleared by RPC';
