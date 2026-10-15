@@ -36,6 +36,7 @@ async function edge(entry, options = {}) {
     createClient:() => ({
       auth:{getUser:async () => ({data:{user:state.valid?{id:userId}:null},error:null})},
       from:(table) => new Query(table),
+      rpc:async(name)=>({data:name==="reserve_regina_interaction"?"reservation":state.subscriptionAllowed!==false,error:null}),
     }),
   };
   const env = {SUPABASE_URL:"https://example.invalid",SUPABASE_ANON_KEY:"public",SUPABASE_SERVICE_ROLE_KEY:"server",LOVABLE_API_KEY:"fake"};
@@ -104,4 +105,10 @@ test("save endpoint rejects overlong payload before persistence",async()=>{
   const e=await edge("save-calculation");
   assert.equal((await e.call({x:"x".repeat(9000)})).status,413);
   assert.equal(e.state.writes.length,0);
+});
+
+test("expired subscription cannot call the save endpoint",async()=>{
+ const e=await edge("save-calculation",{subscriptionAllowed:false});
+ assert.equal((await e.call({})).status,403);
+ assert.equal(e.state.writes.length,0);
 });

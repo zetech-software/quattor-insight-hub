@@ -21,7 +21,7 @@ jobs:
       - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Check dependency advisories
         run: |
-          npm audit --json > /tmp/quattor-audit.json || true
+          npm audit --json --fetch-retries=0 --fetch-timeout=20000 > /tmp/quattor-audit.json || true
           node -e "const a=require('/tmp/quattor-audit.json'); console.log(JSON.stringify({counts:a.metadata?.vulnerabilities,packages:a.vulnerabilities},null,2))"
       - name: Commit generated lock only
         run: |

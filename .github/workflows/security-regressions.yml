@@ -1,7 +1,7 @@
 name: Security regressions
 on:
   push:
-    branches: [fix/audit-access-calculation-integrity]
+    branches: [main, fix/audit-access-calculation-integrity]
   pull_request:
 permissions:
   contents: read
@@ -41,6 +41,7 @@ jobs:
             psql -v ON_ERROR_STOP=1 -f "$file"
           done
       - run: psql -v ON_ERROR_STOP=1 -f tests/sql/access.sql
+      - run: psql -v ON_ERROR_STOP=1 -f tests/sql/completion.sql
 
   application:
     runs-on: ubuntu-latest
@@ -49,8 +50,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      # Existing npm lock is stale; this job reports the full app independently.
-      # Commit a refreshed lock in the dependency/installation follow-up.
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npx tsc -p tsconfig.app.json --noEmit
       - run: npm test
@@ -62,4 +61,15 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check --node-modules-dir=auto supabase/functions/save-calculation/index.ts supabase/functions/change-password/index.ts
+      - run: deno check --node-modules-dir=auto supabase/functions/{save-calculation,change-password,pet-chat,manage-clients,payments-webhook,public-plans,create-checkout}/index.ts
+
+  browser-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui

@@ -1,3 +1,4 @@
+import type {Tables} from "@/integrations/supabase/types";
 import {readTable} from "@/lib/dataAccess";
 import { useEffect, useState, useCallback } from "react";
 import { AppLayout } from "@/components/AppLayout";
@@ -42,7 +43,7 @@ const AdminClientes = () => {
   const loadClients = useCallback(async () => {
     setLoading(true);
 
-    let profiles,subs,calcs,roles;
+    let profiles:Tables<"profiles">[],subs:Tables<"subscriptions">[],calcs:Tables<"calculations">[],roles:Tables<"user_roles">[];
     try {
       [profiles,subs,calcs,roles]=await Promise.all([readTable("profiles"),readTable("subscriptions"),readTable("calculations"),readTable("user_roles")]);
     } catch {
