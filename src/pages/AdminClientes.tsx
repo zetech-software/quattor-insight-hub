@@ -1,3 +1,5 @@
+import type {Tables} from "@/integrations/supabase/types";
+import {readTable} from "@/lib/dataAccess";
 import { useEffect, useState, useCallback } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,32 +43,13 @@ const AdminClientes = () => {
   const loadClients = useCallback(async () => {
     setLoading(true);
 
-    // Get all client profiles
-    const { data: profiles, error: pError } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, company_name, cnpj, municipio, uf, phone, is_active, created_at");
-
-    if (pError) {
-      toast({ title: "Erro ao carregar clientes", description: pError.message, variant: "destructive" });
-      setLoading(false);
-      return;
+    let profiles:Tables<"profiles">[],subs:Tables<"subscriptions">[],calcs:Tables<"calculations">[],roles:Tables<"user_roles">[];
+    try {
+      [profiles,subs,calcs,roles]=await Promise.all([readTable("profiles"),readTable("subscriptions"),readTable("calculations"),readTable("user_roles")]);
+    } catch {
+      toast({title:"Erro ao carregar clientes",description:"Não foi possível consultar todos os dados.",variant:"destructive"});
+      setLoading(false);return;
     }
-
-    // Get subscriptions
-    const { data: subs } = await supabase
-      .from("subscriptions")
-      .select("user_id, plan_name, status");
-
-    // Get calculation counts
-    const { data: calcs } = await supabase
-      .from("calculations")
-      .select("user_id");
-
-    // Get roles to filter out staff accounts (admin/gestão/suporte)
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id, role");
-
     const adminIds = new Set(
       (roles || [])
         .filter(r => r.role === "admin" || r.role === "manager" || r.role === "support")

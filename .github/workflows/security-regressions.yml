@@ -1,0 +1,81 @@
+name: Security regressions
+on:
+  push:
+    branches: [main, fix/audit-access-calculation-integrity]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  calculation-and-edge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --experimental-vm-modules --test tests/*.test.mjs
+  database-access:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: quattor_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: test-only
+      PGDATABASE: quattor_test
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -v ON_ERROR_STOP=1 -f tests/sql/bootstrap.sql
+      - name: Replay both migration histories in dependency order
+        run: |
+          for file in supabase/migrations/*.sql drizzle/migrations/*.sql; do
+            psql -v ON_ERROR_STOP=1 -f "$file"
+          done
+      - run: psql -v ON_ERROR_STOP=1 -f tests/sql/access.sql
+      - run: psql -v ON_ERROR_STOP=1 -f tests/sql/completion.sql
+
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=low
+      - run: npx tsc -p tsconfig.app.json --noEmit
+      - run: npm test
+      - run: npm run build
+  edge-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check isolated Edge runtime
+        run: |
+          runtime_dir="$(mktemp -d)"
+          cp -R supabase/functions/. "$runtime_dir/"
+          cd "$runtime_dir"
+          deno check --minimum-dependency-age=0 --node-modules-dir=auto {save-calculation,change-password,pet-chat,manage-clients,payments-webhook,public-plans,create-checkout}/index.ts
+
+  browser-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui

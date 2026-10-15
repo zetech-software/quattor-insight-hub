@@ -68,7 +68,7 @@ export async function verifyWebhook(
   }
 
   const age = Math.abs(Date.now() / 1000 - Number(timestamp));
-  if (age > 300) {
+  if (!Number.isFinite(age) || age > 300) {
     throw new Error("Webhook timestamp too old");
   }
 
@@ -86,7 +86,12 @@ export async function verifyWebhook(
   );
   const expected = new TextDecoder().decode(encode(new Uint8Array(signed)));
 
-  if (!v1Signatures.includes(expected)) {
+  const equals=(a:string,b:string)=>{
+    if(a.length!==b.length) return false;
+    let mismatch=0;for(let i=0;i<a.length;i++) mismatch|=a.charCodeAt(i)^b.charCodeAt(i);
+    return mismatch===0;
+  };
+  if (!v1Signatures.some((s)=>equals(s,expected))) {
     throw new Error("Invalid webhook signature");
   }
 

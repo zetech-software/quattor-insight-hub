@@ -1,3 +1,5 @@
+import {supabase} from "@/integrations/supabase/client";
+import {useAuth} from "@/hooks/useAuth";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,23 +23,28 @@ const benefits = [
 ];
 
 const Assinatura = () => {
+  const {session,signOut}=useAuth();
   const [loading, setLoading] = useState(true);
+  const [error,setError]=useState<string|null>(null);
+  const [checkout,setCheckout]=useState<string|null>(null);
+  const [retry,setRetry]=useState(0);
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [billingReady, setBillingReady] = useState(false);
   const [period, setPeriod] = useState<Period>("mensal");
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);setError(null);
     fetchPublicPlans().then((result) => {
       if (cancelled) return;
       setPlans(result.plans);
       setBillingReady(result.billingReady);
       setLoading(false);
-    });
+    }).catch(()=>{if(!cancelled){setError("Não foi possível carregar os planos.");setLoading(false);}});
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retry]);
 
   const periodsAvailable = useMemo(
     () => Array.from(new Set(plans.map((p) => p.billing_period))),
@@ -52,17 +59,30 @@ const Assinatura = () => {
     [plans, period, periodsAvailable],
   );
 
+  const startCheckout=async(planCode:string)=>{
+    setCheckout(planCode);setError(null);
+    try {
+      const {data,error:requestError}=await supabase.functions.invoke("create-checkout",{body:{planCode}});
+      if(requestError||!data?.url) throw new Error("checkout unavailable");
+      const target=new URL(data.url);
+      if(target.protocol!=="https:"||target.hostname!=="checkout.stripe.com") throw new Error("invalid checkout");
+      window.location.assign(target.href);
+    } catch {setError("Não foi possível iniciar a assinatura. Tente novamente ou fale com a equipe.");}
+    finally {setCheckout(null);}
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <img src={logo} alt="Qu4ttuor Consultoria" className="h-9" />
           <Button asChild variant="outline" size="sm">
-            <Link to="/login">Entrar</Link>
+            <Link to="/login">{session?"Minha conta":"Entrar"}</Link>
           </Button>
         </div>
       </header>
 
+      {session&&<div className="max-w-5xl mx-auto px-4 py-4 flex gap-4 items-center"><p>Se seu acesso estiver suspenso, fale com a equipe para regularizar a assinatura.</p><Button variant="outline" onClick={()=>void signOut()}>Sair</Button></div>}
       <main className="max-w-5xl mx-auto px-4 py-12 space-y-12">
         <section className="text-center space-y-4">
           <h1 className="text-3xl sm:text-4xl font-bold font-heading">
@@ -84,6 +104,7 @@ const Assinatura = () => {
           ))}
         </section>
 
+        {error&&<div role="alert" className="p-4 border rounded"><p>{error}</p><Button variant="outline" onClick={()=>setRetry(n=>n+1)}>Tentar novamente</Button></div>}
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold font-heading">Planos</h2>
@@ -149,8 +170,8 @@ const Assinatura = () => {
                           </li>
                         ))}
                       </ul>
-                      <Button className="w-full" disabled={!billingReady}>
-                        {billingReady ? "Assinar" : "Assinatura em breve"}
+                      <Button className="w-full" disabled={!billingReady||checkout!==null} onClick={()=>void startCheckout(plan.code)}>
+                        {checkout===plan.code?"Abrindo pagamento...":billingReady ? "Assinar" : "Assinatura em breve"}
                       </Button>
                     </CardContent>
                   </Card>

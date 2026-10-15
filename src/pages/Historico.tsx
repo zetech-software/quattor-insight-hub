@@ -1,3 +1,5 @@
+import {readTable} from "@/lib/dataAccess";
+import {serializeCsv} from "@/lib/csvExport";
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +37,7 @@ const Historico = () => {
   const [calculations, setCalculations] = useState<Calculation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page,setPage]=useState(0);
   const [selected, setSelected] = useState<Calculation | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Calculation | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -46,15 +49,11 @@ const Historico = () => {
 
   const loadCalculations = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("calculations")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      toast({ title: "Erro ao carregar histórico", description: error.message, variant: "destructive" });
-    } else {
-      setCalculations(data || []);
+    try {
+      const data=await readTable("calculations");
+      setCalculations(data.sort((a,b)=>b.created_at.localeCompare(a.created_at)));
+    } catch {
+      toast({ title:"Erro ao carregar histórico", description:"Tente novamente.", variant:"destructive" });
     }
     setLoading(false);
   };
@@ -84,7 +83,7 @@ const Historico = () => {
       c.data, c.numero_nf || "", c.placa_ct || "",
       c.volume_nf, c.vct ?? "", c.diferenca_volume ?? "", c.situacao || ""
     ]);
-    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+    const csv = serializeCsv([headers,...rows]);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -153,7 +152,7 @@ const Historico = () => {
                 placeholder="Buscar por NF, placa ou data..."
                 className="max-w-sm"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {setSearch(e.target.value);setPage(0);}}
               />
             </div>
           </CardHeader>
@@ -233,6 +232,11 @@ const Historico = () => {
         </Card>
       </div>
 
+      <div className="flex gap-4 items-center" aria-label="Páginas do histórico">
+        <Button variant="outline" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anterior</Button>
+        <span>Página {page+1} de {Math.max(1,Math.ceil(filtered.length/50))}</span>
+        <Button variant="outline" disabled={(page+1)*50>=filtered.length} onClick={()=>setPage(p=>p+1)}>Próxima</Button>
+      </div>
       {/* Detail Dialog */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="max-w-lg">

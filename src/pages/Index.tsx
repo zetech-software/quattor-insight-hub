@@ -75,13 +75,13 @@ const Index = () => {
       const v = parseFloat(rawInputs.massaEspecifica20NF) || 0;
       return massaUnit === "kg/l" ? v * 1000 : v;
     })(),
-    temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra) || 0,
+    temperaturaAmostra: parseFloat(rawInputs.temperaturaAmostra),
     densidadeAmostra: (() => {
       const v = parseFloat(rawInputs.densidadeAmostra) || 0;
       return daUnit === "kg/m³" ? v / 1000 : v;
     })(),
-    temperaturaCT: parseFloat(rawInputs.temperaturaCT || rawInputs.temperaturaAmostra) || 0,
-    situacaoSeta: parseFloat(rawInputs.situacaoSeta) || 0,
+    temperaturaCT: parseFloat(rawInputs.temperaturaCT),
+    situacaoSeta: parseFloat(rawInputs.situacaoSeta),
   }), [rawInputs, massaUnit, daUnit]);
 
   const massaError = useMemo(() => validateDensity(rawInputs.massaEspecifica20NF, massaUnit), [rawInputs.massaEspecifica20NF, massaUnit]);
@@ -140,38 +140,13 @@ const Index = () => {
 
   const handleSave = async () => {
     if (!results || !session?.user?.id) {
-      toast({ title: "Erro", description: "Preencha todos os campos para salvar.", variant: "destructive" });
+      toast({ title: "Erro", description: "Preencha todos os campos, incluindo as temperaturas e a situação da seta.", variant: "destructive" });
       return;
     }
 
     setSaving(true);
-    const { error } = await supabase.from("calculations").insert({
-      user_id: session.user.id,
-      data: inputs.data,
-      numero_nf: inputs.numeroNF || null,
-      placa_ct: inputs.placaCT || null,
-      municipio_base: rawInputs.municipioBase || null,
-      volume_nf: inputs.volumeNF,
-      peso_liquido: inputs.pesoLiquido,
-      massa_especifica_20_nf: inputs.massaEspecifica20NF,
-      temperatura_amostra: inputs.temperaturaAmostra,
-      densidade_amostra: inputs.densidadeAmostra,
-      temperatura_ct: inputs.temperaturaCT,
-      situacao_seta: inputs.situacaoSeta,
-      dnf20: results.dnf20,
-      fcnf: results.fcnf,
-      temperatura_estimada: results.temperaturaEstimada,
-      dac20: results.dac20,
-      qualidade_diff: results.qualidadeDiff,
-      vct_min: results.vctMin,
-      vct: results.vct,
-      vct_max: results.vctMax,
-      fcct: results.fcct,
-      v20: results.v20,
-      volume_recebido: results.volumeRecebido,
-      volume_atestado: results.volumeAtestado,
-      diferenca_volume: results.diferencaVolume,
-      situacao: results.situacao,
+    const { error } = await supabase.functions.invoke("save-calculation", {
+      body: { inputs: { ...inputs, municipioBase: rawInputs.municipioBase } },
     });
     setSaving(false);
 
@@ -275,34 +250,34 @@ const Index = () => {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Data</Label>
-                    <Input type="date" value={rawInputs.data} onChange={(e) => updateField("data", e.target.value)} />
+                    <Label htmlFor="data" className="text-xs">Data</Label>
+                    <Input id="data" type="date" value={rawInputs.data} onChange={(e) => updateField("data", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Nº Nota Fiscal</Label>
-                    <Input placeholder="000000" value={rawInputs.numeroNF} onChange={(e) => updateField("numeroNF", e.target.value)} />
+                    <Label htmlFor="numeroNF" className="text-xs">Nº Nota Fiscal</Label>
+                    <Input id="numeroNF" placeholder="000000" value={rawInputs.numeroNF} onChange={(e) => updateField("numeroNF", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Placa do CT</Label>
-                    <Input placeholder="ABC-1234" value={rawInputs.placaCT} onChange={(e) => updateField("placaCT", e.target.value)} />
+                    <Label htmlFor="placaCT" className="text-xs">Placa do CT</Label>
+                    <Input id="placaCT" placeholder="ABC-1234" value={rawInputs.placaCT} onChange={(e) => updateField("placaCT", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Município da Base</Label>
-                    <Input placeholder="Ex: Paulínia" value={rawInputs.municipioBase} onChange={(e) => updateField("municipioBase", e.target.value)} />
+                    <Label htmlFor="municipioBase" className="text-xs">Município da Base</Label>
+                    <Input id="municipioBase" placeholder="Ex: Paulínia" value={rawInputs.municipioBase} onChange={(e) => updateField("municipioBase", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Volume NF (Litros)</Label>
-                    <Input type="number" step="any" min={0} max={VOLUME_NF_MAX} value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} className={volumeNFError ? "border-destructive focus-visible:ring-destructive" : ""} />
+                    <Label htmlFor="volumeNF" className="text-xs">Volume NF (Litros)</Label>
+                    <Input id="volumeNF" type="number" step="any" min={0} max={VOLUME_NF_MAX} value={rawInputs.volumeNF} onChange={(e) => updateField("volumeNF", e.target.value)} className={volumeNFError ? "border-destructive focus-visible:ring-destructive" : ""} />
                     {volumeNFError && <p className="text-[11px] text-destructive">{volumeNFError}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Peso Líquido (kg)</Label>
-                    <Input type="number" step="any" value={rawInputs.pesoLiquido} onChange={(e) => updateField("pesoLiquido", e.target.value)} />
+                    <Label htmlFor="pesoLiquido" className="text-xs">Peso Líquido (kg)</Label>
+                    <Input id="pesoLiquido" type="number" step="any" value={rawInputs.pesoLiquido} onChange={(e) => updateField("pesoLiquido", e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Massa Específica a 20°C</Label>
+                    <Label htmlFor="massaEspecifica20NF" className="text-xs">Massa Específica a 20°C</Label>
                     <div className="flex gap-1">
-                      <Input type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className={`flex-1 ${massaError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
+                      <Input id="massaEspecifica20NF" type="number" step="any" value={rawInputs.massaEspecifica20NF} onChange={(e) => updateField("massaEspecifica20NF", e.target.value)} className={`flex-1 ${massaError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
                       <div className="flex rounded-md border border-input overflow-hidden shrink-0">
                         <button
                           type="button"
@@ -342,6 +317,12 @@ const Index = () => {
               </CardContent>
             </Card>
 
+            {!results && inputs.volumeNF > 0 && (
+              <p role="status" className="text-sm text-muted-foreground">
+                Preencha as duas temperaturas, a situação da seta (use 0 quando na seta) e os demais dados válidos para calcular.
+                Dados fora da faixa de estimativa não geram resultado.
+              </p>
+            )}
             {/* Seção 2 - Dados de Campo */}
             <Card>
               <CardHeader className="pb-3">
@@ -353,13 +334,17 @@ const Index = () => {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Temperatura da Amostra - TA (°C)</Label>
-                    <Input type="number" step="any" value={rawInputs.temperaturaAmostra} onChange={(e) => updateField("temperaturaAmostra", e.target.value)} />
+                    <Label htmlFor="temperaturaCT" className="text-xs">Temperatura do CT (°C)</Label>
+                    <Input id="temperaturaCT" type="number" step="any" value={rawInputs.temperaturaCT} onChange={(e)=>updateField("temperaturaCT",e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Massa Específica Amostra - DA</Label>
+                    <Label htmlFor="temperaturaAmostra" className="text-xs">Temperatura da Amostra - TA (°C)</Label>
+                    <Input id="temperaturaAmostra" type="number" step="any" value={rawInputs.temperaturaAmostra} onChange={(e) => updateField("temperaturaAmostra", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="densidadeAmostra" className="text-xs">Massa Específica Amostra - DA</Label>
                     <div className="flex gap-1">
-                      <Input type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} className={`flex-1 ${daError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
+                      <Input id="densidadeAmostra" type="number" step="any" value={rawInputs.densidadeAmostra} onChange={(e) => updateField("densidadeAmostra", e.target.value)} className={`flex-1 ${daError ? "border-destructive focus-visible:ring-destructive" : ""}`} />
                       <div className="flex rounded-md border border-input overflow-hidden shrink-0">
                         <button
                           type="button"
@@ -381,10 +366,10 @@ const Index = () => {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1">
-                      <Label className="text-xs">Situação da Seta (L)</Label>
+                      <Label htmlFor="situacaoSeta" className="text-xs">Situação da Seta (L)</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button type="button" className="inline-flex items-center justify-center rounded-full hover:bg-muted p-0.5 transition-colors">
+                          <button type="button" aria-label="Ajuda sobre a situação da seta" className="inline-flex items-center justify-center rounded-full hover:bg-muted p-0.5 transition-colors">
                             <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                           </button>
                         </PopoverTrigger>
@@ -406,7 +391,7 @@ const Index = () => {
                         </PopoverContent>
                       </Popover>
                     </div>
-                    <Input type="number" step="1" value={rawInputs.situacaoSeta} onChange={(e) => updateField("situacaoSeta", e.target.value)} placeholder="0" />
+                    <Input id="situacaoSeta" type="number" step="1" value={rawInputs.situacaoSeta} onChange={(e) => updateField("situacaoSeta", e.target.value)} placeholder="0" />
                     {rawInputs.situacaoSeta !== "" && !isNaN(parseFloat(rawInputs.situacaoSeta)) && (() => {
                       const v = parseFloat(rawInputs.situacaoSeta);
                       const label = v === 0 ? "Na seta" : v < 0 ? "Abaixo da seta (falta)" : "Acima da seta (sobra)";

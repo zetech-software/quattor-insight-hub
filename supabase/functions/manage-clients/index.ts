@@ -1,4 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {findUserIdByEmail,assertNotInternalAccount} from "../_shared/provisionClient.ts";
+import {appOrigin} from "../_shared/appOrigin.ts";
+import { AccessError, requireOperationalUser } from "../_shared/access.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,36 +19,8 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Não autorizado" }, 401);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey =
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
-      Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    // Verify caller identity
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) return json({ error: "Não autorizado" }, 401);
-
-    // Permissão do chamador: admin, gestão (manager) ou suporte
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: callerRoles } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id);
-
-    const roles = (callerRoles ?? []).map((r: { role: string }) => r.role);
+    const { roles, admin: adminClient } = await requireOperationalUser(req, ["admin", "manager", "support"]);
     const isAdmin = roles.includes("admin");
-    const isManager = roles.includes("manager");
-    const isSupport = roles.includes("support");
-    if (!isAdmin && !isManager && !isSupport) {
-      return json({ error: "Acesso restrito a administradores" }, 403);
-    }
 
     // Quem não é admin só age sobre contas de cliente (sem nenhum papel de equipe)
     const isClientAccount = async (userId: string) => {
@@ -65,30 +39,31 @@ Deno.serve(async (req) => {
     // === INVITE CLIENT ===
     if (action === "invite") {
       const { email, fullName, companyName } = body;
-      if (!email || !fullName) return json({ error: "Email e nome são obrigatórios" }, 400);
+      if (typeof email!=="string"||email.length>254||!/^\S+@\S+\.\S+$/.test(email)||typeof fullName!=="string"||!fullName.trim()||fullName.length>200) return json({ error: "Email e nome válidos são obrigatórios" }, 400);
 
-      const origin = req.headers.get("origin");
+      if(companyName!=null&&(typeof companyName!=="string"||companyName.length>200)) return json({error:"Empresa inválida."},400);
+      const origin = appOrigin();
       // Convite oficial: cria a conta E envia o e-mail para o cliente definir a própria senha.
       const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
         {
           data: { full_name: fullName, company_name: companyName ?? null },
-          redirectTo: origin ? `${origin}/reset-password` : undefined,
+          redirectTo: `${origin}/reset-password`,
         },
       );
 
-      if (inviteError) {
-        if (inviteError.message?.includes("already been registered")) {
-          return json({ error: "Este email já está cadastrado no sistema" }, 409);
-        }
-        console.error("invite failed:", inviteError.status ?? "", inviteError.name ?? "");
-        return json(
-          { error: "Não foi possível enviar o convite por e-mail. Verifique o endereço e tente novamente." },
-          502,
-        );
+      let invitedUser=invited?.user;
+      if(inviteError) {
+        // Repair only an unfinished invitation; never repurpose an established account.
+        const existingId=await findUserIdByEmail(adminClient,email);
+        if(existingId) {
+          await assertNotInternalAccount(adminClient,existingId);
+          const existing=await adminClient.auth.admin.getUserById(existingId);
+          if(existing.error) return json({error:"Não foi possível conferir o convite."},503);
+          if(existing.data.user?.email_confirmed_at||existing.data.user?.last_sign_in_at) return json({error:"Este email já está cadastrado."},409);
+          invitedUser=existing.data.user;
+        } else return json({error:"Não foi possível enviar o convite. Tente novamente."},502);
       }
-
-      const invitedUser = invited?.user;
       if (!invitedUser) {
         return json({ error: "Não foi possível criar o cliente. Tente novamente." }, 500);
       }
@@ -123,7 +98,7 @@ Deno.serve(async (req) => {
     // === TOGGLE ACTIVE STATUS ===
     if (action === "toggle-active") {
       const { userId, isActive } = body;
-      if (!userId) return json({ error: "userId é obrigatório" }, 400);
+      if (typeof userId!=="string"||typeof isActive!=="boolean") return json({error:"Dados inválidos."},400);
 
       // Gestão e suporte só podem ativar/desativar contas de cliente.
       if (!isAdmin && !(await isClientAccount(userId))) {
@@ -133,7 +108,7 @@ Deno.serve(async (req) => {
       const { error } = await adminClient
         .from("profiles")
         .update({ is_active: isActive })
-        .eq("user_id", userId);
+        .eq("user_id", userId).select("user_id").single();
 
       if (error) {
         console.error("toggle-active failed:", error.code ?? "", error.message ?? "");
@@ -154,10 +129,13 @@ Deno.serve(async (req) => {
       if (planName) updateData.plan_name = planName;
       if (status) updateData.status = status;
 
-      const { error } = await adminClient
-        .from("subscriptions")
-        .update(updateData)
-        .eq("user_id", userId);
+      if(!["active","trial","expired","cancelled"].includes(status??"active")) return json({error:"Situação inválida."},400);
+      if(!(await isClientAccount(userId))) return json({error:"Assinatura permitida apenas para clientes."},403);
+      const current=await adminClient.from("subscriptions").select("status").eq("user_id",userId).maybeSingle();
+      if(current.error) return json({error:"Não foi possível conferir a assinatura."},503);
+      const {error}=await adminClient.from("subscriptions").upsert({
+        user_id:userId,...updateData,status:status??current.data?.status??"active",
+      },{onConflict:"user_id"});
 
       if (error) {
         console.error("update-subscription failed:", error.code ?? "", error.message ?? "");
@@ -171,6 +149,7 @@ Deno.serve(async (req) => {
       const { userId } = body;
       if (!userId) return json({ error: "userId é obrigatório" }, 400);
 
+      if(!isAdmin&&!(await isClientAccount(userId))) return json({error:"Acesso permitido apenas a clientes."},403);
       const { data, error } = await adminClient.auth.admin.getUserById(userId);
       if (error || !data?.user) {
         return json({ error: "Não foi possível carregar os dados de acesso." }, 400);
@@ -183,6 +162,8 @@ Deno.serve(async (req) => {
 
     return json({ error: "Ação não reconhecida" }, 400);
   } catch (e) {
-    return json({ error: e.message }, 500);
+    if (e instanceof AccessError) return json({ error: e.message }, e.status);
+    console.error("manage-clients failed", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });

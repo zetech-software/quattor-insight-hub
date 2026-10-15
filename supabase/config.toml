@@ -8,3 +8,10 @@ verify_jwt = false
 
 [functions.payments-webhook]
 verify_jwt = false
+
+# Each function validates the user token with Auth before performing any action.
+[functions.save-calculation]
+verify_jwt = false
+
+[functions.change-password]
+verify_jwt = false

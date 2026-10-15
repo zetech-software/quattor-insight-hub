@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import {appOrigin} from "./appOrigin.ts";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.118.0";
 
 export interface ProvisionInput {
   email: string;
@@ -23,9 +24,9 @@ export function adminClient(): SupabaseClient {
   );
 }
 
-async function findUserIdByEmail(supabase: SupabaseClient, email: string): Promise<string | null> {
+export async function findUserIdByEmail(supabase: SupabaseClient, email: string): Promise<string | null> {
   // Admin API não tem busca por e-mail; percorre páginas até encontrar.
-  for (let page = 1; page <= 20; page++) {
+  for (let page = 1; ; page++) {
     const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw new Error(`listUsers failed: ${error.message}`);
     const found = data.users.find((u) => (u.email ?? "").toLowerCase() === email.toLowerCase());
@@ -81,10 +82,9 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
     // Conta já existente: só segue se for conta de cliente.
     await assertNotInternalAccount(supabase, userId);
   } else {
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      email_confirm: false,
-      user_metadata: {
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo:appOrigin()+"/reset-password",
+      data: {
         full_name: input.fullName ?? null,
         company_name: input.companyName ?? null,
       },
@@ -94,6 +94,10 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
     created = true;
   }
 
+
+  const identity=await supabase.auth.admin.getUserById(userId);
+  if(identity.error||!identity.data.user) throw new Error("User lookup failed");
+  const pendingInvite=created||!!identity.data.user.invited_at&&!identity.data.user.email_confirmed_at;
 
   // Permissão exclusiva de cliente.
   const { error: roleError } = await supabase
@@ -105,9 +109,9 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
-      ...(input.fullName ? { full_name: input.fullName } : {}),
-      ...(input.companyName ? { company_name: input.companyName } : {}),
-      must_change_password: true,
+      ...(created&&input.fullName ? { full_name: input.fullName } : {}),
+      ...(created&&input.companyName ? { company_name: input.companyName } : {}),
+      ...(pendingInvite?{must_change_password:true}:{}),
     })
     .eq("user_id", userId);
   if (profileError) throw new Error(`profile failed: ${profileError.message}`);
@@ -128,13 +132,15 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
     current_period_end: input.currentPeriodEnd ?? null,
   };
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("subscriptions")
-    .select("id")
+    .select("id, environment")
     .eq("user_id", userId)
     .limit(1)
     .maybeSingle();
 
+  if(existingError) throw new Error("subscription lookup failed");
+  if(existing?.environment==="production"&&input.environment==="test") throw new Error("Sandbox cannot replace production subscription");
   if (existing?.id) {
     const { error } = await supabase.from("subscriptions").update(subscription).eq("id", existing.id);
     if (error) throw new Error(`subscription update failed: ${error.message}`);

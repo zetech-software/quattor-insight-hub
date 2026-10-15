@@ -25,7 +25,7 @@ export function ProtectedRoute({
   allowPasswordChange,
   allowProfileCompletion,
 }: ProtectedRouteProps) {
-  const { session, role, profile, loading, signOut } = useAuth();
+  const { session, role, profile, loading, authError, operationalAccess, refreshProfile, signOut } = useAuth();
 
   const isBlocked = !!session && profile !== null && profile.is_active === false;
 
@@ -55,6 +55,13 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
+  if (authError || !role || !profile) {
+    return <div className="p-8 space-y-4" role="alert">
+      <p>{authError ?? "Não foi possível verificar seu acesso."}</p>
+      <button type="button" onClick={() => void refreshProfile()}>Tentar novamente</button>
+      <button type="button" onClick={() => void signOut()}>Sair</button>
+    </div>;
+  }
   if (profile?.must_change_password && !allowPasswordChange) {
     return <Navigate to="/definir-nova-senha" replace />;
   }
@@ -100,6 +107,10 @@ export function ProtectedRoute({
     }
   }
 
+
+  if (!operationalAccess && !allowPasswordChange && !allowProfileCompletion) {
+    return <Navigate to="/assinatura" replace />;
+  }
 
   if (blockedRoles && role && blockedRoles.includes(role)) {
     return <Navigate to="/" replace />;

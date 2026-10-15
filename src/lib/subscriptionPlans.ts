@@ -26,12 +26,12 @@ export const catalogEnvironment = (): "test" | "production" =>
   import.meta.env.PROD ? "production" : "test";
 
 export async function fetchPublicPlans(): Promise<PublicPlansResult> {
-  const { data, error } = await supabase.functions.invoke<PublicPlansResult>("public-plans", {
+  const { data, error } = await supabase.functions.invoke<PublicPlansResult>("public-plans?env="+catalogEnvironment(), {
     method: "GET",
   });
 
   if (error || !data) {
-    return { plans: [], billingReady: false, environment: catalogEnvironment() };
+    throw new Error("Não foi possível carregar os planos. Tente novamente.");
   }
   return {
     plans: data.plans ?? [],

@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { isBillingEnabled } from "../_shared/stripe.ts";
 
 const corsHeaders = {
@@ -25,7 +25,10 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const rawEnv = url.searchParams.get("env");
-    const environment = rawEnv === "production" ? "production" : "test";
+    if(rawEnv!=="production"&&rawEnv!=="test") return json({error:"Ambiente obrigatório."},400);
+    const environment=rawEnv;
+    const configured=Deno.env.get("PAYMENTS_ENVIRONMENT");
+    if(configured&&environment!==(configured==="live"?"production":"test")) return json({error:"Catálogo indisponível neste ambiente."},409);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
