@@ -22,7 +22,7 @@ A rotina de retenção exige política e execução deliberadas; não apaga dado
 ## Homologação e publicação
 1. Backup verificável e inventário das migrações existentes. Confirmar supabase/migrations em ordem e drizzle 0000..0006 antes de aplicar 0007 e 0008.
 2. Configurar segredos exclusivamente no servidor, APP_ORIGIN e ambientes de pagamento; conferir .env.example e RELEASE-CHECKLIST.md.
-3. Em homologação, publicar todas as funções alteradas e aplicar drizzle/migrations/0007_access_and_calculation_integrity.sql e 0008 (nome completo no diretório). Publicar o frontend correspondente na mesma janela.
+3. Em homologação, publicar todas as funções alteradas e aplicar drizzle/migrations/0007_access_and_calculation_integrity.sql e drizzle/migrations/0008_subscriptions_assistant_and_webhook.sql. Publicar o frontend correspondente na mesma janela.
 4. Testar visitante, clientes A/B, manager, support e admin; bloqueio de sessão já emitida, senha pendente, convite/recovery por e-mail, acesso manual e assinatura encerrada.
 5. Conferir cálculo no banco/UI/PDF contra planilha aprovada pelo responsável técnico, incluindo limites de temperatura e densidade.
 6. Homologar streaming/telemetria/cotas da IA, convite e repetição/ordem/falhas de webhooks no ambiente de testes. Habilitar cobrança somente após aprovação comercial e técnica.
