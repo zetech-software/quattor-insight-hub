@@ -33,3 +33,35 @@ jobs:
       - run: bun run test
       - run: bun run typecheck
       - run: bun run build
+  supabase-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+      - name: Start ephemeral local services
+        run: |
+          mkdir -p "$RUNNER_TEMP/quattor-auth"
+          supabase init --workdir "$RUNNER_TEMP/quattor-auth"
+          supabase start --workdir "$RUNNER_TEMP/quattor-auth" --exclude studio,imgproxy,postgres-meta,logflare,vector,supavisor,edge-runtime
+          supabase status --workdir "$RUNNER_TEMP/quattor-auth" -o env > "$RUNNER_TEMP/quattor-auth.env"
+      - name: Replay versioned database migrations locally
+        run: |
+          for migration in supabase/migrations/*.sql drizzle/migrations/*.sql; do
+            psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Verify real Auth and API isolation
+        run: node scripts/verify-local-auth.mjs "$RUNNER_TEMP/quattor-auth.env"
+      - name: Stop ephemeral services
+        if: always()
+        run: supabase stop --workdir "$RUNNER_TEMP/quattor-auth" --no-backup
