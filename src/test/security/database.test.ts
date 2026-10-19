@@ -16,7 +16,7 @@ beforeAll(async () => {
     CREATE ROLE service_role BYPASSRLS;
     CREATE SCHEMA auth;
     CREATE SCHEMA storage;
-    CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, encrypted_password text, raw_user_meta_data jsonb DEFAULT '{}');
+    CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, encrypted_password text, invited_at timestamptz, raw_user_meta_data jsonb DEFAULT '{}');
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
       SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
     $$;
@@ -146,6 +146,16 @@ describe('disabled and password-pending accounts', () => {
   it('metadata update is not password-change evidence', async () => {
     await db.query("UPDATE auth.users SET raw_user_meta_data='{}' WHERE id=$1",[REQUIRED]);
     await asUser(REQUIRED, async () => { await expect(db.query('SELECT public.clear_must_change_password()')).rejects.toThrow(/confirmed by Auth/); });
+  });
+  it('ignores the temporary password generated during invitation verification', async () => {
+    await db.query("UPDATE auth.users SET invited_at=now(), encrypted_password=NULL WHERE id=$1",[REQUIRED]);
+    await db.query("UPDATE auth.users SET encrypted_password='generated-invite-password' WHERE id=$1",[REQUIRED]);
+    await asUser(REQUIRED, async () => { await expect(db.query('SELECT public.clear_must_change_password()')).rejects.toThrow(/confirmed by Auth/); });
+    await db.query("UPDATE auth.users SET encrypted_password='chosen-invite-password' WHERE id=$1",[REQUIRED]);
+    await asUser(REQUIRED, async () => {
+      await db.query('SELECT public.clear_must_change_password()');
+      expect(await ready()).toBe(true);
+    });
   });
   it('accepts a real password update and keeps the RPC idempotent', async () => {
     await db.query('UPDATE auth.users SET encrypted_password=$1 WHERE id=$2',['new-password-hash',REQUIRED]);

@@ -11,6 +11,11 @@ ALTER TABLE public.profiles ADD COLUMN password_change_required_at timestamptz N
 CREATE FUNCTION quattor_private.record_password_change()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
+  -- GoTrue sets a random temporary password while verifying a fresh invite.
+  -- That internal transition is not the invited user's password choice.
+  IF OLD.invited_at IS NOT NULL AND COALESCE(OLD.encrypted_password, '') = '' THEN
+    RETURN NEW;
+  END IF;
   INSERT INTO quattor_private.password_changes (user_id, changed_at)
     VALUES (NEW.id, clock_timestamp())
     ON CONFLICT (user_id) DO UPDATE SET changed_at = EXCLUDED.changed_at;
