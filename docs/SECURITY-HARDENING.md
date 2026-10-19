@@ -36,9 +36,9 @@ A ordem de publicação, quando autorizada separadamente, é migrações, funç�
 
 ## Verificação
 
-Resultado local: 163 testes passaram em 9 arquivos (26 testes de banco), lint com 0 erros e 10 avisos de Fast Refresh, typecheck do app e da configuração Node aprovado, build de produção concluído. A instalação npm ci --ignore-scripts concluiu com sucesso. Os avisos de CSS/Browserslist/tamanho do bundle foram mantidos.
+Validação da revisão 1785c524 no GitHub Actions: 164 testes passaram em 9 arquivos (27 testes de banco), lint com 0 erros e 10 avisos de Fast Refresh, typecheck do app e da configuração Node aprovado, build de produção concluído. A instalação npm ci --ignore-scripts concluiu com sucesso. Os avisos de CSS/Browserslist/tamanho do bundle foram mantidos.
 
-npm é o gerenciador usado pelo workflow e pela validação. O lock Bun recebeu somente a entrada sem dependências transitivas de PGlite. O manifesto completo e a integridade dessa entrada foram comparados com npm por um parser JSONC. A geração pela CLI Bun não concluiu neste ambiente e foi cancelada. No PR #2, o GitHub Actions aprovou a instalação frozen com Bun 1.3.1, os 163 testes, typecheck e build em Linux. Isso verifica o lock Bun, mas a publicação pelo Lovable continua pendente. O arquivo binário legado bun.lockb não foi alterado. Executar npm ci --ignore-scripts, npm test, npm run lint, npm run typecheck e npm run build. O teste de RLS está incluído em npm test e pode ser selecionado com npm run test:security. PGlite 0.3.14 é dependência somente de desenvolvimento e não entra no bundle da aplicação.
+npm é o gerenciador usado pelo workflow e pela validação. O lock Bun recebeu somente a entrada sem dependências transitivas de PGlite. O manifesto completo e a integridade dessa entrada foram comparados com npm por um parser JSONC. A geração pela CLI Bun não concluiu neste ambiente e foi cancelada. No PR #2, o GitHub Actions aprovou a instalação frozen com Bun 1.3.1, a suíte de testes, typecheck e build em Linux. Isso verifica o lock Bun, mas a publicação pelo Lovable continua pendente. O arquivo binário legado bun.lockb não foi alterado. Executar npm ci --ignore-scripts, npm test, npm run lint, npm run typecheck e npm run build. O teste de RLS está incluído em npm test e pode ser selecionado com npm run test:security. PGlite 0.3.14 é dependência somente de desenvolvimento e não entra no bundle da aplicação.
 
 Em Windows, se o npm estiver configurado para um Git Bash bloqueado pelo ambiente, usar a opção --script-shell=C:\Windows\System32\cmd.exe ao chamar npm run. Não é necessário mudar configuração global. O workflow Linux usa o shell normal do runner.
 
@@ -51,3 +51,13 @@ A verificação npm audit --omit=dev identificou 19 entradas no grafo resolvido 
 Paginação e totais, tratamento amplo de erros de relatórios, precisão de cálculo, integridade dos resultados persistidos e limites/cotas de IA continuam nos lotes seguintes. O webhook ainda precisa de recuperação/idempotência e isolamento efetivo entre ambientes antes da ativação da cobrança.
 
 O build pode manter avisos de importação CSS, Browserslist e tamanho de chunk. Eles não foram ocultados nem tratados como falhas de segurança corrigidas. Deno, integração HTTP/GoTrue, testes reais de e-mail, navegador publicado e produção não são certificados pelos testes locais. Nenhuma alteração de proteção de main ou configuração Lovable foi aplicada.
+
+## Homologação isolada no CI
+
+O workflow Verify, execução 39302686346, aprovou os jobs application, lovable-bun e supabase-auth na revisão 1785c524a3e756dc5f82e2efecc8c55112656ae2. A stack descartável usa Supabase CLI 2.84.2, PostgreSQL, GoTrue, PostgREST, gateway e SMTP local. Todas as migrações versionadas foram reproduzidas na ordem documentada e oito cenários HTTP passaram: uso da própria conta, isolamento A/B, permissões de staff, desativação com JWT existente, rejeição de dispensa indevida, troca real de senha, convite e recuperação.
+
+Esse ensaio encontrou e corrigiu uma diferença do GoTrue: a verificação inicial de convite gera uma senha temporária aleatória. O trigger ignora essa primeira transição de senha vazia em uma conta convidada. Somente a atualização posterior fornece prova. A regressão também está coberta nos 27 testes PostgreSQL/PGlite.
+
+O script scripts/verify-local-auth.mjs aceita somente endpoint localhost/127.0.0.1 e credenciais geradas pela stack descartável. Não lê o .env da aplicação. O CI não recebe credenciais do projeto hospedado. A stack é removida ao terminar, inclusive em falha. O teste usa links emitidos pela API administrativa local e não certifica entrega de e-mail externo, redirecionamentos publicados ou interface Lovable.
+
+A homologação hospedada permanece pendente: comparar o schema real e a versão/configuração do Auth, confirmar permissões de migração e exercitar o preview Lovable. O acesso administrativo local disponível retornou Invalid access token. Nenhum projeto hospedado foi modificado.
