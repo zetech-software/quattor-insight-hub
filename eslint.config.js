@@ -23,4 +23,6 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  // Generated Lovable adapter: preserve its upstream timer declaration.
+  { files: ["src/integrations/supabase/previewAuthStorage.ts"], rules: { "prefer-const": "off" } },
 );

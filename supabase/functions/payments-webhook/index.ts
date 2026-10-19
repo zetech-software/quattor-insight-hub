@@ -1,3 +1,4 @@
+import type { StripeSubscriptionPayload, StripeCheckoutPayload } from "../_shared/payment-types.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, catalogEnvironment, isBillingEnabled, verifyWebhook } from "../_shared/stripe.ts";
 import { provisionClient } from "../_shared/provisionClient.ts";
@@ -16,7 +17,7 @@ function getSupabase() {
 const toIso = (seconds: unknown) =>
   typeof seconds === "number" ? new Date(seconds * 1000).toISOString() : null;
 
-async function updateSubscriptionFromStripe(subscription: any, env: "test" | "production") {
+async function updateSubscriptionFromStripe(subscription: StripeSubscriptionPayload, env: "test" | "production") {
   const item = subscription.items?.data?.[0];
   const periodStart = item?.current_period_start ?? subscription.current_period_start;
   const periodEnd = item?.current_period_end ?? subscription.current_period_end;
@@ -139,7 +140,7 @@ Deno.serve(async (req) => {
       switch (event.type) {
         case "checkout.session.completed":
         case "checkout.session.async_payment_succeeded": {
-          const session: any = event.data.object;
+          const session = event.data.object as StripeCheckoutPayload;
           if (session.payment_status !== "unpaid") {
             const email = session.customer_details?.email ?? session.customer_email ?? "";
             if (email) {
@@ -160,13 +161,13 @@ Deno.serve(async (req) => {
         }
         case "customer.subscription.created":
         case "customer.subscription.updated":
-          await updateSubscriptionFromStripe(event.data.object, catalogEnv);
+          await updateSubscriptionFromStripe(event.data.object as StripeSubscriptionPayload, catalogEnv);
           break;
         case "customer.subscription.deleted":
           await getSupabase()
             .from("subscriptions")
             .update({ status: "cancelled", cancelled_at: now() })
-            .eq("stripe_subscription_id", (event.data.object as any).id);
+            .eq("stripe_subscription_id", (event.data.object as { id: string }).id);
           break;
         case "invoice.paid":
         case "invoice.payment_failed":
