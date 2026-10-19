@@ -1,3 +1,4 @@
+import { hasOperationalAccess } from "../_shared/account-access.ts";
 import { convertToModelMessages, streamText, type UIMessage } from "npm:ai";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
@@ -82,10 +83,18 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
-    const { data: roleRows } = await userClient
+    if (!(await hasOperationalAccess(() => userClient.rpc("is_account_ready")))) {
+      return new Response(JSON.stringify({ error: "Acesso indisponível para esta conta." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roleRows, error: roleError } = await userClient
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id);
+    if (roleError) return new Response(JSON.stringify({ error: "Não foi possível confirmar o acesso." }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
     if ((roleRows ?? []).some((r: { role: string }) => r.role === "admin")) {
       return new Response(
         JSON.stringify({ error: "A Regina não está disponível para o perfil administrador." }),

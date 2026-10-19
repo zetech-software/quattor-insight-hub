@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, ReactNode, useMemo, useCallback, useRef } from "react";
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   startReginaInteraction,
@@ -45,6 +46,12 @@ function classifyError(error: unknown): ReginaErrorKind {
 }
 
 export function ReginaProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return <AccountReginaProvider key={user?.id ?? "signed-out"} ownerId={user?.id ?? null}>{children}</AccountReginaProvider>;
+}
+
+function AccountReginaProvider({ children, ownerId }: { children: ReactNode; ownerId: string | null }) {
+  const active = useRef(true);
   const [isOpen, setIsOpen] = useState(false);
   const [chatId, setChatId] = useState(() => crypto.randomUUID());
   const [errorKind, setErrorKind] = useState<ReginaErrorKind | null>(null);
@@ -56,22 +63,32 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
         headers: async () => {
           const { data } = await supabase.auth.getSession();
           const token = data.session?.access_token;
-          return token ? { Authorization: `Bearer ${token}` } : {};
+          if (!active.current || !ownerId || data.session?.user.id !== ownerId || !token) throw new ReginaError("auth");
+          return { Authorization: `Bearer ${token}` };
         },
       }),
-    [],
+    [ownerId],
   );
 
   const failedRef = useRef(false);
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, stop } = useChat({
     id: chatId,
     transport,
     onError: (error) => {
+      if (!active.current) return;
       failedRef.current = true;
       setErrorKind(classifyError(error));
     },
   });
+
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+      void stop();
+    };
+  }, [stop]);
 
   const clearError = useCallback(() => setErrorKind(null), []);
 
@@ -81,9 +98,9 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
       failedRef.current = false;
       const { data } = await supabase.auth.getSession();
       const userId = data.session?.user?.id;
-      if (!data.session?.access_token || !userId) {
+      if (!active.current || !ownerId || userId !== ownerId || !data.session?.access_token) {
         const err = new ReginaError("auth");
-        setErrorKind("auth");
+        if (active.current) setErrorKind("auth");
         throw err;
       }
 
@@ -91,6 +108,10 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
       const interactionId = await startReginaInteraction(userId, text, origin);
 
       try {
+        if (!active.current) {
+          await finishReginaInteraction(interactionId, "falha");
+          return;
+        }
         await sendMessage({ text });
         if (failedRef.current) {
           await finishReginaInteraction(interactionId, "falha");
@@ -99,11 +120,11 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
         await finishReginaInteraction(interactionId, "respondida");
       } catch (e) {
         await finishReginaInteraction(interactionId, "falha");
-        setErrorKind(classifyError(e));
+        if (active.current) setErrorKind(classifyError(e));
         throw e;
       }
     },
-    [sendMessage],
+    [sendMessage, ownerId],
   );
 
   const value: ReginaContextValue = {
@@ -115,6 +136,7 @@ export function ReginaProvider({ children }: { children: ReactNode }) {
     isOpen,
     setIsOpen,
     reset: () => {
+      void stop();
       setMessages([]);
       setChatId(crypto.randomUUID());
       setErrorKind(null);
