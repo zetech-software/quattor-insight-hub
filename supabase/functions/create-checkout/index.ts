@@ -5,6 +5,12 @@ import {
   createStripeClient,
   isBillingEnabled,
 } from "../_shared/stripe.ts";
+import {
+  MINICURSO_ACCESS_DAYS,
+  isAllowedReturnUrl,
+  parseAllowedOrigins,
+  resolveCheckoutMode,
+} from "../_shared/billingLogic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,8 +19,9 @@ const corsHeaders = {
 
 /**
  * Checkout preparado, comercialmente desligado.
- * O navegador envia apenas o código interno do plano; preço, produto e ambiente
- * vêm sempre do catálogo no servidor. A chave do provedor nunca sai daqui.
+ * O navegador envia apenas o código interno do plano; preço, produto, ambiente,
+ * modo (avulso x assinatura) e URL de retorno autorizada vêm sempre do servidor.
+ * A chave do provedor nunca sai daqui.
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -46,7 +53,7 @@ Deno.serve(async (req) => {
 
     const { data: plan, error } = await supabase
       .from("subscription_plans")
-      .select("code, name, stripe_price_id, environment, is_active")
+      .select("code, name, stripe_price_id, environment, is_active, billing_period")
       .eq("code", planCode)
       .maybeSingle();
 
@@ -74,18 +81,30 @@ Deno.serve(async (req) => {
     if (!plan.stripe_price_id) {
       return json({ error: "Plano sem preço configurado." }, 409);
     }
-    if (!/^https?:\/\//.test(returnUrl)) {
-      return json({ error: "Endereço de retorno inválido." }, 400);
+
+    // URL de retorno: apenas origens autorizadas no servidor.
+    const allowedOrigins = parseAllowedOrigins(Deno.env.get("ALLOWED_RETURN_ORIGINS"));
+    if (!isAllowedReturnUrl(returnUrl, allowedOrigins)) {
+      return json({ error: "Endereço de retorno não autorizado." }, 400);
     }
+
+    const mode = resolveCheckoutMode(plan.billing_period);
 
     const stripe = createStripeClient(environment);
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
-      mode: "subscription",
+      mode,
       ui_mode: "embedded_page",
       return_url: returnUrl,
-      subscription_data: { metadata: { planCode: plan.code } },
-      metadata: { planCode: plan.code },
+      ...(mode === "subscription"
+        ? { subscription_data: { metadata: { planCode: plan.code } } }
+        : {}),
+      metadata: {
+        planCode: plan.code,
+        billingPeriod: plan.billing_period ?? "mensal",
+        // Para planos avulsos (minicurso), o webhook usa este prazo.
+        ...(mode === "payment" ? { accessDays: String(MINICURSO_ACCESS_DAYS) } : {}),
+      },
     });
 
     return json({ clientSecret: session.client_secret });

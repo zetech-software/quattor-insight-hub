@@ -11,6 +11,7 @@ export interface ProvisionInput {
   stripeSubscriptionId?: string | null;
   stripeProductId?: string | null;
   stripePriceId?: string | null;
+  stripePaymentIntentId?: string | null;
   currentPeriodStart?: string | null;
   currentPeriodEnd?: string | null;
   status?: "active" | "trial" | "expired" | "cancelled";
@@ -124,6 +125,7 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
     stripe_subscription_id: input.stripeSubscriptionId ?? null,
     stripe_product_id: input.stripeProductId ?? null,
     stripe_price_id: input.stripePriceId ?? null,
+    stripe_payment_intent_id: input.stripePaymentIntentId ?? null,
     current_period_start: input.currentPeriodStart ?? null,
     current_period_end: input.currentPeriodEnd ?? null,
   };
