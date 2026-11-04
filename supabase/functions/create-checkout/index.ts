@@ -36,6 +36,14 @@ Deno.serve(async (req) => {
     });
 
   try {
+    // Exige usuário autenticado: checkout não é criado por chamada anônima.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const { data: auth } = await supabase.auth.getUser(jwt || undefined);
+    if (!auth?.user) {
+      return json({ error: "Autenticação necessária." }, 401);
+    }
+
     const body = await req.json().catch(() => ({}));
     const planCode = typeof body.planCode === "string" ? body.planCode : "";
     const rawEnv = body.environment === "live" ? "live" : "sandbox";
