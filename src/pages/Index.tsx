@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { estimateLoadingTemperature } from "@/lib/dieselCalculations";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,12 +11,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calculator, Save, RotateCcw, ArrowUp, ArrowDown, Minus, Loader2, Info, FileText, Sheet } from "lucide-react";
 import { calculateDiesel, avaliarQualidade, type DieselInputs, type DieselResults } from "@/lib/dieselCalculations";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { generateSingleCalculationPDF } from "@/lib/pdfReports";
 import { generateSingleCalculationXLSX } from "@/lib/excelReports";
 import type { ExportableCalculation } from "@/lib/calculationExport";
 import { LEGAL_DISCLAIMER } from "@/lib/legalDisclaimer";
+import {
+  type DieselUsage, describeBalance, formatNextReset, isQuotaExhausted, newRequestId, saveErrorMessage,
+} from "@/lib/dieselQuota";
+import { fetchDieselUsage, saveDieselCalculation } from "@/lib/dieselQuotaApi";
 
 const NUMERIC_FIELDS = ["volumeNF", "pesoLiquido", "massaEspecifica20NF", "temperaturaAmostra", "densidadeAmostra", "temperaturaCT", "situacaoSeta"] as const;
 
@@ -46,8 +49,20 @@ function validateDensity(value: string, unit: "kg/m³" | "kg/l"): string | null 
 }
 
 const Index = () => {
-  const { session } = useAuth();
+  const { session, role } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [usage, setUsage] = useState<DieselUsage | null>(null);
+  // Identificador da operação de gravação: reenvios da mesma operação reutilizam o valor.
+  const [requestId, setRequestId] = useState(newRequestId);
+  const isClient = role === "client";
+
+  const loadUsage = useCallback(async () => {
+    if (!isClient) return;
+    const data = await fetchDieselUsage();
+    if (data) setUsage(data);
+  }, [isClient]);
+
+  useEffect(() => { void loadUsage(); }, [loadUsage]);
   const [massaUnit, setMassaUnit] = useState<"kg/m³" | "kg/l">("kg/m³");
   const [daUnit, setDaUnit] = useState<"kg/l" | "kg/m³">("kg/l");
 
@@ -121,6 +136,9 @@ const Index = () => {
     return null;
   }, [inputs, volumeNFError]);
 
+  // Qualquer alteração no formulário define uma nova operação de gravação.
+  useEffect(() => { setRequestId(newRequestId()); }, [rawInputs]);
+
   const handleReset = () => {
     setRawInputs({
       data: new Date().toISOString().split("T")[0],
@@ -145,8 +163,7 @@ const Index = () => {
     }
 
     setSaving(true);
-    const { error } = await supabase.from("calculations").insert({
-      user_id: session.user.id,
+    const { error } = await saveDieselCalculation(requestId, {
       data: inputs.data,
       numero_nf: inputs.numeroNF || null,
       placa_ct: inputs.placaCT || null,
@@ -176,8 +193,10 @@ const Index = () => {
     setSaving(false);
 
     if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao salvar", description: saveErrorMessage(error.message), variant: "destructive" });
+      void loadUsage();
     } else {
+      void loadUsage();
       toast({ title: "Cálculo salvo!", description: "O cálculo foi adicionado ao histórico." });
       handleReset();
     }
@@ -253,12 +272,35 @@ const Index = () => {
               <RotateCcw className="h-4 w-4 mr-1" />
               Limpar
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving || !results || hasValidationErrors}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !results || hasValidationErrors || (isClient && isQuotaExhausted(usage))}>
               {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar
             </Button>
           </div>
         </div>
+
+        {isClient && usage && (
+          <Card>
+            <CardContent className="py-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div>
+                <p className="text-[11px] text-muted-foreground">Plano</p>
+                <p className="font-medium">{usage.plan_name ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Inserções no mês</p>
+                <p className="font-medium">{usage.used}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Saldo</p>
+                <p className={`font-medium ${isQuotaExhausted(usage) ? "text-destructive" : ""}`}>{describeBalance(usage)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Próxima renovação</p>
+                <p className="font-medium">{formatNextReset(usage.next_reset)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-6">
           {/* Input Sections */}

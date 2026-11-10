@@ -3,6 +3,12 @@ BEGIN;
 INSERT INTO auth.users (id, email)
 VALUES ('33333333-3333-4333-8333-333333333333', 'stripe-test-a@example.invalid'),
        ('44444444-4444-4444-8444-444444444444', 'stripe-test-b@example.invalid');
+-- Catálogo mínimo: rights are resolved per product through the catalog.
+INSERT INTO public.subscription_plans
+  (code, name, environment, product, checkout_mode, unlimited_calculations, is_active)
+VALUES ('saas', 'Diesel teste', 'test', 'diesel', 'subscription', true, true),
+       ('course_only', 'Minicurso teste', 'test', 'course', 'payment', false, true),
+       ('course', 'Minicurso teste 2', 'test', 'course', 'payment', false, true);
 
 DO $$
 DECLARE
@@ -33,7 +39,6 @@ BEGIN
       AND access_until > now() + interval '29 days'
       AND access_until <= now() + interval '30 days'
   ) THEN RAISE EXCEPTION 'Paid course missing 30-day expiry'; END IF;
-  -- An expired course must stay expired even when a new webhook reconciles the same purchase.
   UPDATE public.stripe_contracts SET access_until = now() - interval '1 second'
     WHERE object_id = 'cs_course_only';
   IF public.has_stripe_access('course_only') THEN
@@ -45,6 +50,7 @@ BEGIN
   IF public.has_stripe_access('course_only') THEN
     RAISE EXCEPTION 'Repeated webhook extended expired course access';
   END IF;
+
 
   -- Explicit legacy entitlement remains valid only while active and in period.
   INSERT INTO public.subscriptions (user_id, plan_name, status, starts_at, expires_at)
