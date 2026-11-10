@@ -208,6 +208,26 @@ DO $$ BEGIN
   IF (SELECT unlimited FROM public.diesel_entitlement('a2222222-2222-4222-8222-222222222222')) IS NOT TRUE THEN
     RAISE EXCEPTION 'Provisional precedence not the most generous';
   END IF;
-END $$;
+END $;
+
+-- A past-due Stripe Diesel contract must not show legacy access as available.
+-- The usage summary and authorization must agree.
+INSERT INTO public.stripe_contracts
+  (environment, object_id, user_id, plan_code, mode, customer_id,
+   price_id, product_id, status, access_until)
+VALUES
+  ('test','sub_legacy_past_due','a3333333-3333-4333-8333-333333333333',
+   'diesel_basico_mensal','subscription','cus_3','price_b','prod_b',
+   'past_due',NULL);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','a3333333-3333-4333-8333-333333333333',true);
+DO $ DECLARE usage jsonb; BEGIN
+  usage := public.get_diesel_usage();
+  IF public.has_product_access('diesel') OR (usage->>'has_plan')::boolean THEN
+    RAISE EXCEPTION 'Past-due Stripe contract incorrectly exposes legacy entitlement';
+  END IF;
+END $;
+RESET ROLE;
+
 ROLLBACK;
 SELECT 'diesel_quota ok';
