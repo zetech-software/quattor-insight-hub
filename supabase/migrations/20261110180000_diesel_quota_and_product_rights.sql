@@ -155,6 +155,14 @@ BEGIN
     WHERE l.user_id = p_user AND l.stripe_subscription_id IS NULL
       AND l.status IN ('active','trial') AND l.starts_at <= now()
       AND (l.expires_at IS NULL AND l.status = 'active' OR l.expires_at > now())
+      -- Match has_product_access('diesel'): a suspended or expired Stripe
+      -- Diesel contract must not silently reactivate legacy quota information.
+      AND NOT EXISTS (
+        SELECT 1 FROM public.stripe_contracts c
+        JOIN public.subscription_plans sp
+          ON sp.environment = c.environment AND sp.code = c.plan_code
+        WHERE c.user_id = p_user AND c.mode = 'subscription' AND sp.product = 'diesel'
+      )
     ORDER BY l.starts_at DESC LIMIT 1;
 END;
 $$;
