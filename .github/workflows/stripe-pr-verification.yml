@@ -22,18 +22,17 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: '22'
-          cache: npm
+          bun-version: latest
       - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+        run: bun install --frozen-lockfile
       - name: Unit tests
-        run: npm test -- --run
+        run: bunx vitest run
       - name: TypeScript check
-        run: npx tsc --noEmit -p tsconfig.app.json
+        run: bunx tsc --noEmit -p tsconfig.app.json
       - name: Production build (artifact only, not deployed)
-        run: npm run build
+        run: bun run build
 
   stripe-deno:
     name: Stripe mocked webhook tests
@@ -45,4 +44,4 @@ jobs:
         with:
           deno-version: v2.x
       - name: Deno webhook tests
-        run: deno test --node-modules-dir=none supabase/tests/stripe_flows_test.ts
+        run: deno test --allow-env --node-modules-dir=none supabase/tests/stripe_flows_test.ts
