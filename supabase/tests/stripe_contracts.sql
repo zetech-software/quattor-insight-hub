@@ -27,6 +27,24 @@ BEGIN
   IF NOT public.has_stripe_access('course_only') THEN
     RAISE EXCEPTION 'Paid course-only buyer denied the purchased course';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.stripe_contracts
+    WHERE object_id = 'cs_course_only' AND mode = 'payment'
+      AND access_until > now() + interval '29 days'
+      AND access_until <= now() + interval '30 days'
+  ) THEN RAISE EXCEPTION 'Paid course missing 30-day expiry'; END IF;
+  -- An expired course must stay expired even when a new webhook reconciles the same purchase.
+  UPDATE public.stripe_contracts SET access_until = now() - interval '1 second'
+    WHERE object_id = 'cs_course_only';
+  IF public.has_stripe_access('course_only') THEN
+    RAISE EXCEPTION 'Expired course granted access';
+  END IF;
+  token := public.claim_stripe_event('test','cs_course_only','evt_course_only_again','checkout.session.completed')::uuid;
+  PERFORM public.finish_stripe_event('test','cs_course_only','evt_course_only_again',token,'processado',NULL,
+    original || '{"mode":"payment","plan_code":"course_only","status":"paid","access_until":null}');
+  IF public.has_stripe_access('course_only') THEN
+    RAISE EXCEPTION 'Repeated webhook extended expired course access';
+  END IF;
 
   -- Explicit legacy entitlement remains valid only while active and in period.
   INSERT INTO public.subscriptions (user_id, plan_name, status, starts_at, expires_at)
