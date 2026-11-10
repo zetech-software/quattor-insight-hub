@@ -45,3 +45,33 @@ jobs:
           deno-version: v2.x
       - name: Deno webhook tests
         run: deno test --allow-env --node-modules-dir=none supabase/tests/stripe_flows_test.ts
+
+  sql-disposable:
+    name: Disposable local Supabase SQL checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # This job never links to, or authenticates with, any hosted Supabase.
+      SUPABASE_ACCESS_TOKEN: ""
+      PGURI: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Apply migrations to local database only
+        run: supabase db reset --local --no-seed
+      - name: Stripe contract and access regressions
+        run: psql "$PGURI" -X -v ON_ERROR_STOP=1 -f supabase/tests/stripe_contracts.sql
+      - name: Diesel quotas, product access and expiry
+        run: psql "$PGURI" -X -v ON_ERROR_STOP=1 -f supabase/tests/diesel_quota.sql
+      - name: Concurrent writes against disposable database
+        env:
+          DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          QUATTOR_DISPOSABLE_DB: "YES"
+        run: bash supabase/tests/diesel_quota_concurrency.sh
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
