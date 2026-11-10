@@ -182,18 +182,18 @@ BEGIN
     OR public.has_product_access('course','curso_x') THEN
     RAISE EXCEPTION 'Webhook replay reopened a course with NULL expiry';
   END IF;
-END $;
+END $$;
 
 -- Mixed legacy + Stripe contracts must be included in the duplicate review.
 INSERT INTO public.subscriptions (user_id, plan_name, status, starts_at, expires_at)
 VALUES ('a1111111-1111-4111-8111-111111111111', 'Diesel legado', 'active',
         now() - interval '1 year', now() + interval '1 month');
-DO $ BEGIN
+DO $$ BEGIN
   PERFORM set_config('request.jwt.claim.sub','',true);
   IF NOT EXISTS (SELECT 1 FROM public.diesel_multiple_contracts()
     WHERE user_id = 'a1111111-1111-4111-8111-111111111111' AND contracts = 2)
   THEN RAISE EXCEPTION 'Mixed Stripe and legacy duplicate was not reported'; END IF;
-END $;
+END $$;
 
 -- Multiple Diesel contracts are listed for precedence decision.
 INSERT INTO public.stripe_contracts (environment, object_id, user_id, plan_code, mode, customer_id,
@@ -208,7 +208,7 @@ DO $$ BEGIN
   IF (SELECT unlimited FROM public.diesel_entitlement('a2222222-2222-4222-8222-222222222222')) IS NOT TRUE THEN
     RAISE EXCEPTION 'Provisional precedence not the most generous';
   END IF;
-END $;
+END $$;
 
 -- A past-due Stripe Diesel contract must not show legacy access as available.
 -- The usage summary and authorization must agree.
@@ -221,12 +221,12 @@ VALUES
    'past_due',NULL);
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','a3333333-3333-4333-8333-333333333333',true);
-DO $ DECLARE usage jsonb; BEGIN
+DO $$ DECLARE usage jsonb; BEGIN
   usage := public.get_diesel_usage();
   IF public.has_product_access('diesel') OR (usage->>'has_plan')::boolean THEN
     RAISE EXCEPTION 'Past-due Stripe contract incorrectly exposes legacy entitlement';
   END IF;
-END $;
+END $$;
 RESET ROLE;
 
 ROLLBACK;
