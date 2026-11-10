@@ -53,7 +53,8 @@ Deno.serve(async (req) => {
       .eq("environment", catalogEnvironment(environment)).eq("code", body.planCode)
       .eq("is_active", true).maybeSingle();
     if (error) throw error;
-    if (!plan?.stripe_price_id || !plan.stripe_product_id) {
+    if (!plan?.stripe_price_id || !plan.stripe_product_id
+      || !Number.isSafeInteger(plan.amount_cents) || plan.amount_cents <= 0) {
       return json({ error: "Plano indisponível." }, 404);
     }
 
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
     const interval = plan.billing_period === "anual" ? "year" : "month";
     if (price.livemode !== (environment === "live") || !price.active || productId !== plan.stripe_product_id
       || price.currency !== plan.currency.toLowerCase()
-      || (plan.amount_cents !== null && price.unit_amount !== plan.amount_cents)
+      || price.unit_amount !== plan.amount_cents
       || (mode === "payment" ? price.type !== "one_time"
         : price.type !== "recurring" || price.recurring?.interval !== interval
           || price.recurring?.interval_count !== 1)) {
