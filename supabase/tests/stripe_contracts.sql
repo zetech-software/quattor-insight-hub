@@ -15,6 +15,25 @@ DECLARE
     'access_until', now() + interval '30 days', 'cancel_at_period_end', false
   );
 BEGIN
+  -- No Stripe contract and no legacy subscription must not grant SaaS access.
+  PERFORM set_config('request.jwt.claim.sub', buyer::text, true);
+  IF public.has_stripe_access() THEN RAISE EXCEPTION 'Unsubscribed client granted SaaS'; END IF;
+
+  -- Explicit legacy entitlement remains valid only while active and in period.
+  INSERT INTO public.subscriptions (user_id, plan_name, status, starts_at, expires_at)
+  VALUES (buyer, 'Legado autorizado', 'active', now() - interval '1 day', now() + interval '30 days');
+  IF NOT public.has_stripe_access() THEN RAISE EXCEPTION 'Valid legacy subscription denied'; END IF;
+  UPDATE public.subscriptions SET status = 'expired' WHERE user_id = buyer;
+  IF public.has_stripe_access() THEN RAISE EXCEPTION 'Expired legacy status granted SaaS'; END IF;
+  UPDATE public.subscriptions SET status = 'active', expires_at = now() - interval '1 second'
+  WHERE user_id = buyer;
+  IF public.has_stripe_access() THEN RAISE EXCEPTION 'Expired legacy period granted SaaS'; END IF;
+  UPDATE public.subscriptions SET expires_at = now() + interval '30 days',
+    starts_at = now() + interval '1 day' WHERE user_id = buyer;
+  IF public.has_stripe_access() THEN RAISE EXCEPTION 'Future legacy contract granted SaaS'; END IF;
+  UPDATE public.subscriptions SET starts_at = now() - interval '1 day'
+  WHERE user_id = buyer;
+
   token := public.claim_stripe_event('test','sub_mock','evt_open','checkout.session.completed')::uuid;
   IF public.claim_stripe_event('test','sub_mock','evt_parallel','invoice.paid') <> 'busy' THEN
     RAISE EXCEPTION 'Parallel reconciliation was accepted';
@@ -50,7 +69,7 @@ BEGIN
     original || '{"status":"past_due","access_until":null}');
 
   PERFORM set_config('request.jwt.claim.sub', buyer::text, true);
-  IF public.has_stripe_access() THEN RAISE EXCEPTION 'Past due contract granted SaaS'; END IF;
+  IF public.has_stripe_access() THEN RAISE EXCEPTION 'Past due contract granted SaaS despite valid legacy record'; END IF;
 
   token := public.claim_stripe_event('test','sub_mock','evt_recovery','invoice.paid')::uuid;
   PERFORM public.finish_stripe_event('test','sub_mock','evt_recovery',token,'processado',NULL,original);
