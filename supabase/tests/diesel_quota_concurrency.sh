@@ -2,6 +2,19 @@
 # Concurrency check on a DISPOSABLE database: DB_URL must point to it.
 set -euo pipefail
 : "${DB_URL:?set DB_URL to a disposable database}"
+: "${QUATTOR_DISPOSABLE_DB:?Set QUATTOR_DISPOSABLE_DB=YES only for a disposable local test database}"
+if [[ "$QUATTOR_DISPOSABLE_DB" != "YES" ]]; then
+  echo "Refusing to write: QUATTOR_DISPOSABLE_DB must be YES" >&2
+  exit 2
+fi
+# Never allow this fixture to run against a hosted/live database.
+python3 - "$DB_URL" <<'PY'
+import sys
+from urllib.parse import urlparse
+host = urlparse(sys.argv[1]).hostname
+if host not in ("localhost", "127.0.0.1", "::1"):
+    raise SystemExit("Refusing to run concurrency fixtures on a non-local database")
+PY
 U=b1111111-1111-4111-8111-111111111111
 psql "$DB_URL" -q -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO auth.users (id, email) VALUES ('$U', 'concorrencia@example.invalid');
@@ -20,7 +33,15 @@ for i in $(seq 1 8); do call "$SAME" & done > /tmp/conc_same.txt; wait
 for i in $(seq 1 8); do call "$(python3 -c "import uuid;print(uuid.uuid4())")" & done > /tmp/conc_many.txt; wait
 CALCS=$(psql "$DB_URL" -qAt -c "SELECT count(*) FROM public.calculations WHERE user_id = '$U'")
 USED=$(psql "$DB_URL" -qAt -c "SELECT used FROM public.diesel_usage WHERE user_id = '$U' AND period_start = public.diesel_usage_period()")
-echo "same-request: $(grep -c false /tmp/conc_same.txt) new, $(grep -c true /tmp/conc_same.txt) duplicates"
-echo "distinct: $(grep -c false /tmp/conc_many.txt) saved, $(grep -vc -E '^(true|false)$' /tmp/conc_many.txt) blocked"
+same_new=$(grep -xc 'false' /tmp/conc_same.txt || true)
+same_dup=$(grep -xc 'true' /tmp/conc_same.txt || true)
+other_new=$(grep -xc 'false' /tmp/conc_many.txt || true)
+other_blocked=$(grep -c 'diesel_quota_exceeded' /tmp/conc_many.txt || true)
+echo "same-request: $same_new new, $same_dup duplicates"
+echo "distinct: $other_new saved, $other_blocked blocked"
 echo "calculations=$CALCS used=$USED"
-[ "$CALCS" = 2 ] && [ "$USED" = 30 ] && [ "$(grep -c false /tmp/conc_same.txt)" = 1 ] && echo "concurrency ok"
+if [[ "$CALCS" != 2 || "$USED" != 30 || "$same_new" != 1 || "$same_dup" != 7 || "$other_new" != 1 || "$other_blocked" != 7 ]]; then
+  echo "Unexpected results in concurrent saves" >&2
+  exit 1
+fi
+echo "concurrency ok"
