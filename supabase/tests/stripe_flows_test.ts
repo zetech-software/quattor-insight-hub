@@ -87,6 +87,15 @@ Deno.test("Checkout requires authentication, exact HTTPS origin and a sandbox pr
   assert.equal((await checkout(checkoutReq())).status, 409);
   assert.equal(lastCheckout, undefined);
   price.livemode = false;
+  // Incomplete catalog entries must never create a checkout, even if Stripe has a price.
+  const previousAmount = plan.amount_cents;
+  const previousPrice = plan.stripe_price_id;
+  plan.amount_cents = null as unknown as number;
+  assert.equal((await checkout(checkoutReq())).status, 404);
+  plan.amount_cents = previousAmount;
+  plan.stripe_price_id = "";
+  assert.equal((await checkout(checkoutReq())).status, 404);
+  plan.stripe_price_id = previousPrice;
   Deno.env.set("SUPABASE_URL", `https://${prod}.supabase.co`);
   assert.equal((await checkout(checkoutReq(undefined, "live"))).status, 503);
   Deno.env.set("SUPABASE_URL", `https://${sandbox}.supabase.co`);
