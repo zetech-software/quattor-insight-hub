@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { isBillingEnabled } from "../_shared/stripe.ts";
+import { billingEnvironment, canProcessBilling, catalogEnvironment } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,9 +23,8 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const url = new URL(req.url);
-    const rawEnv = url.searchParams.get("env");
-    const environment = rawEnv === "production" ? "production" : "test";
+    const stripeEnvironment = billingEnvironment();
+    const environment = catalogEnvironment(stripeEnvironment);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -34,7 +33,7 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabase
       .from("subscription_plans")
-      .select("code, name, description, features, billing_period, amount_cents, currency, is_recommended, sort_order")
+      .select("code, name, description, features, billing_period, checkout_mode, amount_cents, currency, is_recommended, sort_order")
       .eq("is_active", true)
       .eq("environment", environment)
       .order("sort_order", { ascending: true });
@@ -44,7 +43,7 @@ Deno.serve(async (req) => {
       return json({ error: "Não foi possível carregar os planos." }, 500);
     }
 
-    const billingReady = isBillingEnabled();
+    const billingReady = canProcessBilling(stripeEnvironment);
 
     return json({ plans: data ?? [], billingReady, environment });
   } catch (e) {

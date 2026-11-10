@@ -70,7 +70,7 @@ const Perfil = () => {
         .maybeSingle(),
       supabase
         .from("subscriptions")
-        .select("plan_name, plan_code, status, expires_at")
+        .select("plan_name, plan_code, status, expires_at, environment")
         .eq("user_id", user.id)
         .maybeSingle(),
     ]);
@@ -102,6 +102,7 @@ const Perfil = () => {
       const { data: plan } = await supabase
         .from("subscription_plans")
         .select("name")
+        .eq("environment", sub.environment ?? "production")
         .eq("code", sub.plan_code)
         .maybeSingle();
       setSubscription({

@@ -1,5 +1,5 @@
-import { encode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
-import Stripe from "https://esm.sh/stripe@22.0.2";
+import Stripe from "npm:stripe@22.0.2";
+export type { Stripe };
 
 const getEnv = (key: string): string => {
   const value = Deno.env.get(key);
@@ -12,9 +12,9 @@ export type StripeEnv = 'sandbox' | 'live';
 const GATEWAY_STRIPE_BASE = 'https://connector-gateway.lovable.dev/stripe';
 
 export function getConnectionApiKey(env: StripeEnv): string {
-  return env === 'sandbox'
-    ? getEnv('STRIPE_SANDBOX_API_KEY')
-    : getEnv('STRIPE_LIVE_API_KEY');
+  const key = getEnv(env === 'sandbox' ? 'STRIPE_SANDBOX_API_KEY' : 'STRIPE_LIVE_API_KEY');
+  if (env === 'sandbox' && /^(sk|rk)_live_/.test(key)) throw new Error('Live key in sandbox');
+  return key;
 }
 
 // Routes api.stripe.com requests through the connector gateway.
@@ -26,9 +26,12 @@ export function createStripeClient(env: StripeEnv): Stripe {
     apiVersion: '2026-03-25.dahlia',
     httpClient: Stripe.createFetchHttpClient((input, init) => {
       const stripeUrl = input instanceof Request ? input.url : input.toString();
-      const gatewayUrl = stripeUrl.replace('https://api.stripe.com', GATEWAY_STRIPE_BASE);
+      const url = new URL(stripeUrl);
+      if (url.origin !== "https://api.stripe.com") throw new Error("Unexpected Stripe API origin");
+      const gatewayUrl = GATEWAY_STRIPE_BASE + url.pathname + url.search;
       return fetch(gatewayUrl, {
         ...init,
+        redirect: "error",
         headers: {
           ...Object.fromEntries(
             new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined)).entries(),
@@ -41,56 +44,17 @@ export function createStripeClient(env: StripeEnv): Stripe {
   });
 }
 
-export async function verifyWebhook(
-  req: Request,
-  env: StripeEnv,
-): Promise<{ id: string; type: string; livemode: boolean; data: { object: any } }> {
+export async function verifyWebhook(req: Request, env: StripeEnv): Promise<Stripe.Event> {
   const signature = req.headers.get("stripe-signature");
-  const body = await req.text();
-  const secret = env === 'sandbox'
-    ? getEnv('PAYMENTS_SANDBOX_WEBHOOK_SECRET')
-    : getEnv('PAYMENTS_LIVE_WEBHOOK_SECRET');
-
-  if (!signature || !body) {
-    throw new Error("Missing signature or body");
+  if (!signature) throw new Error("Missing Stripe signature");
+  const timestamp = signature.match(/(?:^|,)t=(\d+)(?:,|$)/)?.[1];
+  if (!timestamp || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) {
+    throw new Error("Invalid Stripe signature timestamp");
   }
-
-  let timestamp: string | undefined;
-  const v1Signatures: string[] = [];
-  for (const part of signature.split(",")) {
-    const [key, value] = part.split("=", 2);
-    if (key === "t") timestamp = value;
-    if (key === "v1") v1Signatures.push(value);
-  }
-
-  if (!timestamp || v1Signatures.length === 0) {
-    throw new Error("Invalid signature format");
-  }
-
-  const age = Math.abs(Date.now() / 1000 - Number(timestamp));
-  if (age > 300) {
-    throw new Error("Webhook timestamp too old");
-  }
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
+  const secret = getEnv(env === "sandbox" ? "PAYMENTS_SANDBOX_WEBHOOK_SECRET" : "PAYMENTS_LIVE_WEBHOOK_SECRET");
+  return await Stripe.webhooks.constructEventAsync(
+    await req.text(), signature, secret, 300, Stripe.createSubtleCryptoProvider(),
   );
-  const signed = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(`${timestamp}.${body}`),
-  );
-  const expected = new TextDecoder().decode(encode(new Uint8Array(signed)));
-
-  if (!v1Signatures.includes(expected)) {
-    throw new Error("Invalid webhook signature");
-  }
-
-  return JSON.parse(body);
 }
 
 /**
@@ -112,4 +76,36 @@ export function isBillingEnabled(): boolean {
 /** Ambiente do catálogo ('test' | 'production') a partir do ambiente do Stripe. */
 export function catalogEnvironment(env: StripeEnv): "test" | "production" {
   return env === "live" ? "production" : "test";
+}
+
+/** Homologação isolada do Lovable, nunca no projeto de produção. */
+export function isSandboxBillingEnabled(): boolean {
+  const projectRef = Deno.env.get("BILLING_SANDBOX_PROJECT_REF");
+  return !!projectRef && /^[a-z0-9]{20}$/.test(projectRef)
+    && projectRef !== "rqaiodukllvnrxojhbwq"
+    && Deno.env.get("SUPABASE_URL") === `https://${projectRef}.supabase.co`;
+}
+
+export function billingEnvironment(): StripeEnv {
+  return isSandboxBillingEnabled() ? "sandbox" : "live";
+}
+
+export function canProcessBilling(env: StripeEnv): boolean {
+  return env === billingEnvironment() && (env === "sandbox" || isBillingEnabled());
+}
+
+export function allowedCheckoutReturnUrl(value: unknown): URL | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    const configured = Deno.env.get("PAYMENTS_RETURN_ORIGINS") ?? "";
+    const origins = configured.split(",").map((origin) => origin.trim()).filter(Boolean);
+    if (!origins.length && billingEnvironment() === "live") {
+      origins.push("https://quattor-insight-hub.lovable.app");
+    }
+    return url.protocol === "https:" && !url.username && !url.password
+      && origins.includes(url.origin) ? url : null;
+  } catch {
+    return null;
+  }
 }

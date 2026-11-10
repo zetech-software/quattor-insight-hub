@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Navigate } from "react-router-dom";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 import { isClientProfileComplete } from "@/lib/clientProfileValidation";
@@ -8,6 +10,7 @@ import type { ReactNode } from "react";
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  requiresBillingAccess?: boolean;
   /** Uma permissão ou lista de permissões aceitas. Admin sempre tem acesso. */
   requiredRole?: AppRole | AppRole[];
   /** Permissões explicitamente bloqueadas nesta rota (vale até para admin). */
@@ -21,12 +24,24 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({
   children,
   requiredRole,
+  requiresBillingAccess,
   blockedRoles,
   allowPasswordChange,
   allowProfileCompletion,
 }: ProtectedRouteProps) {
   const { session, role, profile, loading, signOut } = useAuth();
 
+  const checkBilling = !!session && requiresBillingAccess === true && role === "client";
+  const billing = useQuery({
+    queryKey: ["stripe-access", session?.user.id],
+    enabled: checkBilling,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("has_stripe_access", {});
+      if (error) throw error;
+      return data === true;
+    },
+  });
   const isBlocked = !!session && profile !== null && profile.is_active === false;
 
   useEffect(() => {
@@ -114,6 +129,12 @@ export function ProtectedRoute({
   }
 
 
+
+  if (checkBilling) {
+    if (billing.isPending) return <p role="status">Verificando acesso...</p>;
+    if (billing.isError) return <p role="alert">Não foi possível verificar o acesso. Tente novamente.</p>;
+    if (!billing.data) return <Navigate to="/assinatura" replace />;
+  }
 
   return <>{children}</>;
 }

@@ -554,6 +554,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_stripe_access: { Args: { p_course_code?: string }; Returns: boolean }
       clear_must_change_password: { Args: never; Returns: undefined }
       has_admin_area_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {

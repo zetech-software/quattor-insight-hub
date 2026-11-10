@@ -55,11 +55,12 @@ export class InternalAccountError extends Error {
  * Recusa o provisionamento quando o e-mail já pertence a uma conta interna.
  * Nenhum papel existente é alterado por causa de pagamento.
  */
-export async function assertNotInternalAccount(supabase: SupabaseClient, userId: string): Promise<void> {
+export async function assertNotInternalAccount(supabase: SupabaseClient, userId: string): Promise<string[]> {
   const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (error) throw new Error(`role check failed: ${error.message}`);
   const internal = internalRolesOf(data as Array<{ role?: string | null }>);
   if (internal.length > 0) throw new InternalAccountError(internal);
+  return (data ?? []).map((entry) => entry.role);
 }
 
 /**
@@ -128,15 +129,17 @@ export async function provisionClient(input: ProvisionInput): Promise<{ userId: 
     current_period_end: input.currentPeriodEnd ?? null,
   };
 
-  const { data: existing } = await supabase
+  const { data: existing, error: lookupError } = await supabase
     .from("subscriptions")
-    .select("id")
+    .select("id, stripe_subscription_id")
     .eq("user_id", userId)
     .limit(1)
     .maybeSingle();
 
+  if (lookupError) throw new Error(`subscription lookup failed: ${lookupError.message}`);
+  if (existing?.stripe_subscription_id) throw new Error("Stripe-managed subscription");
   if (existing?.id) {
-    const { error } = await supabase.from("subscriptions").update(subscription).eq("id", existing.id);
+    const { error } = await supabase.from("subscriptions").update(subscription).eq("id", existing.id).is("stripe_subscription_id", null);
     if (error) throw new Error(`subscription update failed: ${error.message}`);
   } else {
     const { error } = await supabase.from("subscriptions").insert(subscription);

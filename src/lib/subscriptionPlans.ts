@@ -9,6 +9,7 @@ export interface PublicPlan {
   name: string;
   description: string | null;
   features: string[];
+  checkout_mode: "subscription" | "payment";
   billing_period: "mensal" | "anual";
   amount_cents: number | null;
   currency: string;

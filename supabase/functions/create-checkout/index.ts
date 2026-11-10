@@ -1,96 +1,105 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { adminClient, assertNotInternalAccount } from "../_shared/provisionClient.ts";
 import {
-  type StripeEnv,
-  catalogEnvironment,
-  createStripeClient,
-  isBillingEnabled,
+  allowedCheckoutReturnUrl, billingEnvironment, canProcessBilling, catalogEnvironment,
+  createStripeClient, type Stripe,
 } from "../_shared/stripe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+const json = (data: unknown, status = 200) => Response.json(data, { status, headers: corsHeaders });
 
-/**
- * Checkout preparado, comercialmente desligado.
- * O navegador envia apenas o código interno do plano; preço, produto e ambiente
- * vêm sempre do catálogo no servidor. A chave do provedor nunca sai daqui.
- */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
+
+  const environment = billingEnvironment();
+  if (!canProcessBilling(environment)) {
+    return json({ error: "Cobrança ainda não homologada.", reason: "billing_disabled" }, 503);
   }
 
-  const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
   try {
-    const body = await req.json().catch(() => ({}));
-    const planCode = typeof body.planCode === "string" ? body.planCode : "";
-    const rawEnv = body.environment === "live" ? "live" : "sandbox";
-    const environment: StripeEnv = rawEnv;
-    const returnUrl = typeof body.returnUrl === "string" ? body.returnUrl : "";
-
-    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(planCode)) {
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body.planCode !== "string" || !/^[a-zA-Z0-9_-]{1,64}$/.test(body.planCode)) {
       return json({ error: "Plano inválido." }, 400);
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { data: plan, error } = await supabase
-      .from("subscription_plans")
-      .select("code, name, stripe_price_id, environment, is_active")
-      .eq("code", planCode)
-      .maybeSingle();
-
-    if (error) {
-      console.error("plan lookup failed:", error.code ?? "", error.message ?? "");
-      return json({ error: "Não foi possível validar o plano." }, 500);
+    if (body.environment !== undefined && body.environment !== environment) {
+      return json({ error: "Ambiente indisponível." }, 409);
     }
-    if (!plan || !plan.is_active) {
+    const returnUrl = allowedCheckoutReturnUrl(body.returnUrl);
+    if (!returnUrl) return json({ error: "Endereço de retorno inválido." }, 400);
+    const requestId = body.requestId;
+    if (typeof requestId !== "string" || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(requestId)) {
+      return json({ error: "Identificador de tentativa inválido." }, 400);
+    }
+
+    const token = req.headers.get("Authorization")?.match(/^Bearer (\S+)$/i)?.[1];
+    if (!token) return json({ error: "Entre na sua conta para continuar." }, 401);
+    const supabase = adminClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user?.email || !user.email_confirmed_at) {
+      return json({ error: "Confirme seu e-mail para continuar." }, 401);
+    }
+    const roles = await assertNotInternalAccount(supabase, user.id);
+    if (!roles.includes("client")) return json({ error: "Conta indisponível." }, 403);
+    const { data: profile, error: profileError } = await supabase.from("profiles")
+      .select("is_active").eq("user_id", user.id).maybeSingle();
+    if (profileError) throw profileError;
+    if (!profile?.is_active) return json({ error: "Conta indisponível." }, 403);
+
+    const { data: plan, error } = await supabase.from("subscription_plans")
+      .select("code, stripe_price_id, stripe_product_id, checkout_mode, billing_period, amount_cents, currency")
+      .eq("environment", catalogEnvironment(environment)).eq("code", body.planCode)
+      .eq("is_active", true).maybeSingle();
+    if (error) throw error;
+    if (!plan?.stripe_price_id || !plan.stripe_product_id) {
       return json({ error: "Plano indisponível." }, 404);
-    }
-    if (plan.environment !== catalogEnvironment(environment)) {
-      return json({ error: "Plano indisponível neste ambiente." }, 409);
-    }
-
-    if (!isBillingEnabled()) {
-      return json(
-        {
-          error: "Cobrança ainda não homologada.",
-          reason: "billing_disabled",
-        },
-        503,
-      );
-    }
-
-    if (!plan.stripe_price_id) {
-      return json({ error: "Plano sem preço configurado." }, 409);
-    }
-    if (!/^https?:\/\//.test(returnUrl)) {
-      return json({ error: "Endereço de retorno inválido." }, 400);
     }
 
     const stripe = createStripeClient(environment);
-    const session = await stripe.checkout.sessions.create({
-      line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
-      mode: "subscription",
-      ui_mode: "embedded_page",
-      return_url: returnUrl,
-      subscription_data: { metadata: { planCode: plan.code } },
-      metadata: { planCode: plan.code },
-    });
+    const price = await stripe.prices.retrieve(plan.stripe_price_id);
+    const mode = plan.checkout_mode === "payment" ? "payment" : "subscription";
+    const productId = typeof price.product === "string" ? price.product : price.product.id;
+    const interval = plan.billing_period === "anual" ? "year" : "month";
+    if (price.livemode !== (environment === "live") || !price.active || productId !== plan.stripe_product_id
+      || price.currency !== plan.currency.toLowerCase()
+      || (plan.amount_cents !== null && price.unit_amount !== plan.amount_cents)
+      || (mode === "payment" ? price.type !== "one_time"
+        : price.type !== "recurring" || price.recurring?.interval !== interval
+          || price.recurring?.interval_count !== 1)) {
+      return json({ error: "Preço incompatível com o catálogo." }, 409);
+    }
 
-    return json({ clientSecret: session.client_secret });
-  } catch (e) {
-    console.error("create-checkout error:", (e as Error).message);
+    const metadata = { integration: "quattor", planCode: plan.code, userId: user.id };
+    const hosted = body.hosted === true;
+    returnUrl.searchParams.delete("checkout");
+    const baseUrl = returnUrl.toString();
+    const appendStatus = (status: string) => {
+      const url = new URL(baseUrl);
+      url.searchParams.set("checkout", status);
+      return url.toString();
+    };
+    const presentation: Stripe.Checkout.SessionCreateParams = hosted
+      ? { success_url: appendStatus("return"), cancel_url: appendStatus("cancelled") }
+      : { ui_mode: "embedded_page", return_url: appendStatus("return") };
+    const session = await stripe.checkout.sessions.create({
+      ...presentation,
+      line_items: [{ price: price.id, quantity: 1 }],
+      mode,
+      client_reference_id: user.id,
+      customer_email: user.email,
+      metadata,
+      ...(mode === "subscription" ? { subscription_data: { metadata } } : {}),
+    }, { idempotencyKey: `quattor:${environment}:${user.id}:${plan.code}:${requestId}` });
+    if (session.livemode !== (environment === "live")) throw new Error("Unexpected Stripe mode");
+
+    return json(hosted ? { checkoutUrl: session.url } : { clientSecret: session.client_secret });
+  } catch (error) {
+    if ((error as { code?: string }).code === "INTERNAL_ACCOUNT") {
+      return json({ error: "Conta interna indisponível para contratação." }, 403);
+    }
+    console.error("create-checkout failed", (error as { code?: string }).code ?? "unexpected");
     return json({ error: "Não foi possível iniciar o pagamento." }, 500);
   }
 });
