@@ -19,6 +19,15 @@ BEGIN
   PERFORM set_config('request.jwt.claim.sub', buyer::text, true);
   IF public.has_stripe_access() THEN RAISE EXCEPTION 'Unsubscribed client granted SaaS'; END IF;
 
+  -- A paid minicourse cannot unlock recurring SaaS features.
+  token := public.claim_stripe_event('test','cs_course_only','evt_course_only','checkout.session.completed')::uuid;
+  PERFORM public.finish_stripe_event('test','cs_course_only','evt_course_only',token,'processado',NULL,
+    original || '{"mode":"payment","plan_code":"course_only","status":"paid","access_until":null}');
+  IF public.has_stripe_access() THEN RAISE EXCEPTION 'Course-only buyer granted SaaS'; END IF;
+  IF NOT public.has_stripe_access('course_only') THEN
+    RAISE EXCEPTION 'Paid course-only buyer denied the purchased course';
+  END IF;
+
   -- Explicit legacy entitlement remains valid only while active and in period.
   INSERT INTO public.subscriptions (user_id, plan_name, status, starts_at, expires_at)
   VALUES (buyer, 'Legado autorizado', 'active', now() - interval '1 day', now() + interval '30 days');
