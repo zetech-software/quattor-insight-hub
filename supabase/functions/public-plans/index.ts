@@ -36,6 +36,10 @@ Deno.serve(async (req) => {
       .select("code, name, description, features, billing_period, checkout_mode, amount_cents, currency, is_recommended, sort_order")
       .eq("is_active", true)
       .eq("environment", environment)
+      // An active plan without a complete Stripe mapping is not purchasable.
+      .not("stripe_product_id", "is", null)
+      .not("stripe_price_id", "is", null)
+      .gt("amount_cents", 0)
       .order("sort_order", { ascending: true });
 
     if (error) {
