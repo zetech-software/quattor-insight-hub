@@ -174,7 +174,26 @@ BEGIN
   UPDATE public.stripe_contracts SET access_until = now() - interval '1 second' WHERE object_id = 'cs_curso';
   PERFORM set_config('request.jwt.claim.sub','a5555555-5555-4555-8555-555555555555',true);
   IF public.has_product_access('course','curso_x') THEN RAISE EXCEPTION 'Expired course granted'; END IF;
-END $$;
+  -- A previously recorded purchase with NULL expiry must not be reopened by webhook replay.
+  UPDATE public.stripe_contracts SET access_until = NULL WHERE object_id = 'cs_curso';
+  token := public.claim_stripe_event('test','cs_curso','evt_c3','checkout.session.async_payment_succeeded')::uuid;
+  PERFORM public.finish_stripe_event('test','cs_curso','evt_c3',token,'processado',NULL,c);
+  IF (SELECT access_until FROM public.stripe_contracts WHERE object_id = 'cs_curso') IS NOT NULL
+    OR public.has_product_access('course','curso_x') THEN
+    RAISE EXCEPTION 'Webhook replay reopened a course with NULL expiry';
+  END IF;
+END $;
+
+-- Mixed legacy + Stripe contracts must be included in the duplicate review.
+INSERT INTO public.subscriptions (user_id, plan_name, status, starts_at, expires_at)
+VALUES ('a1111111-1111-4111-8111-111111111111', 'Diesel legado', 'active',
+        now() - interval '1 year', now() + interval '1 month');
+DO $ BEGIN
+  PERFORM set_config('request.jwt.claim.sub','',true);
+  IF NOT EXISTS (SELECT 1 FROM public.diesel_multiple_contracts()
+    WHERE user_id = 'a1111111-1111-4111-8111-111111111111' AND contracts = 2)
+  THEN RAISE EXCEPTION 'Mixed Stripe and legacy duplicate was not reported'; END IF;
+END $;
 
 -- Multiple Diesel contracts are listed for precedence decision.
 INSERT INTO public.stripe_contracts (environment, object_id, user_id, plan_code, mode, customer_id,
