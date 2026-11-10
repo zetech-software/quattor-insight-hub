@@ -222,10 +222,20 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER SET search_path = '' AS $$
       WHERE user_id = (SELECT auth.uid()) AND mode = 'payment'
         AND plan_code = p_course_code AND status = 'paid'
     )
+    -- Legacy access requires an explicit, currently valid legacy subscription.
+    -- A new user or course-only buyer without a SaaS contract has no SaaS access.
     WHEN NOT EXISTS (
       SELECT 1 FROM public.stripe_contracts
       WHERE user_id = (SELECT auth.uid()) AND mode = 'subscription'
-    ) THEN true
+    ) THEN EXISTS (
+      SELECT 1 FROM public.subscriptions AS legacy
+      WHERE legacy.user_id = (SELECT auth.uid())
+        AND legacy.stripe_subscription_id IS NULL
+        AND legacy.status IN ('active', 'trial')
+        AND legacy.starts_at <= now()
+        AND (legacy.expires_at IS NULL AND legacy.status = 'active'
+          OR legacy.expires_at > now())
+    )
     ELSE EXISTS (
       SELECT 1 FROM public.stripe_contracts
       WHERE user_id = (SELECT auth.uid()) AND mode = 'subscription'
