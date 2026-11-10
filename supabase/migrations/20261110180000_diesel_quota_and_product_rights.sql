@@ -172,7 +172,7 @@ GRANT EXECUTE ON FUNCTION public.diesel_entitlement(uuid) TO service_role;
 -- Clientes com mais de um contrato Diesel ativo (precedência a definir).
 CREATE FUNCTION public.diesel_multiple_contracts()
 RETURNS TABLE (user_id uuid, contracts integer, plan_codes text[])
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   -- Aggregate Stripe and valid legacy contracts together. One of each is
   -- also a duplicate requiring review (UNION ALL of grouped counts misses it).
   SELECT combined.user_id, count(*)::integer, array_agg(combined.code ORDER BY combined.code)
@@ -192,7 +192,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $
   WHERE auth.uid() IS NULL OR public.has_staff_read_access(auth.uid())
   GROUP BY combined.user_id
   HAVING count(*) > 1;
-$;
+$$;
 REVOKE EXECUTE ON FUNCTION public.diesel_multiple_contracts() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.diesel_multiple_contracts() TO service_role;
 
