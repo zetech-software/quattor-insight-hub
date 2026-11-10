@@ -25,8 +25,21 @@ VALUES ('test','sub_conc','$U','diesel_conc','subscription','cus_c','price_c','p
 INSERT INTO public.diesel_usage (user_id, period_start, used) VALUES ('$U', public.diesel_usage_period(), 28);
 SQL
 call() {
-  psql "$DB_URL" -qAt -c "SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub','$U',false);" \
-    -c "SELECT public.save_diesel_calculation('$1'::uuid, jsonb_build_object('volume_nf',1,'peso_liquido',1,'massa_especifica_20_nf',1,'temperatura_amostra',1,'densidade_amostra',1,'temperatura_ct',1))->>'duplicate'" 2>&1 | tail -1
+  local output last
+  if output=$(psql "$DB_URL" -qAt -v ON_ERROR_STOP=1 \
+    -c "SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub','$U',false);" \
+    -c "SELECT public.save_diesel_calculation('$1'::uuid, jsonb_build_object('volume_nf',1,'peso_liquido',1,'massa_especifica_20_nf',1,'temperatura_amostra',1,'densidade_amostra',1,'temperatura_ct',1))->>'duplicate'" 2>&1); then
+    last="${output##*$'\n'}"
+    case "$last" in
+      true|false) printf '%s\n' "$last" ;;
+      *) echo "unexpected"; printf '%s\n' "$output" >&2 ;;
+    esac
+  elif [[ "$output" == *"diesel_quota_exceeded"* ]]; then
+    echo "blocked"
+  else
+    echo "unexpected"
+    printf '%s\n' "$output" >&2
+  fi
 }
 SAME=$(python3 -c "import uuid;print(uuid.uuid4())")
 for i in $(seq 1 8); do call "$SAME" & done > /tmp/conc_same.txt; wait
@@ -36,7 +49,7 @@ USED=$(psql "$DB_URL" -qAt -c "SELECT used FROM public.diesel_usage WHERE user_i
 same_new=$(grep -xc 'false' /tmp/conc_same.txt || true)
 same_dup=$(grep -xc 'true' /tmp/conc_same.txt || true)
 other_new=$(grep -xc 'false' /tmp/conc_many.txt || true)
-other_blocked=$(grep -c 'diesel_quota_exceeded' /tmp/conc_many.txt || true)
+other_blocked=$(grep -xc 'blocked' /tmp/conc_many.txt || true)
 echo "same-request: $same_new new, $same_dup duplicates"
 echo "distinct: $other_new saved, $other_blocked blocked"
 echo "calculations=$CALCS used=$USED"
