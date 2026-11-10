@@ -191,10 +191,14 @@ BEGIN
     ) VALUES (
       p_environment, p_object_id, v_contract.user_id, v_contract.plan_code, v_contract.mode,
       v_contract.customer_id, v_contract.price_id, v_contract.product_id, v_contract.status,
-      v_contract.access_until, v_contract.cancel_at_period_end
+      CASE WHEN v_contract.mode = 'payment' AND v_contract.status = 'paid'
+        THEN now() + interval '30 days' ELSE v_contract.access_until END,
+      v_contract.cancel_at_period_end
     )
     ON CONFLICT (environment, object_id) DO UPDATE SET
-      status = excluded.status, access_until = excluded.access_until,
+      status = excluded.status,
+      access_until = CASE WHEN contract.mode = 'payment'
+        THEN contract.access_until ELSE excluded.access_until END,
       cancel_at_period_end = excluded.cancel_at_period_end, updated_at = now()
     WHERE contract.user_id = excluded.user_id AND contract.plan_code = excluded.plan_code
       AND contract.mode = excluded.mode AND contract.customer_id IS NOT DISTINCT FROM excluded.customer_id
@@ -221,6 +225,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER SET search_path = '' AS $$
       SELECT 1 FROM public.stripe_contracts
       WHERE user_id = (SELECT auth.uid()) AND mode = 'payment'
         AND plan_code = p_course_code AND status = 'paid'
+        AND access_until > now()
     )
     -- Legacy access requires an explicit, currently valid legacy subscription.
     -- A new user or course-only buyer without a SaaS contract has no SaaS access.
