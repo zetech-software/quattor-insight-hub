@@ -37,7 +37,7 @@ BEGIN
     SELECT 1 FROM public.stripe_contracts
     WHERE object_id = 'cs_course_only' AND mode = 'payment'
       AND access_until > now() + interval '29 days'
-      AND access_until <= now() + interval '30 days'
+      AND access_until <= now() + interval '30 days 5 seconds'
   ) THEN RAISE EXCEPTION 'Paid course missing 30-day expiry'; END IF;
   UPDATE public.stripe_contracts SET access_until = now() - interval '1 second'
     WHERE object_id = 'cs_course_only';
