@@ -1,0 +1,48 @@
+name: Stripe PR verification
+
+on:
+  push:
+    branches:
+      - fix/stripe-homologation
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stripe-pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend tests, TypeScript and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Unit tests
+        run: npm test -- --run
+      - name: TypeScript check
+        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: Production build (artifact only, not deployed)
+        run: npm run build
+
+  stripe-deno:
+    name: Stripe mocked webhook tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Deno webhook tests
+        run: deno test --node-modules-dir=none supabase/tests/stripe_flows_test.ts
