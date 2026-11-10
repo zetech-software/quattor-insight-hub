@@ -164,23 +164,27 @@ GRANT EXECUTE ON FUNCTION public.diesel_entitlement(uuid) TO service_role;
 -- Clientes com mais de um contrato Diesel ativo (precedência a definir).
 CREATE FUNCTION public.diesel_multiple_contracts()
 RETURNS TABLE (user_id uuid, contracts integer, plan_codes text[])
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
-  SELECT u.user_id, u.n::integer, u.codes FROM (
-    SELECT c.user_id, count(*) AS n, array_agg(c.plan_code ORDER BY c.plan_code) AS codes
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $
+  -- Aggregate Stripe and valid legacy contracts together. One of each is
+  -- also a duplicate requiring review (UNION ALL of grouped counts misses it).
+  SELECT combined.user_id, count(*)::integer, array_agg(combined.code ORDER BY combined.code)
+  FROM (
+    SELECT c.user_id, c.plan_code AS code
     FROM public.stripe_contracts c
     JOIN public.subscription_plans p ON p.environment = c.environment AND p.code = c.plan_code
     WHERE c.mode = 'subscription' AND p.product = 'diesel'
       AND c.status IN ('active','trialing') AND c.access_until > now()
-    GROUP BY c.user_id
     UNION ALL
-    SELECT l.user_id, count(*), array_agg(coalesce(l.plan_code, l.plan_name))
+    SELECT l.user_id, coalesce(l.plan_code, l.plan_name) AS code
     FROM public.subscriptions l
     WHERE l.stripe_subscription_id IS NULL AND l.status IN ('active','trial')
-      AND (l.expires_at IS NULL OR l.expires_at > now())
-    GROUP BY l.user_id
-  ) u WHERE u.n > 1
-    AND (auth.uid() IS NULL OR public.has_staff_read_access(auth.uid()));
-$$;
+      AND l.starts_at <= now()
+      AND (l.expires_at IS NULL AND l.status = 'active' OR l.expires_at > now())
+  ) combined
+  WHERE auth.uid() IS NULL OR public.has_staff_read_access(auth.uid())
+  GROUP BY combined.user_id
+  HAVING count(*) > 1;
+$;
 REVOKE EXECUTE ON FUNCTION public.diesel_multiple_contracts() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.diesel_multiple_contracts() TO service_role;
 
@@ -321,7 +325,7 @@ BEGIN
     ON CONFLICT (environment, object_id) DO UPDATE SET
       status = excluded.status,
       access_until = CASE WHEN contract.mode = 'payment'
-        THEN coalesce(contract.access_until, excluded.access_until)
+        THEN contract.access_until
         ELSE excluded.access_until END,
       cancel_at_period_end = excluded.cancel_at_period_end, updated_at = now()
     WHERE contract.user_id = excluded.user_id AND contract.plan_code = excluded.plan_code
