@@ -87,6 +87,19 @@ Deno.test("Checkout requires authentication, exact HTTPS origin and a sandbox pr
   assert.equal((await checkout(checkoutReq())).status, 409);
   assert.equal(lastCheckout, undefined);
   price.livemode = false;
+  // A valid sandbox key cannot authorize an altered product, currency or amount.
+  const originalProduct = price.product;
+  price.product = "prod_wrong";
+  assert.equal((await checkout(checkoutReq())).status, 409);
+  price.product = originalProduct;
+  const originalAmount = price.unit_amount;
+  price.unit_amount = 999;
+  assert.equal((await checkout(checkoutReq())).status, 409);
+  price.unit_amount = originalAmount;
+  const originalCurrency = price.currency;
+  price.currency = "usd";
+  assert.equal((await checkout(checkoutReq())).status, 409);
+  price.currency = originalCurrency;
   // Incomplete catalog entries must never create a checkout, even if Stripe has a price.
   const previousAmount = plan.amount_cents;
   const previousPrice = plan.stripe_price_id;
