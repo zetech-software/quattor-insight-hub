@@ -22,6 +22,9 @@ let lastCheckout: URLSearchParams | null;
 let lastKey: string | null;
 let claimResult = "11111111-1111-4111-8111-111111111111";
 let finishStatus: string;
+let mockedRoles = [{ role: "client" }];
+let mockedProfileActive = true;
+let mockedEmailConfirmed = true;
 let handlers: ((req: Request) => Promise<Response>)[] = [];
 Deno.serve = ((handler: (req: Request) => Promise<Response>) => { handlers.push(handler); }) as typeof Deno.serve;
 
@@ -38,9 +41,9 @@ globalThis.fetch = (async (input, init) => {
   const json = (value: unknown) => Response.json(value);
   switch (url.pathname) {
     case "/auth/v1/user":
-      return json({ id: userId, email: "tester@example.invalid", email_confirmed_at: new Date().toISOString() });
-    case "/rest/v1/user_roles": return json([{ role: "client" }]);
-    case "/rest/v1/profiles": return json([{ is_active: true }]);
+      return json({ id: userId, email: "tester@example.invalid", email_confirmed_at: mockedEmailConfirmed ? new Date().toISOString() : null });
+    case "/rest/v1/user_roles": return json(mockedRoles);
+    case "/rest/v1/profiles": return json([{ is_active: mockedProfileActive }]);
     case "/rest/v1/subscription_plans": return json([plan]);
     case "/rest/v1/stripe_contracts": return json([]);
     case "/rest/v1/rpc/claim_stripe_event": return json(claimResult);
@@ -112,6 +115,19 @@ Deno.test("Checkout requires authentication, exact HTTPS origin and a sandbox pr
   Deno.env.set("SUPABASE_URL", `https://${prod}.supabase.co`);
   assert.equal((await checkout(checkoutReq(undefined, "live"))).status, 503);
   Deno.env.set("SUPABASE_URL", `https://${sandbox}.supabase.co`);
+});
+
+Deno.test("Checkout rejects internal, disabled and unconfirmed accounts", async () => {
+  mockedRoles = [{ role: "admin" }, { role: "client" }];
+  assert.equal((await checkout(checkoutReq())).status, 403);
+  mockedRoles = [{ role: "client" }];
+  mockedProfileActive = false;
+  assert.equal((await checkout(checkoutReq())).status, 403);
+  mockedProfileActive = true;
+  mockedEmailConfirmed = false;
+  assert.equal((await checkout(checkoutReq())).status, 401);
+  mockedEmailConfirmed = true;
+  assert.equal((await checkout(checkoutReq())).status, 200);
 });
 
 Deno.test("Checkout switches server-selected modes and reuses an attempt id", async () => {
