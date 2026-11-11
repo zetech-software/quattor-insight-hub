@@ -1,3 +1,4 @@
+import { hasOperationalAccess } from "../_shared/account-access.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -32,6 +33,9 @@ Deno.serve(async (req) => {
     });
     const { data: { user: caller } } = await callerClient.auth.getUser();
     if (!caller) return json({ error: "Não autorizado" }, 401);
+    if (!(await hasOperationalAccess(() => callerClient.rpc("is_account_ready")))) {
+      return json({ error: "Acesso indisponível para esta conta." }, 403);
+    }
 
     // Permissão do chamador: admin, gestão (manager) ou suporte
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -183,6 +187,7 @@ Deno.serve(async (req) => {
 
     return json({ error: "Ação não reconhecida" }, 400);
   } catch (e) {
-    return json({ error: e.message }, 500);
+    console.error("manage-clients failed:", e);
+    return json({ error: "Não foi possível concluir a operação." }, 500);
   }
 });

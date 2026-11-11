@@ -1,3 +1,4 @@
+import { hasOperationalAccess } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { isBillingEnabled } from "../_shared/stripe.ts";
 import { provisionClient } from "../_shared/provisionClient.ts";
@@ -33,6 +34,9 @@ Deno.serve(async (req) => {
     });
     const { data: { user: caller } } = await callerClient.auth.getUser();
     if (!caller) return json({ error: "Não autorizado" }, 401);
+    if (!(await hasOperationalAccess(() => callerClient.rpc("is_account_ready")))) {
+      return json({ error: "Acesso indisponível para esta conta." }, 403);
+    }
 
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", caller.id);

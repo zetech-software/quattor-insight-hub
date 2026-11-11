@@ -44,7 +44,7 @@ export function createStripeClient(env: StripeEnv): Stripe {
 export async function verifyWebhook(
   req: Request,
   env: StripeEnv,
-): Promise<{ id: string; type: string; livemode: boolean; data: { object: any } }> {
+): Promise<{ id: string; type: string; livemode: boolean; data: { object: unknown } }> {
   const signature = req.headers.get("stripe-signature");
   const body = await req.text();
   const secret = env === 'sandbox'

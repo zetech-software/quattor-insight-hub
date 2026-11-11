@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { serializeCsv } from "@/lib/csv";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -84,7 +85,7 @@ const Historico = () => {
       c.data, c.numero_nf || "", c.placa_ct || "",
       c.volume_nf, c.vct ?? "", c.diferenca_volume ?? "", c.situacao || ""
     ]);
-    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+    const csv = serializeCsv([headers, ...rows]);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

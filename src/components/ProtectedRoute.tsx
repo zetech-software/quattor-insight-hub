@@ -25,7 +25,7 @@ export function ProtectedRoute({
   allowPasswordChange,
   allowProfileCompletion,
 }: ProtectedRouteProps) {
-  const { session, role, profile, loading, signOut } = useAuth();
+  const { session, role, profile, loading, authError, signOut, refreshProfile } = useAuth();
 
   const isBlocked = !!session && profile !== null && profile.is_active === false;
 
@@ -53,6 +53,16 @@ export function ProtectedRoute({
 
   if (!session || isBlocked) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (authError || !profile || !role) {
+    return (
+      <div className="min-h-screen flex flex-col gap-4 items-center justify-center bg-background" role="alert">
+        <p>Não foi possível confirmar seu acesso. Tente novamente.</p>
+        <button onClick={() => void refreshProfile()} className="underline">Tentar novamente</button>
+        <button onClick={() => void signOut()} className="underline">Sair</button>
+      </div>
+    );
   }
 
   if (profile?.must_change_password && !allowPasswordChange) {
