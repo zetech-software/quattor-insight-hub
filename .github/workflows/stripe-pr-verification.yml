@@ -60,7 +60,7 @@ jobs:
         with:
           version: latest
       - name: Start disposable local Supabase
-        run: supabase start
+        run: supabase start -x mailpit
       - name: Apply migrations to local database only
         run: supabase db reset --local --no-seed
       - name: Stripe contract and access regressions
