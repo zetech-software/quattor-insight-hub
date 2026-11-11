@@ -42,7 +42,8 @@ export function saveErrorMessage(message: string | undefined): string {
   if (message?.includes("diesel_access_denied")) {
     return "Sua conta não possui plano ativo da Calculadora Diesel.";
   }
-  return message || "Não foi possível salvar o cálculo.";
+  // Não exponha erros SQL, detalhes internos ou dados do banco ao cliente.
+  return "Não foi possível salvar o cálculo. Tente novamente.";
 }
 
 /** Gera o identificador da operação; reenvios usam o mesmo valor. */
