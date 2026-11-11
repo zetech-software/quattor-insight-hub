@@ -29,5 +29,8 @@ describe("diesel quota display", () => {
   it("maps database refusals to client messages", () => {
     expect(saveErrorMessage("diesel_quota_exceeded")).toMatch(/Limite mensal/);
     expect(saveErrorMessage("diesel_access_denied")).toMatch(/plano ativo/);
+    expect(saveErrorMessage("relation internal_finance_accounts does not exist")).toBe("Não foi possível salvar o cálculo. Tente novamente.");
+    expect(saveErrorMessage("duplicate key value violates unique constraint secret_internal_index")).not.toMatch(/secret_internal_index/);
+    expect(saveErrorMessage(undefined)).toBe("Não foi possível salvar o cálculo. Tente novamente.");
   });
 });
