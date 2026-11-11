@@ -1,208 +1,172 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { type StripeEnv, catalogEnvironment, isBillingEnabled, verifyWebhook } from "../_shared/stripe.ts";
-import { provisionClient } from "../_shared/provisionClient.ts";
+import {
+  canProcessBilling, catalogEnvironment, createStripeClient,
+  type Stripe, verifyWebhook,
+} from "../_shared/stripe.ts";
+import { adminClient, assertNotInternalAccount } from "../_shared/provisionClient.ts";
 
-let _supabase: ReturnType<typeof createClient> | null = null;
-function getSupabase() {
-  if (!_supabase) {
-    _supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+const idOf = (object: string | { id: string } | null | undefined) =>
+  typeof object === "string" ? object : object?.id ?? null;
+
+type ContractTarget = { id: string; mode: "payment" | "subscription" };
+
+function contractTarget(event: Stripe.Event): ContractTarget | null {
+  switch (event.type) {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
+    case "checkout.session.async_payment_failed":
+    case "checkout.session.expired": {
+      const session = event.data.object;
+      if (session.mode === "payment") return { id: session.id, mode: "payment" };
+      const id = idOf(session.subscription);
+      return id ? { id, mode: "subscription" } : null;
+    }
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted":
+    case "customer.subscription.paused":
+    case "customer.subscription.resumed":
+      return { id: event.data.object.id, mode: "subscription" };
+    case "invoice.paid":
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as Stripe.Invoice & { subscription?: string };
+      const id = idOf(invoice.parent?.subscription_details?.subscription ?? invoice.subscription);
+      return id ? { id, mode: "subscription" } : null;
+    }
+    default:
+      return null;
   }
-  return _supabase;
 }
 
-const toIso = (seconds: unknown) =>
-  typeof seconds === "number" ? new Date(seconds * 1000).toISOString() : null;
+type Database = ReturnType<typeof adminClient>;
+type CatalogEnv = ReturnType<typeof catalogEnvironment>;
 
-async function updateSubscriptionFromStripe(subscription: any, env: "test" | "production") {
-  const item = subscription.items?.data?.[0];
-  const periodStart = item?.current_period_start ?? subscription.current_period_start;
-  const periodEnd = item?.current_period_end ?? subscription.current_period_end;
+async function reconcile(db: Database, stripe: Stripe, environment: CatalogEnv, target: ContractTarget) {
+  const live = environment === "production";
+  let metadata: Stripe.Metadata | null;
+  let customerId: string | null;
+  let price: Stripe.Price | null;
+  let status: string;
+  let accessUntil: number | null = null;
+  let cancelAtPeriodEnd = false;
 
-  const statusMap: Record<string, string> = {
-    trialing: "trial",
-    active: "active",
-    past_due: "active",
-    canceled: "cancelled",
-    unpaid: "expired",
-    incomplete: "trial",
-    incomplete_expired: "expired",
-    paused: "expired",
+  if (target.mode === "payment") {
+    const session = await stripe.checkout.sessions.retrieve(target.id, { expand: ["line_items"] });
+    if (session.livemode !== live || session.mode !== "payment") throw new Error("Checkout mode mismatch");
+    metadata = session.metadata;
+    if (metadata?.integration !== "quattor" || session.client_reference_id !== metadata.userId) return null;
+    customerId = idOf(session.customer);
+    const items = session.line_items;
+    if (items?.has_more || items?.data.length !== 1 || items.data[0].quantity !== 1) {
+      throw new Error("Unexpected Checkout items");
+    }
+    price = items.data[0].price ?? null;
+    // Unpaid, expired and async-failed sessions confer no entitlement.
+    if (session.status !== "complete" || session.payment_status !== "paid") return null;
+    status = "paid";
+  } else {
+    const sub = await stripe.subscriptions.retrieve(target.id, { expand: ["latest_invoice"] });
+    if (sub.livemode !== live) throw new Error("Subscription mode mismatch");
+    metadata = sub.metadata;
+    if (metadata.integration !== "quattor") {
+      const { data: legacy, error } = await db.from("subscriptions")
+        .select("user_id, plan_code").eq("stripe_subscription_id", sub.id)
+        .eq("environment", environment).maybeSingle();
+      if (error) throw error;
+      if (!legacy?.plan_code) return null;
+      metadata = { userId: legacy.user_id, planCode: legacy.plan_code };
+    }
+    if (sub.items.has_more || sub.items.data.length !== 1) throw new Error("Unexpected subscription items");
+    const item = sub.items.data[0];
+    const invoice = typeof sub.latest_invoice === "object" ? sub.latest_invoice : null;
+    customerId = idOf(sub.customer);
+    price = item.price;
+    status = sub.status;
+    cancelAtPeriodEnd = sub.cancel_at_period_end;
+    if (sub.pause_collection) {
+      status = "paused";
+    } else if (status === "active" && invoice?.status !== "paid") {
+      status = invoice?.attempted ? "past_due" : "awaiting_payment";
+    }
+    if (status === "active") accessUntil = item.current_period_end;
+    if (status === "trialing") accessUntil = Math.min(item.current_period_end, sub.trial_end ?? 0);
+    if (accessUntil !== null && sub.cancel_at !== null) accessUntil = Math.min(accessUntil, sub.cancel_at);
+  }
+
+  const userId = metadata?.userId;
+  const planCode = metadata?.planCode;
+  if (!userId || !planCode || !price || price.livemode !== live) throw new Error("Invalid Stripe contract");
+  await assertNotInternalAccount(db, userId);
+
+  const productId = idOf(price.product);
+  const { data: existing, error: existingError } = await db.from("stripe_contracts")
+    .select("user_id, plan_code, mode, price_id, product_id").eq("environment", environment)
+    .eq("object_id", target.id).maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing) {
+    const { data: plan, error } = await db.from("subscription_plans")
+      .select("stripe_price_id, stripe_product_id, checkout_mode").eq("environment", environment)
+      .eq("code", planCode).maybeSingle();
+    if (error) throw error;
+    if (plan?.stripe_price_id !== price.id || plan?.stripe_product_id !== productId
+      || plan?.checkout_mode !== target.mode) throw new Error("Stripe catalog mismatch");
+  }
+  return {
+    user_id: userId, plan_code: planCode, mode: target.mode, customer_id: customerId,
+    price_id: price.id, product_id: productId, status, cancel_at_period_end: cancelAtPeriodEnd,
+    access_until: accessUntil ? new Date(accessUntil * 1000).toISOString() : null,
   };
-
-  await getSupabase()
-    .from("subscriptions")
-    .update({
-      status: statusMap[subscription.status] ?? "active",
-      billing_period: item?.price?.recurring?.interval === "year" ? "anual" : "mensal",
-      stripe_customer_id: subscription.customer ?? null,
-      stripe_product_id: item?.price?.product ?? null,
-      stripe_price_id: item?.price?.lookup_key ?? item?.price?.id ?? null,
-      current_period_start: toIso(periodStart),
-      current_period_end: toIso(periodEnd),
-      cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-      cancelled_at: subscription.canceled_at ? toIso(subscription.canceled_at) : null,
-      environment: env,
-    })
-    .eq("stripe_subscription_id", subscription.id);
 }
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  const env = new URL(req.url).searchParams.get("env");
+  if (env !== "sandbox" && env !== "live") return new Response("Invalid environment", { status: 400 });
 
-  const rawEnv = new URL(req.url).searchParams.get("env");
-  if (rawEnv !== "sandbox" && rawEnv !== "live") {
-    console.error("webhook com env inválido:", rawEnv);
-    return new Response(JSON.stringify({ received: true, ignored: "invalid env" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-  const env: StripeEnv = rawEnv;
-  const catalogEnv = catalogEnvironment(env);
-
+  let event: Stripe.Event;
   try {
-    const event = await verifyWebhook(req, env);
+    event = await verifyWebhook(req, env);
+  } catch {
+    return new Response("Invalid Stripe signature", { status: 400 });
+  }
+  if (event.livemode !== (env === "live")) return new Response("Stripe mode mismatch", { status: 400 });
 
-    // Teste e produção nunca se misturam.
-    const eventIsLive = event.livemode === true;
-    if (eventIsLive !== (env === "live")) {
-      console.error("webhook de ambiente divergente:", event.id, event.livemode);
-      return new Response(JSON.stringify({ received: true, ignored: "env mismatch" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+  const target = contractTarget(event);
+  if (!target) return Response.json({ received: true });
+  if (!canProcessBilling(env)) return new Response("Billing disabled", { status: 503 });
 
-    // Idempotência com rastreabilidade: cada evento é registrado uma vez.
-    // Um evento que falhou NÃO fica bloqueado: ele volta para 'pendente'
-    // e é processado de novo quando o aviso é reenviado.
-    const now = () => new Date().toISOString();
-    const { error: insertError } = await getSupabase().from("payment_events").insert({
-      event_id: event.id,
-      event_type: event.type,
-      environment: catalogEnv,
-      payload: event as unknown as Record<string, unknown>,
-      status: "pendente",
-      received_at: now(),
-      attempts: 0,
+  const db = adminClient();
+  const environment = catalogEnvironment(env);
+  const identity = { p_environment: environment, p_object_id: target.id, p_event_id: event.id };
+  try {
+    const { data: token, error } = await db.rpc("claim_stripe_event", {
+      ...identity, p_event_type: event.type,
     });
+    if (error || !token) throw error ?? new Error("Missing lease token");
+    if (token === "duplicate") return Response.json({ received: true, duplicate: true });
+    if (token === "busy") return new Response("Retry Stripe event", { status: 503 });
 
-    const isDuplicate = !!insertError &&
-      (insertError.code === "23505" || (insertError.message ?? "").includes("duplicate key"));
-
-    if (insertError && !isDuplicate) {
-      console.error("payment_events insert failed:", insertError.code, insertError.message);
-    }
-
-    if (isDuplicate) {
-      const { data: existingEvent } = await getSupabase()
-        .from("payment_events")
-        .select("status, attempts")
-        .eq("event_id", event.id)
-        .maybeSingle();
-
-      const status = (existingEvent as { status?: string } | null)?.status;
-      if (status !== "falha") {
-        // Já processado, recusado ou em andamento: nada a repetir.
-        return new Response(JSON.stringify({ received: true, duplicate: true, status: status ?? null }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      // Reprocessamento seguro de um evento que falhou.
-      await getSupabase()
-        .from("payment_events")
-        .update({ status: "pendente", error: null })
-        .eq("event_id", event.id);
-    }
-
-    const finish = async (patch: Record<string, unknown>) => {
-      await getSupabase().from("payment_events").update(patch).eq("event_id", event.id);
-    };
-
-    // Enquanto a homologação comercial não terminar, o evento é apenas registrado.
-    if (!isBillingEnabled()) {
-      await finish({ status: "ignorado", processed_at: now(), error: null });
-      console.log("evento registrado sem efeito (cobrança desligada):", event.type);
-      return new Response(JSON.stringify({ received: true, billing: "disabled" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
+    let contract;
+    let refused = false;
     try {
-      switch (event.type) {
-        case "checkout.session.completed":
-        case "checkout.session.async_payment_succeeded": {
-          const session: any = event.data.object;
-          if (session.payment_status !== "unpaid") {
-            const email = session.customer_details?.email ?? session.customer_email ?? "";
-            if (email) {
-              await provisionClient({
-                email,
-                fullName: session.customer_details?.name ?? null,
-                planCode: session.metadata?.planCode ?? null,
-                environment: catalogEnv,
-                stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
-                stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : null,
-                status: "active",
-              });
-            } else {
-              console.error("checkout sem e-mail confirmado:", session.id);
-            }
-          }
-          break;
-        }
-        case "customer.subscription.created":
-        case "customer.subscription.updated":
-          await updateSubscriptionFromStripe(event.data.object, catalogEnv);
-          break;
-        case "customer.subscription.deleted":
-          await getSupabase()
-            .from("subscriptions")
-            .update({ status: "cancelled", cancelled_at: now() })
-            .eq("stripe_subscription_id", (event.data.object as any).id);
-          break;
-        case "invoice.paid":
-        case "invoice.payment_failed":
-        case "checkout.session.async_payment_failed":
-          console.log("evento de fatura registrado:", event.type);
-          break;
-        default:
-          console.log("evento não tratado:", event.type);
-      }
-    } catch (handlerError) {
-      const err = handlerError as Error & { code?: string };
-      // Conta interna: recusa definitiva e registrada; reenviar não resolve.
-      if (err.code === "INTERNAL_ACCOUNT") {
-        await finish({ status: "recusado", processed_at: now(), error: err.message });
-        console.error("provisionamento recusado (conta interna):", event.id, err.message);
-        return new Response(JSON.stringify({ received: true, refused: "internal_account" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+      contract = await reconcile(db, createStripeClient(env), environment, target);
+    } catch (error) {
+      refused = (error as { code?: string }).code === "INTERNAL_ACCOUNT";
+      if (!refused) {
+        const { error: finishError } = await db.rpc("finish_stripe_event", {
+          ...identity, p_token: token, p_status: "falha", p_error: "stripe_reconciliation_failed",
         });
+        if (finishError) throw finishError;
+        throw error;
       }
-      // Falha temporária: fica marcada como falha, com o erro, para investigação
-      // e reprocessamento quando o aviso for reenviado.
-      await finish({ status: "falha", error: err.message, attempts: 1 });
-      console.error("falha ao processar evento:", event.id, err.message);
-      return new Response("Webhook processing error", { status: 500 });
     }
-
-    await finish({ status: "processado", processed_at: now(), error: null });
-
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    const { error: finishError } = await db.rpc("finish_stripe_event", {
+      ...identity, p_token: token, p_status: refused ? "recusado" : "processado",
+      p_error: refused ? "internal_account" : null, p_contract: contract ?? null,
     });
-
-  } catch (e) {
-    console.error("webhook error:", (e as Error).message);
-    return new Response("Webhook error", { status: 400 });
+    if (finishError) throw finishError;
+    return Response.json({ received: true });
+  } catch (error) {
+    console.error("Stripe webhook failed", event.id, event.type, (error as { code?: string }).code ?? "unexpected");
+    return new Response("Webhook processing error", { status: 500 });
   }
 });

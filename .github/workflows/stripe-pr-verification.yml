@@ -1,0 +1,77 @@
+name: Stripe PR verification
+
+on:
+  push:
+    branches:
+      - fix/stripe-homologation
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stripe-pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend tests, TypeScript and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Unit tests
+        run: bunx vitest run
+      - name: TypeScript check
+        run: bunx tsc --noEmit -p tsconfig.app.json
+      - name: Production build (artifact only, not deployed)
+        run: bun run build
+
+  stripe-deno:
+    name: Stripe mocked webhook tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Deno webhook tests
+        run: deno test --allow-env --node-modules-dir=none supabase/tests/stripe_flows_test.ts
+
+  sql-disposable:
+    name: Disposable local Supabase SQL checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # This job never links to, or authenticates with, any hosted Supabase.
+      SUPABASE_ACCESS_TOKEN: ""
+      PGURI: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start disposable local Supabase
+        run: supabase start -x mailpit
+      - name: Apply migrations to local database only
+        run: supabase db reset --local --no-seed
+      - name: Stripe contract and access regressions
+        run: psql "$PGURI" -X -v ON_ERROR_STOP=1 -f supabase/tests/stripe_contracts.sql
+      - name: Diesel quotas, product access and expiry
+        run: psql "$PGURI" -X -v ON_ERROR_STOP=1 -f supabase/tests/diesel_quota.sql
+      - name: Concurrent writes against disposable database
+        env:
+          DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          QUATTOR_DISPOSABLE_DB: "YES"
+        run: bash supabase/tests/diesel_quota_concurrency.sh
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup

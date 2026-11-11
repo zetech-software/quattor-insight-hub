@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, ShieldCheck } from "lucide-react";
 import logo from "@/assets/qu4ttuor-logo.svg";
@@ -21,6 +23,29 @@ const benefits = [
 ];
 
 const Assinatura = () => {
+  const { session } = useAuth();
+  const [pending, setPending] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [attempts] = useState(() => new Map<string, string>());
+  const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
+  const startCheckout = async (plan: PublicPlan) => {
+    setPending(plan.code);
+    setCheckoutError("");
+    const requestId = attempts.get(plan.code) ?? crypto.randomUUID();
+    attempts.set(plan.code, requestId);
+    try {
+      const { data, error } = await supabase.functions.invoke<{ checkoutUrl: string }>("create-checkout", {
+        body: { planCode: plan.code, requestId, hosted: true, returnUrl: `${location.origin}/assinatura` },
+      });
+      if (error || !data?.checkoutUrl || new URL(data.checkoutUrl).origin !== "https://checkout.stripe.com") {
+        throw new Error("Checkout indisponível");
+      }
+      window.location.assign(data.checkoutUrl);
+    } catch {
+      setCheckoutError("Não foi possível abrir o pagamento. Tente novamente.");
+      setPending(null);
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [billingReady, setBillingReady] = useState(false);
@@ -40,14 +65,14 @@ const Assinatura = () => {
   }, []);
 
   const periodsAvailable = useMemo(
-    () => Array.from(new Set(plans.map((p) => p.billing_period))),
+    () => Array.from(new Set(plans.filter((p) => p.checkout_mode !== "payment").map((p) => p.billing_period))),
     [plans],
   );
 
   const visiblePlans = useMemo(
     () =>
       periodsAvailable.length > 1
-        ? plans.filter((p) => p.billing_period === period)
+        ? plans.filter((p) => p.checkout_mode === "payment" || p.billing_period === period)
         : plans,
     [plans, period, periodsAvailable],
   );
@@ -85,6 +110,11 @@ const Assinatura = () => {
         </section>
 
         <section className="space-y-6">
+          {checkoutError && <p role="alert">{checkoutError}</p>}
+          {checkoutStatus === "return" && (
+            <p role="status">A liberação depende da confirmação do pagamento pela Stripe.</p>
+          )}
+          {checkoutStatus === "cancelled" && <p role="status">Checkout cancelado.</p>}
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold font-heading">Planos</h2>
             {periodsAvailable.length > 1 && (
@@ -136,7 +166,7 @@ const Assinatura = () => {
                       <p className="text-2xl font-bold font-heading">
                         {price ?? "—"}
                         <span className="text-sm font-normal text-muted-foreground">
-                          {plan.billing_period === "anual" ? " /ano" : " /mês"}
+                          {plan.checkout_mode === "payment" ? " pagamento único" : plan.billing_period === "anual" ? " /ano" : " /mês"}
                         </span>
                       </p>
                     </CardHeader>
@@ -149,9 +179,15 @@ const Assinatura = () => {
                           </li>
                         ))}
                       </ul>
-                      <Button className="w-full" disabled={!billingReady}>
-                        {billingReady ? "Assinar" : "Assinatura em breve"}
-                      </Button>
+                      {billingReady && !session ? (
+                        <Button asChild className="w-full"><Link to="/login">Entrar para contratar</Link></Button>
+                      ) : (
+                        <Button className="w-full" disabled={!billingReady || pending !== null}
+                          onClick={() => void startCheckout(plan)}>
+                          {pending === plan.code ? "Abrindo pagamento..." : !billingReady ? "Contratação em breve"
+                            : plan.checkout_mode === "payment" ? "Comprar minicurso" : "Assinar"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 );

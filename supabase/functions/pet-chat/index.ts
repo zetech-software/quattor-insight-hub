@@ -1,5 +1,5 @@
 import { convertToModelMessages, streamText, type UIMessage } from "npm:ai";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
@@ -82,15 +82,25 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
-    const { data: roleRows } = await userClient
+    const { data: roleRows, error: rolesError } = await userClient
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id);
+    if (rolesError) return new Response("Access verification unavailable", { status: 503, headers: corsHeaders });
     if ((roleRows ?? []).some((r: { role: string }) => r.role === "admin")) {
       return new Response(
         JSON.stringify({ error: "A Regina não está disponível para o perfil administrador." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    if (!(roleRows ?? []).some((r: { role: string }) => r.role === "manager" || r.role === "support")) {
+      const { data: hasAccess, error: accessError } = await userClient.rpc("has_stripe_access", {});
+      if (accessError || !hasAccess) {
+        return new Response(JSON.stringify({ error: "Acesso à Regina indisponível." }), {
+          status: accessError ? 503 : 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const key = Deno.env.get("LOVABLE_API_KEY");

@@ -46,10 +46,10 @@ const App = () => (
                 <Route path="/definir-nova-senha" element={<ProtectedRoute allowPasswordChange><DefinirSenha /></ProtectedRoute>} />
                 <Route path="/definir-senha" element={<Navigate to="/definir-nova-senha" replace />} />
                 <Route path="/completar-cadastro" element={<ProtectedRoute allowProfileCompletion><CompletarCadastro /></ProtectedRoute>} />
-                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/" element={<ProtectedRoute requiresBillingAccess><Index /></ProtectedRoute>} />
 
-                <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
-                <Route path="/regina" element={<ProtectedRoute blockedRoles={["admin"]}><Regina /></ProtectedRoute>} />
+                <Route path="/historico" element={<ProtectedRoute requiresBillingAccess><Historico /></ProtectedRoute>} />
+                <Route path="/regina" element={<ProtectedRoute requiresBillingAccess blockedRoles={["admin"]}><Regina /></ProtectedRoute>} />
                 <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
                 <Route path="/pet" element={<Navigate to="/regina" replace />} />
                 <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "manager", "support"]}><AdminDashboard /></ProtectedRoute>} />
